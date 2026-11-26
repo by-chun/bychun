@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -874,7 +874,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget _inputRow(AgentEngine engine) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      child: GlassContainer.card(
+      child: lg.GlassContainer.card(
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Column(
