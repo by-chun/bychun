@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+
+  .bar { display: flex; align-items: center; gap: 10px; padding: 2px 14px 10px; }
+  .bar .ham { font-size: 18px; color: #64748b; }
+  .bar .t { flex: 1; }
+  .bar .t b { display: block; font-size: 14.5px; color: #0f172a; font-weight: 800; }
+  .bar .t span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 1px; }
+  .bar .new { width: 30px; height: 30px; border-radius: 9px; background: #f4f7fb;
+              color: #64748b; display: flex; align-items: center; justify-content: center;
+              font-size: 15px; }
+
+  .chat { flex: 1; padding: 4px 14px 0; overflow: hidden; }
+  .time { text-align: center; font-size: 9.5px; color: #b6c0cd; margin-bottom: 10px; }
+
+  .me { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .me .b { background: #2563eb; color: #fff; font-size: 13px; padding: 9px 13px;
+           border-radius: 15px 15px 4px 15px; max-width: 80%; line-height: 1.5; }
+
+  .ai { display: flex; gap: 8px; margin-bottom: 12px; }
+  .av { width: 26px; height: 26px; border-radius: 50%; background: #eaf1fe; color: #2563eb;
+        font-size: 11px; font-weight: 700; display: flex; align-items: center;
+        justify-content: center; flex: none; }
+  .stack { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+  .bubble { background: #f7f9fc; border-radius: 14px; padding: 10px 13px; font-size: 13px;
+            color: #334155; line-height: 1.55; }
+
+  /* 工具调用块 */
+  .tool { border: 1px solid #eef2f7; border-radius: 12px; overflow: hidden; background: #fff; }
+  .thead { display: flex; align-items: center; gap: 7px; padding: 8px 10px; }
+  .tdot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex: none; }
+  .thead b { font-size: 10.5px; color: #0f172a; font-weight: 600;
+             font-family: ui-monospace, monospace; }
+  .thead .st { font-size: 8.5px; color: #16a34a; background: rgba(22,163,74,.1);
+               padding: 1px 5px; border-radius: 4px; }
+  .thead .sp { flex: 1; }
+  .thead .ms { font-size: 8.5px; color: #b6c0cd; font-family: ui-monospace, monospace; }
+  .tcode { background: #0f172a; padding: 9px 11px; font-family: ui-monospace, monospace;
+           font-size: 9.5px; color: #cbd5e1; line-height: 1.7; }
+  .tcode .p { color: #4ade80; }
+  .tcode .o { color: #94a3b8; }
+
+  .doing { display: flex; align-items: center; gap: 7px; padding: 2px 2px 0; }
+  .sp3 { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #dbe2ea;
+         border-top-color: #2563eb; }
+  .doing span { font-size: 10px; color: #94a3b8; }
+
+  /* 输入区 */
+  .inputbar { border-top: 1px solid #f1f4f8; padding: 8px 12px 14px; }
+  .chips { display: flex; gap: 6px; padding: 0 2px 8px; overflow: hidden; }
+  .chip { flex: none; font-size: 9.5px; padding: 4px 9px; border-radius: 999px;
+          background: #f4f7fb; color: #64748b; }
+  .chip.on { background: #eaf1fe; color: #2563eb; font-weight: 600; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .plus { width: 34px; height: 34px; border-radius: 10px; background: #f4f7fb;
+          color: #64748b; display: flex; align-items: center; justify-content: center;
+          font-size: 17px; flex: none; }
+  .f { flex: 1; height: 36px; border-radius: 18px; background: #f4f7fb; color: #94a3b8;
+       font-size: 12.5px; display: flex; align-items: center; padding: 0 13px; }
+  .snd { width: 36px; height: 36px; border-radius: 50%; background: #2563eb;
+         display: flex; align-items: center; justify-content: center; flex: none; }
+  .snd:after { content: ""; margin-left: 2px; border-left: 12px solid #fff;
+               border-top: 7px solid transparent; border-bottom: 7px solid transparent; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="status"><span>00:34</span><span>5G ▮▮▮ 84%</span></div>
+
+    <div class="bar">
+      <span class="ham">☰</span>
+      <div class="t"><b>下载视频</b><span>alpine · 已连接</span></div>
+      <span class="new">＋</span>
+    </div>
+
+    <div class="chat">
+      <div class="time">今天 00:33</div>
+
+      <div class="me"><div class="b">把这个视频下下来，存到视频文件夹</div></div>
+
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="bubble">先确认下载工具在不在：</div>
+
+          <div class="tool">
+            <div class="thead">
+              <div class="tdot"></div>
+              <b>apk add yt-dlp</b>
+              <span class="st">完成</span>
+              <div class="sp"></div>
+              <span class="ms">2.1s</span>
+            </div>
+            <div class="tcode">
+              <span class="p">(1/3)</span> Installing yt-dlp…<br>
+              <span class="o">OK: 62 MiB in 41 packages</span>
+            </div>
+          </div>
+
+          <div class="bubble">工具就绪，开始下载（1080p）：</div>
+
+          <div class="tool">
+            <div class="thead">
+              <div class="tdot"></div>
+              <b>yt-dlp -f 1080p</b>
+              <span class="st">运行中</span>
+              <div class="sp"></div>
+              <span class="ms">38%</span>
+            </div>
+            <div class="tcode">
+              <span class="o">[download]</span> 38.2% of 214.37MiB<br>
+              <span class="o">[download]</span> ETA 00:42
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="me"><div class="b">顺便把下载命令存成脚本</div></div>
+
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="doing"><div class="sp3"></div><span>正在写 /sdcard/G/plugins/视频/download-yt.sh…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="chips">
+        <div class="chip on">BUILD</div>
+        <div class="chip">模型 gpt-4o</div>
+        <div class="chip">alpine</div>
+        <div class="chip">＋</div>
+      </div>
+      <div class="row">
+        <div class="plus">＋</div>
+        <div class="f">发消息…</div>
+        <div class="snd"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

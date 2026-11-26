@@ -1,0 +1,829 @@
+From 7541a2d3d24aa4a0ada4f91bf25f9fb0864a71f2 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 20:11:43 +0800
+Subject: [PATCH] =?UTF-8?q?refactor(plugin):=20=E6=8F=92=E4=BB=B6=E6=93=8D?=
+ =?UTF-8?q?=E4=BD=9C=E5=85=A8=E9=83=A8=E5=9C=A8=E6=8A=BD=E5=B1=89=E6=A0=91?=
+ =?UTF-8?q?=E9=87=8C=E5=86=85=E8=81=94=EF=BC=8C=E4=B8=8D=E5=86=8D=E5=BC=B9?=
+ =?UTF-8?q?=E7=AA=97?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- PluginViewPage 内联化：操作行（运行/编辑/设为 XP 模块）+ 下方内容区
+- 运行输出显示在展开区里的深色日志块，不弹对话框
+- 编辑改为展开区内嵌 TextField + 保存/取消，不再弹编辑框
+- 设为 XP 模块改为展开区里的应用勾选列表（多选 + 确定），不再弹窗
+- 抽屉长按菜单只留重命名/发到对话/删除，删除重复的运行/编辑/XP 逻辑
+- 版本 6.10.6+706（仅本地）
+---
+ lib/pages/plugins_page.dart  | 461 +++++++++++++++++++++--------------
+ lib/widgets/tree_drawer.dart | 202 ---------------
+ pubspec.yaml                 |   2 +-
+ 3 files changed, 285 insertions(+), 380 deletions(-)
+
+diff --git a/lib/pages/plugins_page.dart b/lib/pages/plugins_page.dart
+index aad07c1..a3c23fe 100644
+--- a/lib/pages/plugins_page.dart
++++ b/lib/pages/plugins_page.dart
+@@ -2,20 +2,19 @@ import 'package:flutter/material.dart';
+ import 'package:flutter/services.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+-import '../theme/app_theme.dart';
+-import '../theme/glass.dart';
+-import '../theme/glass_dialog.dart';
++import '../agent/xposed_store.dart';
+ import '../native/native_bridge.dart';
+ import '../state/chat_refs.dart';
+-import '../agent/xposed_store.dart';
++import '../theme/app_theme.dart';
+ import 'settings_page.dart' show embedShell;
+ 
+-/// 文件详情：按扩展名决定能做什么。
++/// 文件详情：按扩展名决定能做什么。全部在展开区里操作，不弹页。
+ class PluginViewPage extends ConsumerStatefulWidget {
+   final String path;
+   final String name;
+   final bool embedded;
+   const PluginViewPage({super.key, required this.path, required this.name, this.embedded = false});
++
+   @override
+   ConsumerState<PluginViewPage> createState() => _PluginViewPageState();
+ }
+@@ -23,8 +22,16 @@ class PluginViewPage extends ConsumerStatefulWidget {
+ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+   String? _content;
+   bool _loading = true;
++
++  String? _out;
++  bool _editing = false;
++  final _editCtrl = TextEditingController();
++
+   bool _xposed = false;
+   List<String> _xpTargets = const [];
++  bool _xpPicking = false;
++  final Set<String> _xpSel = {};
++  List<Map<String, dynamic>>? _apps;
+ 
+   String get _ext {
+     final n = widget.name;
+@@ -42,6 +49,8 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+ 
+   bool get _runnable => _interp != null;
+ 
++  String get _q => widget.path;
++
+   @override
+   void initState() {
+     super.initState();
+@@ -49,6 +58,21 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+     _loadXp();
+   }
+ 
++  @override
++  void dispose() {
++    _editCtrl.dispose();
++    super.dispose();
++  }
++
++  Future<void> _load() async {
++    final r = await NativeBridge.exec("head -c 200000 '${_q.replaceAll("'", "'\\''")}'");
++    if (!mounted) return;
++    setState(() {
++      _content = r.ok ? r.stdout : (r.stderr.isEmpty ? '（无法读取）' : r.stderr);
++      _loading = false;
++    });
++  }
++
+   Future<void> _loadXp() async {
+     final list = await XposedStore.load();
+     final hit = list.where((s) => s.name == widget.name).toList();
+@@ -59,72 +83,60 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+     });
+   }
+ 
+-  Future<void> _removeXposed() async {
+-    final list = await XposedStore.load();
+-    list.removeWhere((s) => s.name == widget.name);
+-    await XposedStore.save(list);
+-    await _loadXp();
++  Future<void> _run() async {
++    final interp = _interp;
++    if (interp == null) return;
++    setState(() => _out = '运行中…');
++    final r = await NativeBridge.exec("$interp '${_q.replaceAll("'", "'\\''")}'", timeout: 60);
++    if (!mounted) return;
++    final text = '${r.stdout}${r.stderr}'.trim();
++    setState(() => _out = '[exit ${r.code}]\n${text.isEmpty ? '（无输出）' : text}');
+   }
+ 
+-  Future<void> _load() async {
+-    final r = await NativeBridge.exec("head -c 200000 '${widget.path.replaceAll("'", "'\\''")}'");
+-    if (mounted) {
+-      setState(() {
+-        _content = r.ok ? r.stdout : (r.stderr.isEmpty ? '（无法读取）' : r.stderr);
+-        _loading = false;
+-      });
+-    }
++  void _startEdit() {
++    _editCtrl.text = _content ?? '';
++    setState(() {
++      _editing = true;
++      _xpPicking = false;
++    });
+   }
+ 
+-  Future<void> _run() async {
+-    final interp = _interp;
+-    if (interp == null) return;
+-    final ok = await showGlassDialog<bool>(
+-      context: context,
+-      title: '运行 ${widget.name}',
+-      content: Text('执行：$interp ${widget.path}', style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+-      confirmText: '运行',
+-    );
+-    if (ok != true) return;
+-    final r = await NativeBridge.exec("$interp '${widget.path.replaceAll("'", "'\\''")}'", timeout: 60);
++  Future<void> _saveEdit() async {
++    final text = _editCtrl.text;
++    await NativeBridge.exec("cat > '${_q.replaceAll("'", "'\\''")}' << 'GEOF'\n$text\nGEOF");
+     if (!mounted) return;
+-    showDialog<void>(
+-      context: context,
+-      builder: (ctx) => AlertDialog(
+-        backgroundColor: Colors.white,
+-        title: Text('exit ${r.code}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+-        content: SingleChildScrollView(
+-          child: Text(
+-            '${r.stdout}${r.stderr}'.trim().isEmpty ? '（无输出）' : '${r.stdout}${r.stderr}'.trim(),
+-            style: const TextStyle(fontSize: 11, fontFamily: 'monospace', height: 1.5),
+-          ),
+-        ),
+-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭'))],
+-      ),
+-    );
++    setState(() => _editing = false);
++    await _load();
+   }
+ 
+-  Future<void> _setXposed() async {
+-    final t = TextEditingController();
+-    final ok = await showGlassDialog<bool>(
+-      context: context,
+-      title: '设为 Xposed 脚本',
+-      content: Column(
+-        mainAxisSize: MainAxisSize.min,
+-        crossAxisAlignment: CrossAxisAlignment.start,
+-        children: [
+-          const Text('目标包名，多个用逗号分隔', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-          const SizedBox(height: 6),
+-          TextField(controller: t, decoration: const InputDecoration(hintText: 'com.example.app')),
+-        ],
+-      ),
+-      confirmText: '保存',
+-    );
+-    if (ok != true) return;
+-    final targets = t.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+-    if (targets.isEmpty) return;
++  Future<void> _startXp() async {
++    if (_xposed) {
++      await _removeXposed();
++      return;
++    }
++    final apps = _apps ?? await NativeBridge.listApps();
++    if (!mounted) return;
++    if (apps.isEmpty) {
++      setState(() => _out = '读不到应用列表（需存储权限）');
++      return;
++    }
++    setState(() {
++      _apps = apps;
++      _xpPicking = true;
++      _editing = false;
++      _xpSel
++        ..clear()
++        ..addAll(_xpTargets);
++    });
++  }
++
++  Future<void> _confirmXp() async {
++    if (_xpSel.isEmpty) {
++      setState(() => _out = '先勾选目标应用');
++      return;
++    }
+     final list = await XposedStore.load();
+-    final item = XposedScript(name: widget.name, targets: targets, code: _content ?? '');
++    final item = XposedScript(name: widget.name, targets: _xpSel.toList(), code: _content ?? '');
+     final i = list.indexWhere((s) => s.name == widget.name);
+     if (i >= 0) {
+       list[i] = item;
+@@ -134,38 +146,19 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+     await XposedStore.save(list);
+     await _loadXp();
+     if (!mounted) return;
+-    ScaffoldMessenger.of(context)
+-        .showSnackBar(const SnackBar(content: Text('已保存，重启目标应用生效')));
++    setState(() {
++      _xpPicking = false;
++      _out = '已登记为 Xposed 模块，重启目标应用生效';
++    });
+   }
+ 
+-  Future<void> _edit() async {
+-    final c = TextEditingController(text: _content ?? '');
+-    final ok = await showDialog<bool>(
+-      context: context,
+-      builder: (ctx) => AlertDialog(
+-        backgroundColor: Colors.white,
+-        title: const Text('编辑', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+-        content: SizedBox(
+-          width: double.maxFinite,
+-          height: 320,
+-          child: TextField(
+-            controller: c,
+-            maxLines: null,
+-            expands: true,
+-            style: const TextStyle(fontSize: 11.5, fontFamily: 'monospace', height: 1.5),
+-          ),
+-        ),
+-        actions: [
+-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存')),
+-        ],
+-      ),
+-    );
+-    if (ok != true) return;
+-    final p = widget.path.replaceAll("'", "'\\''");
+-    await NativeBridge.exec("cat > '$p' << 'GEOF'\n${c.text}\nGEOF");
+-    c.dispose();
+-    _load();
++  Future<void> _removeXposed() async {
++    final list = await XposedStore.load();
++    list.removeWhere((s) => s.name == widget.name);
++    await XposedStore.save(list);
++    await _loadXp();
++    if (!mounted) return;
++    setState(() => _out = '已取消 Xposed 模块');
+   }
+ 
+   void _sendToChat() {
+@@ -179,100 +172,214 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+         .showSnackBar(const SnackBar(content: Text('已发到对话')));
+   }
+ 
++  Widget _chip(String label, IconData icon, bool on, VoidCallback? onTap) {
++    return Padding(
++      padding: const EdgeInsets.only(right: 6),
++      child: InkWell(
++        onTap: onTap,
++        borderRadius: BorderRadius.circular(9),
++        child: Container(
++          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
++          decoration: BoxDecoration(
++            color: on ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
++            borderRadius: BorderRadius.circular(9),
++          ),
++          child: Row(mainAxisSize: MainAxisSize.min, children: [
++            Icon(icon, size: 13, color: on ? Colors.white : const Color(0xFF475569)),
++            const SizedBox(width: 4),
++            Text(label,
++                style: TextStyle(fontSize: 11, color: on ? Colors.white : const Color(0xFF475569))),
++          ]),
++        ),
++      ),
++    );
++  }
++
++  Widget get _preview => Container(
++        width: double.infinity,
++        padding: const EdgeInsets.all(10),
++        decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(10)),
++        child: SelectableText(
++          _content ?? '',
++          style: const TextStyle(fontSize: 10.5, fontFamily: 'monospace', color: Color(0xFFCBD5E1), height: 1.7),
++        ),
++      );
++
++  Widget get _xpList {
++    final apps = _apps ?? const <Map<String, dynamic>>[];
++    return Container(
++      decoration: BoxDecoration(
++        color: const Color(0xFFF7F9FC),
++        borderRadius: BorderRadius.circular(10),
++        border: Border.all(color: const Color(0xFFEEF2F7)),
++      ),
++      child: Column(children: [
++        Padding(
++          padding: const EdgeInsets.fromLTRB(10, 8, 8, 4),
++          child: Row(children: [
++            const Text('勾选目标应用', style: TextStyle(fontSize: 11, color: AppColors.muted)),
++            const Spacer(),
++            TextButton(
++              onPressed: _confirmXp,
++              child: Text('确定（${_xpSel.length}）', style: const TextStyle(fontSize: 11.5)),
++            ),
++          ]),
++        ),
++        Expanded(
++          child: ListView.builder(
++            itemCount: apps.length,
++            itemBuilder: (_, i) {
++              final a = apps[i];
++              final pkg = (a['package'] ?? '').toString();
++              final on = _xpSel.contains(pkg);
++              return InkWell(
++                onTap: () => setState(() {
++                  if (on) {
++                    _xpSel.remove(pkg);
++                  } else {
++                    _xpSel.add(pkg);
++                  }
++                }),
++                child: Padding(
++                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
++                  child: Row(children: [
++                    Icon(on ? Icons.check_circle_rounded : Icons.circle_outlined,
++                        size: 15, color: on ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1)),
++                    const SizedBox(width: 7),
++                    Expanded(
++                      child: Text((a['label'] ?? '').toString(),
++                          maxLines: 1,
++                          overflow: TextOverflow.ellipsis,
++                          style: const TextStyle(fontSize: 11.5)),
++                    ),
++                    Text(pkg,
++                        maxLines: 1,
++                        overflow: TextOverflow.ellipsis,
++                        style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
++                  ]),
++                ),
++              );
++            },
++          ),
++        ),
++      ]),
++    );
++  }
++
+   @override
+   Widget build(BuildContext context) {
+-    final body = _loading
+-        ? const Center(child: CircularProgressIndicator())
+-        : SingleChildScrollView(
+-              padding: const EdgeInsets.all(16),
+-              child: Column(
+-                crossAxisAlignment: CrossAxisAlignment.start,
+-                children: [
+-                  Text(widget.path,
+-                      style: const TextStyle(fontSize: 9, color: AppColors.muted, fontFamily: 'monospace')),
+-                  const SizedBox(height: 10),
+-                  Container(
+-                    width: double.infinity,
+-                    padding: const EdgeInsets.all(12),
+-                    decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(10)),
+-                    child: SelectableText(
+-                      _content ?? '',
+-                      style: const TextStyle(fontSize: 10.5, fontFamily: 'monospace', color: Color(0xFFCBD5E1), height: 1.7),
+-                    ),
+-                  ),
+-                  if (_runnable) ...[
+-                    const SizedBox(height: 14),
+-                    GlassCard(
+-                      onTap: _run,
+-                      child: Row(
+-                        children: const [
+-                          Icon(Icons.play_arrow_rounded, size: 18, color: AppColors.brand),
+-                          SizedBox(width: 10),
+-                          Expanded(child: Text('运行', style: TextStyle(fontSize: 13))),
+-                        ],
+-                      ),
+-                    ),
+-                  ],
+-                  if (_ext == 'js') ...[
+-                    const SizedBox(height: 10),
+-                    GlassCard(
+-                      onTap: _xposed ? _removeXposed : _setXposed,
+-                      child: Row(
+-                        children: [
+-                          Icon(_xposed ? Icons.check_circle_rounded : Icons.extension_outlined,
+-                              size: 18, color: AppColors.brand),
+-                          const SizedBox(width: 10),
+-                          Expanded(
+-                            child: Column(
+-                              crossAxisAlignment: CrossAxisAlignment.start,
+-                              children: [
+-                                Text(_xposed ? '已作为 Xposed 模块' : '设为 Xposed 脚本',
+-                                    style: const TextStyle(fontSize: 13)),
+-                                if (_xposed)
+-                                  Text(_xpTargets.join(', '),
+-                                      maxLines: 1,
+-                                      overflow: TextOverflow.ellipsis,
+-                                      style: const TextStyle(fontSize: 10.5, color: AppColors.muted)),
+-                              ],
+-                            ),
+-                          ),
+-                          if (_xposed)
+-                            const Text('取消', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-                        ],
+-                      ),
+-                    ),
+-                  ],
+-                  const SizedBox(height: 12),
+-                  Text(
+-                    _runnable
+-                        ? '可运行：用 sh 执行。点右上角可以编辑或交给 AI。'
+-                        : '这个格式不直接执行，可以编辑、或交给 AI 处理。',
+-                    style: const TextStyle(fontSize: 10.5, color: AppColors.muted, height: 1.7),
+-                  ),
+-                ],
++    final panel = Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      children: [
++        Padding(
++          padding: const EdgeInsets.fromLTRB(10, 8, 6, 4),
++          child: Row(children: [
++            Expanded(
++              child: Text(widget.path,
++                  maxLines: 1,
++                  overflow: TextOverflow.ellipsis,
++                  style: const TextStyle(fontSize: 9, color: AppColors.muted, fontFamily: 'monospace')),
++            ),
++            InkWell(
++              onTap: _sendToChat,
++              borderRadius: BorderRadius.circular(6),
++              child: const Padding(
++                padding: EdgeInsets.all(4),
++                child: Icon(Icons.arrow_outward_rounded, size: 15, color: Color(0xFF2563EB)),
+               ),
+-            );
+-    final actions = [
+-      IconButton(onPressed: _edit, icon: const Icon(Icons.edit_outlined, size: 19, color: AppColors.brand)),
+-      IconButton(
+-        onPressed: _sendToChat,
+-        icon: const Icon(Icons.arrow_outward_rounded, size: 19, color: AppColors.brand),
+-      ),
+-    ];
+-    if (widget.embedded) {
+-      return embedShell(title: widget.name, actions: actions, body: body);
+-    }
++            ),
++          ]),
++        ),
++        Padding(
++          padding: const EdgeInsets.symmetric(horizontal: 8),
++          child: Row(children: [
++            if (_runnable) _chip('运行', Icons.play_arrow_rounded, false, _run),
++            _chip(_editing ? '编辑中' : '编辑', Icons.edit_outlined, _editing, _editing ? null : _startEdit),
++            if (_ext == 'js')
++              _chip(_xposed ? '已作为 XP 模块' : '设为 XP 模块', Icons.extension_outlined, _xpPicking,
++                  _startXp),
++          ]),
++        ),
++        const SizedBox(height: 6),
++        Expanded(
++          child: _loading
++              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
++              : Padding(
++                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
++                  child: _xpPicking
++                      ? _xpList
++                      : _editing
++                          ? Column(children: [
++                              Expanded(
++                                child: Container(
++                                  decoration: BoxDecoration(
++                                    color: const Color(0xFFF7F9FC),
++                                    borderRadius: BorderRadius.circular(10),
++                                    border: Border.all(color: const Color(0xFFEEF2F7)),
++                                  ),
++                                  padding: const EdgeInsets.all(8),
++                                  child: TextField(
++                                    controller: _editCtrl,
++                                    maxLines: null,
++                                    expands: true,
++                                    style: const TextStyle(fontSize: 11, fontFamily: 'monospace', height: 1.5),
++                                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
++                                  ),
++                                ),
++                              ),
++                              const SizedBox(height: 6),
++                              Row(children: [
++                                Expanded(
++                                  child: OutlinedButton(
++                                    onPressed: () => setState(() => _editing = false),
++                                    child: const Text('取消', style: TextStyle(fontSize: 12)),
++                                  ),
++                                ),
++                                const SizedBox(width: 8),
++                                Expanded(
++                                  child: FilledButton(
++                                    onPressed: _saveEdit,
++                                    child: const Text('保存', style: TextStyle(fontSize: 12)),
++                                  ),
++                                ),
++                              ]),
++                            ])
++                          : ListView(children: [
++                              _preview,
++                              if (_out != null) ...[
++                                const SizedBox(height: 8),
++                                Container(
++                                  width: double.infinity,
++                                  padding: const EdgeInsets.all(9),
++                                  decoration: BoxDecoration(
++                                    color: const Color(0xFF0B1220),
++                                    borderRadius: BorderRadius.circular(10),
++                                  ),
++                                  child: Text(_out!,
++                                      style: const TextStyle(
++                                          fontSize: 10, fontFamily: 'monospace', color: Color(0xFF7DD3FC), height: 1.6)),
++                                ),
++                              ],
++                              if (_xposed) ...[
++                                const SizedBox(height: 8),
++                                Text('已作用于：${_xpTargets.join(', ')}',
++                                    style: const TextStyle(fontSize: 10, color: AppColors.muted)),
++                              ],
++                            ]),
++                ),
++        ),
++      ],
++    );
++    if (widget.embedded) return panel;
+     return Scaffold(
+       backgroundColor: Colors.white,
+       appBar: AppBar(
+         leading: const BackButton(),
+         backgroundColor: Colors.white,
+         elevation: 0,
+-        title: Text(widget.name,
+-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
+-        actions: actions,
++        title: Text(widget.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
+       ),
+-      body: body,
++      body: panel,
+     );
+   }
+ }
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index 819855a..03ccb1d 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -16,7 +16,6 @@ import '../pages/container_page.dart';
+ import '../pages/compact_page.dart';
+ import '../pages/backup_page.dart';
+ import '../pages/mcp_page.dart';
+-import '../agent/xposed_store.dart';
+ import '../pages/git_page.dart';
+ 
+ /// 抽屉里的树状工作区：应用 / 文件 / 插件 / 设置，逐级向下展开。
+@@ -766,11 +765,6 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+               title: name,
+               onRename: () => _rename(full),
+               onDelete: () => _delete(full),
+-              onRun: isDir ? null : () => _runFile(full, name),
+-              onXposed: (!isDir && name.toLowerCase().endsWith('.js'))
+-                  ? () => _markXposed(full, name)
+-                  : null,
+-              onEdit: isDir ? null : () => _editFile(full, name),
+             ),
+             child: Row(
+               children: [
+@@ -888,9 +882,6 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+     required String title,
+     VoidCallback? onRename,
+     VoidCallback? onDelete,
+-    VoidCallback? onRun,
+-    VoidCallback? onXposed,
+-    VoidCallback? onEdit,
+   }) async {
+     final act = await showModalBottomSheet<String>(
+       context: context,
+@@ -908,24 +899,6 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+                       style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontFamily: 'monospace'))),
+             ]),
+           ),
+-          if (onRun != null)
+-            ListTile(
+-              leading: const Icon(Icons.play_arrow_rounded, size: 20),
+-              title: const Text('运行脚本', style: TextStyle(fontSize: 13.5)),
+-              onTap: () => Navigator.pop(ctx, 'run'),
+-            ),
+-          if (onXposed != null)
+-            ListTile(
+-              leading: const Icon(Icons.extension_outlined, size: 20),
+-              title: const Text('作为 Xposed 模块运行', style: TextStyle(fontSize: 13.5)),
+-              onTap: () => Navigator.pop(ctx, 'xp'),
+-            ),
+-          if (onEdit != null)
+-            ListTile(
+-              leading: const Icon(Icons.edit_outlined, size: 20),
+-              title: const Text('编辑', style: TextStyle(fontSize: 13.5)),
+-              onTap: () => Navigator.pop(ctx, 'edit'),
+-            ),
+           if (onRename != null)
+             ListTile(
+               leading: const Icon(Icons.drive_file_rename_outline_rounded, size: 20),
+@@ -946,185 +919,10 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+         ]),
+       ),
+     );
+-    if (act == 'run') onRun?.call();
+-    if (act == 'xp') onXposed?.call();
+-    if (act == 'edit') onEdit?.call();
+     if (act == 'rename') onRename?.call();
+     if (act == 'delete') onDelete?.call();
+   }
+ 
+-  Future<void> _editFile(String path, String name) async {
+-    final r = await NativeBridge.exec("head -c 200000 '${path.replaceAll("'", "'\\''")}'");
+-    final c = TextEditingController(text: r.ok ? r.stdout : '');
+-    final ok = await showDialog<bool>(
+-      context: context,
+-      builder: (ctx) => AlertDialog(
+-        backgroundColor: Colors.white,
+-        title: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+-        content: SizedBox(
+-          width: double.maxFinite,
+-          height: 320,
+-          child: TextField(
+-            controller: c,
+-            maxLines: null,
+-            expands: true,
+-            style: const TextStyle(fontSize: 11.5, fontFamily: 'monospace', height: 1.5),
+-          ),
+-        ),
+-        actions: [
+-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存')),
+-        ],
+-      ),
+-    );
+-    final text = c.text;
+-    c.dispose();
+-    if (ok != true) return;
+-    await NativeBridge.exec("cat > '${path.replaceAll("'", "'\\''")}' << 'GEOF'\n$text\nGEOF");
+-    _dirs.clear();
+-    if (mounted) setState(() {});
+-    _toast('已保存');
+-  }
+-
+-  Future<void> _runFile(String path, String name) async {
+-    final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+-    final interp = switch (ext) {
+-      'sh' || 'bash' => 'sh',
+-      'py' => 'python3',
+-      'js' => 'node',
+-      'lua' => 'lua',
+-      _ => null,
+-    };
+-    if (interp == null) {
+-      _toast('这个类型不能直接运行');
+-      return;
+-    }
+-    final r = await NativeBridge.exec("$interp '${path.replaceAll("'", "'\\''")}'", timeout: 60);
+-    if (!mounted) return;
+-    final out = '${r.stdout}${r.stderr}'.trim();
+-    await showDialog<void>(
+-      context: context,
+-      builder: (ctx) => AlertDialog(
+-        backgroundColor: Colors.white,
+-        title: Text('exit ${r.code}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+-        content: SingleChildScrollView(
+-          child: Text(out.isEmpty ? '（无输出）' : out,
+-              style: const TextStyle(fontSize: 11, fontFamily: 'monospace', height: 1.5)),
+-        ),
+-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭'))],
+-      ),
+-    );
+-  }
+-
+-  Future<void> _markXposed(String path, String name) async {
+-    final apps = _apps ?? await NativeBridge.listApps();
+-    if (apps.isEmpty) {
+-      _toast('读不到应用列表（需存储权限）');
+-      return;
+-    }
+-    var q = '';
+-    final picked = <String>{};
+-    final res = await showModalBottomSheet<List<String>>(
+-      context: context,
+-      backgroundColor: Colors.white,
+-      isScrollControlled: true,
+-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+-      builder: (ctx) => StatefulBuilder(
+-        builder: (ctx, setS) {
+-          final list = q.isEmpty
+-              ? apps
+-              : apps.where((a) {
+-                  final l = (a['label'] ?? '').toString().toLowerCase();
+-                  final p = (a['package'] ?? '').toString().toLowerCase();
+-                  return l.contains(q.toLowerCase()) || p.contains(q.toLowerCase());
+-                }).toList();
+-          return SafeArea(
+-            child: SizedBox(
+-              height: MediaQuery.of(ctx).size.height * 0.7,
+-              child: Column(children: [
+-                const Padding(
+-                  padding: EdgeInsets.fromLTRB(18, 16, 18, 8),
+-                  child: Align(
+-                    alignment: Alignment.centerLeft,
+-                    child: Text('选择目标应用', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
+-                  ),
+-                ),
+-                Padding(
+-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+-                  child: TextField(
+-                    onChanged: (v) => setS(() => q = v),
+-                    decoration: const InputDecoration(
+-                      isDense: true,
+-                      prefixIcon: Icon(Icons.search_rounded, size: 18),
+-                      hintText: '搜索应用名 / 包名',
+-                    ),
+-                  ),
+-                ),
+-                const SizedBox(height: 6),
+-                Expanded(
+-                  child: ListView.builder(
+-                    itemCount: list.length,
+-                    itemBuilder: (_, i) {
+-                      final a = list[i];
+-                      final pkg = (a['package'] ?? '').toString();
+-                      final on = picked.contains(pkg);
+-                      return ListTile(
+-                        dense: true,
+-                        leading: AppIcon(app: a, size: 28),
+-                        title: Text((a['label'] ?? '').toString(), style: const TextStyle(fontSize: 12.5)),
+-                        subtitle: Text(pkg, style: const TextStyle(fontSize: 9.5, fontFamily: 'monospace')),
+-                        trailing: Icon(
+-                          on ? Icons.check_circle_rounded : Icons.circle_outlined,
+-                          size: 18,
+-                          color: on ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
+-                        ),
+-                        onTap: () => setS(() {
+-                          if (on) {
+-                            picked.remove(pkg);
+-                          } else {
+-                            picked.add(pkg);
+-                          }
+-                        }),
+-                      );
+-                    },
+-                  ),
+-                ),
+-                Padding(
+-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+-                  child: Row(children: [
+-                    Expanded(
+-                      child: OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+-                    ),
+-                    const SizedBox(width: 10),
+-                    Expanded(
+-                      child: FilledButton(
+-                        onPressed: picked.isEmpty ? null : () => Navigator.pop(ctx, picked.toList()),
+-                        child: Text('确定（${picked.length}）'),
+-                      ),
+-                    ),
+-                  ]),
+-                ),
+-              ]),
+-            ),
+-          );
+-        },
+-      ),
+-    );
+-    if (res == null || res.isEmpty) return;
+-    final r = await NativeBridge.exec("cat '${path.replaceAll("'", "'\\''")}'");
+-    final list = await XposedStore.load();
+-    final item = XposedScript(name: name, targets: res, code: r.ok ? r.stdout : '');
+-    final i = list.indexWhere((s) => s.name == name);
+-    if (i >= 0) {
+-      list[i] = item;
+-    } else {
+-      list.add(item);
+-    }
+-    await XposedStore.save(list);
+-    if (!mounted) return;
+-    _toast('已登记为 Xposed 模块，重启目标应用生效');
+-  }
+-
+   Future<void> _rename(String full) async {
+     final name = full.split('/').last;
+     final c = TextEditingController(text: name);
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 514ac89..a652149 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.10.5+705
++version: 6.10.6+706
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:820px;height:380px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;display:flex;flex-direction:column}
+  .head{display:flex;align-items:center;gap:10px;padding:7px 12px}
+  .hbtn{width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 4px 12px rgba(15,23,42,.08);display:flex;align-items:center;justify-content:center;font-size:12px;color:#475569}
+  .ht{flex:1}
+  .ht b{font-size:12px}
+  .ht span{font-size:8.5px;color:#94A3B8;margin-left:6px}
+  .main{flex:1;display:flex;gap:10px;padding:0 12px 8px;min-height:0}
+  .col{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+  .ai{background:#fff;border:1px solid #EEF2F7;border-radius:14px;box-shadow:0 6px 18px rgba(15,23,42,.05);padding:10px 12px}
+  .ai h4{font-size:11.5px;margin-bottom:4px}
+  .ai p{font-size:10.5px;line-height:1.65;color:#334155}
+  .tools{background:#fff;border:1px solid #EEF2F7;border-radius:14px;box-shadow:0 6px 18px rgba(15,23,42,.05);overflow:hidden}
+  .th{display:flex;align-items:center;gap:8px;padding:8px 10px}
+  .th .t{font-size:11px;font-weight:700;flex:1}
+  .th .n{font:8px ui-monospace,monospace;color:#94A3B8}
+  .tr{display:flex;align-items:center;gap:6px;padding:5px 10px;border-top:1px solid #F7FAFD}
+  .ok{width:12px;height:12px;border-radius:50%;background:#10B981;color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;flex:none}
+  .tr .nm{font:9px ui-monospace,monospace;color:#2563EB;flex:none}
+  .tr .ar{font:8.5px ui-monospace,monospace;color:#94A3B8;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vcard{flex:1;background:#fff;border:1px solid #EEF2F7;border-radius:14px;box-shadow:0 6px 18px rgba(15,23,42,.05);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+  .vbody{flex:1;display:flex;min-height:0}
+  .player{width:46%;background:linear-gradient(160deg,#1E293B,#0F172A);display:flex;align-items:center;justify-content:center;position:relative}
+  .play{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:12px;color:#E2E8F0}
+  .eps{flex:1;padding:8px 10px;display:flex;flex-direction:column;min-height:0}
+  .eps .t{font-size:11px;font-weight:700}
+  .eps .s{font:8px ui-monospace,monospace;color:#94A3B8;margin:2px 0 6px}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+  .ep{height:24px;border-radius:7px;background:#F4F7FB;color:#475569;font:9px ui-monospace,monospace;display:flex;align-items:center;justify-content:center}
+  .ep.on{background:#2563EB;color:#fff;font-weight:700}
+  .vfoot{display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid #F5F8FC;background:#FBFCFE}
+  .vfoot .l{flex:1;font-size:9px;color:#64748B}
+  .btn{height:24px;padding:0 9px;border-radius:7px;background:#2563EB;color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center}
+  .composer{margin:0 12px 8px;padding:6px;background:#fff;border:1px solid #EDF1F6;border-radius:14px}
+  .input{height:28px;background:#F7F9FC;border-radius:10px;color:#9AA4B2;font-size:11px;display:flex;align-items:center;padding:0 10px}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="hbtn">☰</div>
+    <div class="ht"><b>Rowan</b><span>21 条消息</span></div>
+    <div class="hbtn">▶</div><div class="hbtn">▤</div><div class="hbtn">＋</div>
+  </div>
+  <div class="main">
+    <div class="col">
+      <div class="ai">
+        <h4>找到这部番了</h4>
+        <p>共 12 集，已生成选集卡片；点集数切换，播完自动下一集。</p>
+      </div>
+      <div class="tools">
+        <div class="th"><div class="t">工具调用</div><div class="n">3 次</div></div>
+        <div class="tr"><div class="ok">✓</div><div class="nm">webSearch</div><div class="ar">"某番 在线观看"</div></div>
+        <div class="tr"><div class="ok">✓</div><div class="nm">fetchPage</div><div class="ar">example.com/anime/7 · 2.1 万字符</div></div>
+        <div class="tr"><div class="ok">✓</div><div class="nm">playVideo</div><div class="ar">第 7 集 已打开播放</div></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="vcard">
+        <div class="vbody">
+          <div class="player"><div class="play">▶</div></div>
+          <div class="eps">
+            <div class="t">第 7 集 · 雨夜追踪</div>
+            <div class="s">全 12 集 · 自动连播开</div>
+            <div class="grid">
+              <div class="ep">1</div><div class="ep">2</div><div class="ep">3</div><div class="ep">4</div><div class="ep">5</div><div class="ep">6</div>
+              <div class="ep on">7</div><div class="ep">8</div><div class="ep">9</div><div class="ep">10</div><div class="ep">11</div><div class="ep">12</div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot"><div class="l">播完自动下一集</div><div class="btn">下一集</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="composer"><div class="input">发消息，或把文件拖进来…</div></div>
+</body>
+</html>

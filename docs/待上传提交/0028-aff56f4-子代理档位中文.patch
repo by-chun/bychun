@@ -1,0 +1,106 @@
+From aff56f44b4e0c7ff0ff428cd515035ab86087622 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:30:50 +0800
+Subject: [PATCH] =?UTF-8?q?fix(ui):=20=E5=AD=90=E4=BB=A3=E7=90=86=E6=A1=A3?=
+ =?UTF-8?q?=E4=BD=8D=E6=98=BE=E7=A4=BA=E6=94=B9=E4=B8=BA=E4=B8=AD=E6=96=87?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- light/standard/strong 显示为 轻量/标准/强力（下拉、列表、拖入引用、抽屉）
+- 存储值与提示词仍是英文档位
+- 版本 6.8.3+683（仅本地）
+---
+ lib/data/app_db.dart         |  7 +++++++
+ lib/pages/settings_page.dart | 10 +++++-----
+ lib/widgets/tree_drawer.dart |  3 ++-
+ pubspec.yaml                 |  2 +-
+ 4 files changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/lib/data/app_db.dart b/lib/data/app_db.dart
+index f063910..3039254 100644
+--- a/lib/data/app_db.dart
++++ b/lib/data/app_db.dart
+@@ -38,6 +38,13 @@ class SubAgents extends Table {
+   Set<Column> get primaryKey => {name};
+ }
+ 
++/// 档位显示名；存储与提示词里仍是 light / standard / strong。
++String tierLabel(String tier) => switch (tier) {
++      'light' => '轻量',
++      'strong' => '强力',
++      _ => '标准',
++    };
++
+ @DriftDatabase(tables: [Sessions, Messages, Skills, SubAgents])
+ class AppDb extends _$AppDb {
+   AppDb() : super(driftDatabase(name: 'g'));
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index 3654d51..9ffa20f 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -781,9 +781,9 @@ class _SkillsSubPageState extends ConsumerState<SkillsSubPage> {
+             isExpanded: true,
+             value: tier,
+             items: const [
+-              DropdownMenuItem(value: 'light', child: Text('light')),
+-              DropdownMenuItem(value: 'standard', child: Text('standard')),
+-              DropdownMenuItem(value: 'strong', child: Text('strong')),
++              DropdownMenuItem(value: 'light', child: Text(tierLabel('light'))),
++              DropdownMenuItem(value: 'standard', child: Text(tierLabel('standard'))),
++              DropdownMenuItem(value: 'strong', child: Text(tierLabel('strong'))),
+             ],
+             onChanged: (v) => setS(() => tier = v ?? 'standard'),
+           ),
+@@ -834,12 +834,12 @@ class _SkillsSubPageState extends ConsumerState<SkillsSubPage> {
+                 child: GlassCard(
+                 margin: const EdgeInsets.only(top: 8),
+                 child: RefDraggable(
+-                  ref: ChatRef(type: 'subagent', name: a.name, detail: '${a.modelTier}: ${a.description}'),
++                  ref: ChatRef(type: 'subagent', name: a.name, detail: '${tierLabel(a.modelTier)}：${a.description}'),
+                   child: Row(children: [
+                   const Icon(Icons.groups_outlined, size: 18, color: AppColors.brand),
+                   const SizedBox(width: 10),
+                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+-                    Text('${a.name} · ${a.modelTier}', style: const TextStyle(fontSize: 13)),
++                    Text('${a.name} · ${tierLabel(a.modelTier)}', style: const TextStyle(fontSize: 13)),
+                     if (a.description.isNotEmpty)
+                       Text(a.description, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                   ])),
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index 18587a6..5085938 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
+ import '../native/native_bridge.dart';
+ import '../state/chat_refs.dart';
+ import '../data/db_provider.dart';
++import '../data/app_db.dart';
+ import '../agent/provider_store.dart';
+ import '../widgets/app_icon.dart';
+ import '../pages/plugins_page.dart';
+@@ -848,7 +849,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+               .toList();
+         case 'subagent':
+           final subs = await ref.read(appDbProvider).allSubAgents();
+-          return subs.map((a) => '${a.name} · ${a.modelTier}').toList();
++          return subs.map((a) => '${a.name} · ${tierLabel(a.modelTier)}').toList();
+         case 'container':
+           final envs = await NativeBridge.envList();
+           return envs.map((e) => '${e['name']}${e['ready'] == true ? '' : ' · 未就绪'}').toList();
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 1f078f9..fbd5c1a 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.8.2+682
++version: 6.8.3+683
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

@@ -1,0 +1,75 @@
+From e0027a3a6637f41a0034b9773f240bc252e96baa Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 15:35:08 +0800
+Subject: [PATCH] =?UTF-8?q?feat(ui):=20=E5=8F=B3=E4=B8=8A=E8=A7=92?=
+ =?UTF-8?q?=E4=BF=9D=E5=AD=98=EF=BC=8C=E5=8E=BB=E6=8E=89=E5=AD=97=E6=AE=B5?=
+ =?UTF-8?q?=E5=90=8E=E7=9A=84=E5=8B=BE?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- NumberFieldRow 去掉右侧确认勾，输入完（回车/失焦）直接生效
+- 上下文压缩页 AppBar 右上角加「保存」
+- 版本 6.4.2+642（仅本地提交）
+---
+ lib/pages/compact_page.dart | 12 ++++++++++++
+ lib/theme/number_field.dart |  6 ------
+ pubspec.yaml                |  2 +-
+ 3 files changed, 13 insertions(+), 7 deletions(-)
+
+diff --git a/lib/pages/compact_page.dart b/lib/pages/compact_page.dart
+index c28fbfc..7ecc6fd 100644
+--- a/lib/pages/compact_page.dart
++++ b/lib/pages/compact_page.dart
+@@ -35,6 +35,18 @@ class _CompactPageState extends State<CompactPage> {
+         backgroundColor: Colors.white,
+         elevation: 0,
+         title: const Text('上下文压缩', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
++        actions: [
++          TextButton(
++            onPressed: () async {
++              await _save();
++              if (!mounted) return;
++              ScaffoldMessenger.of(context)
++                  .showSnackBar(const SnackBar(content: Text('已保存')));
++            },
++            child: const Text('保存',
++                style: TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700)),
++          ),
++        ],
+       ),
+       body: ListView(
+         padding: const EdgeInsets.all(16),
+diff --git a/lib/theme/number_field.dart b/lib/theme/number_field.dart
+index 49815c4..2a52421 100644
+--- a/lib/theme/number_field.dart
++++ b/lib/theme/number_field.dart
+@@ -88,12 +88,6 @@ class _NumberFieldRowState extends State<NumberFieldRow> {
+             },
+           ),
+         ),
+-        const SizedBox(width: 6),
+-        IconButton(
+-          onPressed: () => _commit(_c.text),
+-          icon: const Icon(Icons.check_rounded, size: 18, color: AppColors.brand),
+-          visualDensity: VisualDensity.compact,
+-        ),
+       ]),
+     );
+   }
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 6603eef..daf9023 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.4.1+641
++version: 6.4.2+642
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

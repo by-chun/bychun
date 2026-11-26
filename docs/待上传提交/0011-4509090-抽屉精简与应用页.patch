@@ -1,0 +1,384 @@
+From 4509090e01f51712ee38c462b1ccb4009dd0ac16 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 15:33:22 +0800
+Subject: [PATCH] =?UTF-8?q?refactor(ui):=20=E6=8A=BD=E5=B1=89=E7=B2=BE?=
+ =?UTF-8?q?=E7=AE=80=E4=B8=BA=205=20=E9=A1=B9=20+=20=E5=BA=94=E7=94=A8?=
+ =?UTF-8?q?=E9=A1=B5=E7=8B=AC=E7=AB=8B?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 抽屉：对话 / 文件 / 应用 / 插件 / 设置（左侧滑出）
+- 删掉入口：会话、逆向、悬浮窗、记忆
+- 新增 AppsPage：列表 + 详情只给信息，底部「发到对话」交给 AI
+- 设置入口清理：删外观、抓包、提示词、Git；技能并入子代理入口
+- 版本 6.4.0+640（仅本地提交）
+---
+ lib/pages/apps_page.dart     | 256 +++++++++++++++++++++++++++++++++++
+ lib/pages/settings_page.dart |  16 +--
+ lib/shell.dart               |  26 +---
+ pubspec.yaml                 |   2 +-
+ 4 files changed, 268 insertions(+), 32 deletions(-)
+ create mode 100644 lib/pages/apps_page.dart
+
+diff --git a/lib/pages/apps_page.dart b/lib/pages/apps_page.dart
+new file mode 100644
+index 0000000..8abbec9
+--- /dev/null
++++ b/lib/pages/apps_page.dart
+@@ -0,0 +1,256 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++
++import '../theme/app_theme.dart';
++import '../theme/glass.dart';
++import '../native/native_bridge.dart';
++import '../state/chat_refs.dart';
++
++/// 应用列表：只做「看信息 + 发到对话」，具体做什么由 AI 弹卡片决定。
++class AppsPage extends StatefulWidget {
++  const AppsPage({super.key});
++  @override
++  State<AppsPage> createState() => _AppsPageState();
++}
++
++class _AppsPageState extends State<AppsPage> {
++  List<Map<String, dynamic>>? _apps;
++  String _q = '';
++
++  @override
++  void initState() {
++    super.initState();
++    _load();
++  }
++
++  Future<void> _load() async {
++    final l = await NativeBridge.listApps();
++    if (mounted) setState(() => _apps = l);
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final apps = _apps;
++    return Scaffold(
++      backgroundColor: Colors.white,
++      appBar: AppBar(
++        leading: const BackButton(),
++        backgroundColor: Colors.white,
++        elevation: 0,
++        title: const Text('应用', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
++        actions: [
++          IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded, size: 20),
++              color: const Color(0xFF94A3B8)),
++        ],
++      ),
++      body: apps == null
++          ? const Center(child: CircularProgressIndicator())
++          : Column(
++              children: [
++                Padding(
++                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
++                  child: TextField(
++                    onChanged: (v) => setState(() => _q = v),
++                    decoration: const InputDecoration(
++                      hintText: '搜索应用名 / 包名',
++                      prefixIcon: Icon(Icons.search_rounded, size: 18),
++                    ),
++                  ),
++                ),
++                Expanded(
++                  child: Builder(builder: (_) {
++                    final q = _q.toLowerCase();
++                    final list = q.isEmpty
++                        ? apps
++                        : apps.where((a) {
++                            final l = (a['label'] ?? '').toString().toLowerCase();
++                            final p = (a['package'] ?? '').toString().toLowerCase();
++                            return l.contains(q) || p.contains(q);
++                          }).toList();
++                    if (list.isEmpty) {
++                      return const Center(
++                          child: Text('没有匹配的应用', style: TextStyle(fontSize: 12, color: AppColors.muted)));
++                    }
++                    return ListView.builder(
++                      padding: const EdgeInsets.symmetric(horizontal: 16),
++                      itemCount: list.length,
++                      itemBuilder: (_, i) => _tile(list[i]),
++                    );
++                  }),
++                ),
++              ],
++            ),
++    );
++  }
++
++  Widget _tile(Map<String, dynamic> a) {
++    final label = (a['label'] ?? '?').toString();
++    final pkg = (a['package'] ?? '').toString();
++    final size = ((a['size'] as num?) ?? 0).toInt();
++    final sys = a['system'] == true;
++    return GlassCard(
++      margin: const EdgeInsets.only(bottom: 8),
++      onTap: () => Navigator.of(context).push(
++        MaterialPageRoute(builder: (_) => AppDetailPage(app: a)),
++      ),
++      child: Row(
++        children: [
++          Container(
++            width: 34,
++            height: 34,
++            decoration: BoxDecoration(
++              color: _color(label),
++              borderRadius: BorderRadius.circular(9),
++            ),
++            child: Center(
++              child: Text(label.isEmpty ? '?' : label.substring(0, 1),
++                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
++            ),
++          ),
++          const SizedBox(width: 10),
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(label.isEmpty ? pkg : label,
++                    maxLines: 1,
++                    overflow: TextOverflow.ellipsis,
++                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
++                const SizedBox(height: 2),
++                Text('$pkg · ${_size(size)}${sys ? ' · 系统' : ''}',
++                    maxLines: 1,
++                    overflow: TextOverflow.ellipsis,
++                    style: const TextStyle(fontSize: 9.5, color: AppColors.muted, fontFamily: 'monospace')),
++              ],
++            ),
++          ),
++          const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFFCBD5E1)),
++        ],
++      ),
++    );
++  }
++
++  static Color _color(String s) {
++    const cs = [
++      Color(0xFF22C55E), Color(0xFF0EA5E9), Color(0xFF2563EB),
++      Color(0xFF7C3AED), Color(0xFFF59E0B), Color(0xFFEF4444),
++    ];
++    return cs[s.isEmpty ? 0 : s.codeUnitAt(0) % cs.length];
++  }
++
++  static String _size(int b) {
++    if (b >= 1024 * 1024 * 1024) return '${(b / 1024 / 1024 / 1024).toStringAsFixed(1)}GB';
++    if (b >= 1024 * 1024) return '${(b / 1024 / 1024).toStringAsFixed(0)}MB';
++    if (b >= 1024) return '${(b / 1024).toStringAsFixed(0)}KB';
++    return '${b}B';
++  }
++}
++
++/// 应用详情：只有信息 + 发到对话，没有任何固定功能按钮。
++class AppDetailPage extends ConsumerWidget {
++  final Map<String, dynamic> app;
++  const AppDetailPage({super.key, required this.app});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final label = (app['label'] ?? '').toString();
++    final pkg = (app['package'] ?? '').toString();
++    final apk = (app['apk'] ?? '').toString();
++    final size = ((app['size'] as num?) ?? 0).toInt();
++    final sys = app['system'] == true;
++
++    return Scaffold(
++      backgroundColor: Colors.white,
++      appBar: AppBar(
++        leading: const BackButton(),
++        backgroundColor: Colors.white,
++        elevation: 0,
++        title: Text(label.isEmpty ? pkg : label,
++            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
++      ),
++      body: ListView(
++        padding: const EdgeInsets.all(16),
++        children: [
++          Row(
++            children: [
++              Container(
++                width: 52,
++                height: 52,
++                decoration: BoxDecoration(
++                  color: _AppsPageState._color(label),
++                  borderRadius: BorderRadius.circular(13),
++                ),
++                child: Center(
++                  child: Text(label.isEmpty ? '?' : label.substring(0, 1),
++                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
++                ),
++              ),
++              const SizedBox(width: 12),
++              Expanded(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text(label.isEmpty ? pkg : label,
++                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
++                    const SizedBox(height: 3),
++                    Text(pkg,
++                        style: const TextStyle(fontSize: 10, color: AppColors.muted, fontFamily: 'monospace')),
++                  ],
++                ),
++              ),
++            ],
++          ),
++          const SizedBox(height: 18),
++          _kv('包名', pkg),
++          _kv('APK 路径', apk),
++          _kv('大小', _AppsPageState._size(size)),
++          _kv('类型', sys ? '系统应用' : '用户应用'),
++          const SizedBox(height: 20),
++          GlassCard(
++            onTap: () async {
++              ref.read(chatRefsProvider.notifier).add(ChatRef(
++                    type: 'app',
++                    name: label.isEmpty ? pkg : label,
++                    detail: pkg,
++                  ));
++              Navigator.of(context).pop();
++              ScaffoldMessenger.of(context).showSnackBar(
++                const SnackBar(content: Text('已发到对话，直接跟 AI 说你想做什么')),
++              );
++            },
++            child: Row(
++              children: const [
++                Icon(Icons.arrow_outward_rounded, size: 18, color: AppColors.brand),
++                SizedBox(width: 10),
++                Expanded(child: Text('发到对话', style: TextStyle(fontSize: 13))),
++                Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFFCBD5E1)),
++              ],
++            ),
++          ),
++          const SizedBox(height: 10),
++          const Text(
++            '看 APK、导出、抓包、查内存这些都不在这里放按钮，发到对话让 AI 决定怎么做。',
++            style: TextStyle(fontSize: 10.5, color: AppColors.muted, height: 1.7),
++          ),
++        ],
++      ),
++    );
++  }
++
++  Widget _kv(String k, String v) => Padding(
++        padding: const EdgeInsets.symmetric(vertical: 7),
++        child: Row(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            SizedBox(
++              width: 76,
++              child: Text(k, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
++            ),
++            Expanded(
++              child: Text(v.isEmpty ? '—' : v,
++                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace', height: 1.5)),
++            ),
++          ],
++        ),
++      );
++}
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index dffddbd..0542b0e 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -54,18 +54,14 @@ class SettingsPage extends StatelessWidget {
+   Widget build(BuildContext context) {
+     void open(Widget page) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+     final rows = <(String, String, VoidCallback, String)>[
+-      (_sAppearance, '外观 / 背景图', () => open(const AppearancePage()), 'settings/appearance'),
+-      (_sContainer, '容器环境', () => open(const ContainerPage()), 'settings/container'),
+-      (_sCapture, '抓包 / DNS', () => open(const CapturePage()), 'settings/capture'),
+-      (_sProvider, 'AI 供应商 / 默认模型', () => open(const ProvidersPage()), 'settings/provider'),
+-      (_sPersona, 'AI 人物', () => open(const PersonasPage()), 'settings/persona'),
+-      (_sSkill, '技能 / 子代理', () => open(const SkillsSubPage()), 'settings/skills'),
+-      (_sPrompt, '提示词', () => open(const PromptPage()), 'settings/prompts'),
++      (_sProvider, 'AI 供应商', () => open(const ProvidersPage()), 'settings/provider'),
++      (_sPersona, '人物', () => open(const PersonasPage()), 'settings/persona'),
++      (_sSkill, '子代理', () => open(const SkillsSubPage()), 'settings/skills'),
++      (_sContainer, '容器', () => open(const ContainerPage()), 'settings/container'),
++      (_sPower, '权限', () => open(const PowerPage()), 'settings/power'),
++      (_sCompact, '上下文压缩', () => open(const CompactPage()), 'settings/compact'),
+       (_sPrompt, '备份与恢复', () => open(const BackupPage()), 'settings/backup'),
+-      (_sPower, '工具授权 / 软件权限', () => open(const PowerPage()), 'settings/power'),
+-      (_sMcp, 'Git', () => open(const GitPage()), 'settings/git'),
+       (_sMcp, 'MCP 服务器', () => open(const McpPage()), 'settings/mcp'),
+-      (_sCompact, '上下文压缩', () => open(const CompactPage()), 'settings/compact'),
+     ];
+     return Scaffold(
+       backgroundColor: Colors.white,
+diff --git a/lib/shell.dart b/lib/shell.dart
+index b34c693..b574aa1 100644
+--- a/lib/shell.dart
++++ b/lib/shell.dart
+@@ -8,13 +8,9 @@ import 'agent/appearance_store.dart';
+ import 'agent/quick_store.dart';
+ import 'state/drawer_ctrl.dart';
+ import 'pages/chat_page.dart';
+-import 'pages/sessions_page.dart';
+ import 'pages/files_page.dart';
+-import 'pages/memories_page.dart';
++import 'pages/apps_page.dart';
+ import 'pages/scripts_page.dart';
+-import 'pages/reverse_page.dart';
+-import 'pages/memory_page.dart';
+-import 'pages/overlay_page.dart';
+ import 'pages/settings_page.dart';
+ 
+ class Shell extends ConsumerStatefulWidget {
+@@ -126,12 +122,9 @@ class _DrawerMainPageState extends State<DrawerMainPage> {
+   }
+ 
+   static const _all = <(String, IconData, String, String)>[
+-    ('home', Icons.home_outlined, '主页', ''),
+-    ('sessions', Icons.list_alt_rounded, '会话', ''),
++    ('home', Icons.chat_bubble_outline_rounded, '对话', ''),
+     ('files', Icons.folder_outlined, '文件', ''),
+-    ('reverse', Icons.shield_outlined, '逆向', ''),
+-    ('overlay', Icons.layers_outlined, '悬浮窗', ''),
+-    ('memories', Icons.bookmark_outline_rounded, '记忆', ''),
++    ('apps', Icons.apps_rounded, '应用', ''),
+     ('scripts', Icons.extension_outlined, '插件', ''),
+     ('settings', Icons.settings_outlined, '设置', ''),
+   ];
+@@ -216,17 +209,8 @@ class _DrawerMainPageState extends State<DrawerMainPage> {
+             case 'files':
+               _push(context, const FilesPage());
+               break;
+-            case 'reverse':
+-              _push(context, const ReversePage());
+-              break;
+-            case 'memory':
+-              _push(context, const MemoryPage());
+-              break;
+-            case 'overlay':
+-              _push(context, const OverlayPage());
+-              break;
+-            case 'memories':
+-              _push(context, const MemoriesPage());
++            case 'apps':
++              _push(context, const AppsPage());
+               break;
+             case 'scripts':
+               _push(context, const ScriptsPage());
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 894cf4a..f202797 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.3.0+630
++version: 6.4.0+640
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

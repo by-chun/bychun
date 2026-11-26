@@ -1,0 +1,85 @@
+name: Build Rowan APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK licenses + platform 36
+        run: |
+          SDK=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}
+          SM=$(ls $SDK/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)
+          echo "sdkmanager=$SM"
+          yes | "$SM" --licenses >/dev/null 2>&1 || true
+          "$SM" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.22.1" || true
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: false
+
+      - name: Remove Termux-only aapt2 override
+        run: sed -i '/aapt2FromMavenOverride/d' android/gradle.properties
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Generate Drift code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Install NDK 25.2 (for zygisk module)
+        run: |
+          SDK=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}
+          SM=$(ls $SDK/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)
+          "$SM" "ndk;25.2.9519653" || true
+
+      - name: Build zygisk frida module
+        run: |
+          cd zygisk-frida
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          chmod +x gradlew
+          ./gradlew :module:zipZygiskRelease --no-daemon
+
+      - name: Upload zygisk module
+        uses: actions/upload-artifact@v4
+        with:
+          name: rowan-module
+          path: zygisk-frida/out/*.zip
+
+      - name: Embed frida module into assets
+        run: |
+          mkdir -p android/app/src/main/assets
+          cp zygisk-frida/out/*.zip android/app/src/main/assets/rowan-module.zip
+          ls -lh android/app/src/main/assets/rowan-module.zip
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost 2>/dev/null || true
+          df -h / | tail -1
+
+      - name: Prebuild native (gmem -> jniLibs)
+        run: |
+          cd android
+          ./gradlew :app:externalNativeBuildRelease --no-daemon || true
+          ls -lh app/src/main/jniLibs/*/libgmem.so || echo "gmem not generated"
+          cd ..
+
+      - name: Build release APK
+        run: flutter build apk --release --target-platform android-arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rowan-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk

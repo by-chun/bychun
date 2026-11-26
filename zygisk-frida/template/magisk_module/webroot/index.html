@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Rowan</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;
+       padding-bottom:26px}
+  .head{padding:20px 18px 18px;background:linear-gradient(160deg,#EAF2FF 0%,#F6FAFF 60%,#F2F5FA 100%);
+        border-radius:0 0 26px 26px}
+  .ttl{display:flex;align-items:center;gap:10px}
+  .logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(140deg,#3B82F6,#1D4ED8);
+        display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(37,99,235,.35)}
+  .logo svg{width:18px;height:18px;stroke:#fff}
+  h1{font-size:19px;font-weight:800;letter-spacing:.2px}
+  .sub{font-size:10.5px;color:#64748B;margin-top:2px}
+  .badge{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.85);
+         border:1px solid #E4EDFB;border-radius:20px;padding:6px 11px;font-size:10.5px;font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:#94A3B8}
+  .dot.on{background:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,.16)}
+  .wrap{padding:14px 16px 0}
+
+  .card{background:#fff;border:1px solid #EBF0F7;border-radius:18px;padding:14px;margin-bottom:12px;
+        box-shadow:0 10px 26px rgba(15,23,42,.05)}
+  .ch{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .ch .t{font-size:12.5px;font-weight:700}
+  .ch .n{font-size:10px;color:#94A3B8;background:#F4F7FB;border-radius:8px;padding:2px 7px}
+  .ch .sum{font-size:10px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ch .sp{flex:1}
+  .ch .more{font-size:10.5px;color:#2563EB;font-weight:600}
+  .ch .chev{width:18px;height:18px;border-radius:50%;background:#F4F7FB;display:flex;align-items:center;
+            justify-content:center;color:#94A3B8;font-size:9px;transition:transform .18s;flex:none}
+  .card.fold .ch .chev{transform:rotate(-90deg)}
+  .card .body{margin-top:10px}
+  .card.fold .body{display:none}
+
+  .sw{width:46px;height:27px;border-radius:16px;background:#2563EB;position:relative;flex:none;
+      transition:background .18s}
+  .sw.off{background:#CBD5E1}
+  .sw i{position:absolute;top:3px;left:22px;width:21px;height:21px;border-radius:50%;background:#fff;
+        box-shadow:0 2px 6px rgba(15,23,42,.22);transition:left .18s}
+  .sw.off i{left:3px}
+
+  .item{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #F4F7FB}
+  .item:last-child{border-bottom:none;padding-bottom:2px}
+  .ico{width:32px;height:32px;border-radius:10px;background:linear-gradient(140deg,#EFF5FF,#DCE9FF);
+       display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;color:#2563EB;flex:none}
+  .ico.off{background:#F2F5FA;color:#94A3B8}
+  .nm{font-size:12px;font-family:ui-monospace,monospace;word-break:break-all}
+  .nm.off{color:#94A3B8;text-decoration:line-through}
+  .meta{font-size:10px;color:#94A3B8;margin-top:3px}
+  .grp{display:flex;gap:6px;flex:none}
+  .m{border:none;border-radius:9px;background:#F4F7FB;color:#475569;font-size:10.5px;padding:6px 9px;
+     font-family:inherit;font-weight:600}
+  .m.pri{background:#EFF5FF;color:#2563EB}
+  .m.bad{background:#FEF2F2;color:#DC2626}
+  .app{width:30px;height:30px;border-radius:50%;background:linear-gradient(140deg,#F1F5F9,#E2E8F0);
+       display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#64748B;flex:none}
+  .kv{display:flex;align-items:center;gap:8px;background:#F8FAFD;border-radius:12px;padding:9px 11px;margin-bottom:8px}
+  .kv:last-child{margin-bottom:0}
+  .kv b{font-size:10px;color:#94A3B8;font-weight:600;width:64px;flex:none}
+  .kv span{font-size:10.5px;font-family:ui-monospace,monospace;color:#334155;word-break:break-all}
+  .log{background:linear-gradient(180deg,#0C1424,#0A1120);border-radius:14px;padding:12px;
+       font:10.5px/1.6 ui-monospace,Menlo,monospace;color:#9FB3D1;max-height:190px;overflow:auto}
+  .log .k{color:#7DD3FC}
+  .empty{font-size:11px;color:#94A3B8;padding:4px 0 2px}
+  .sheet{position:fixed;left:12px;right:12px;top:56px;bottom:12px;background:#fff;border-radius:18px;
+         box-shadow:0 20px 50px rgba(15,23,42,.28);display:none;flex-direction:column;overflow:hidden;z-index:9}
+  .sheet.show{display:flex}
+  .sheet .sh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #F1F5F9}
+  .sheet .sh .t{flex:1;font-size:12.5px;font-weight:700;word-break:break-all}
+  .sheet .sb{flex:1;overflow:auto;padding:12px 14px 18px}
+  .sheet pre{background:#0B1120;color:#CBD5E1;border-radius:12px;padding:12px;
+             font:11px/1.55 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;margin:0}
+  .mask{position:fixed;inset:0;background:rgba(15,23,42,.35);display:none;z-index:8}
+  .mask.show{display:block}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="ttl">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h6"/></svg></div>
+      <div><h1>Rowan</h1><div class="sub" id="verLine">Zygisk 注入模块</div></div>
+      <div class="badge"><span class="dot" id="dot"></span><span id="state">读取中…</span></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card fold" data-id="state">
+      <div class="ch" data-fold>
+        <div class="t">注入状态</div>
+        <div class="sum" id="stateSum"></div>
+        <div class="sp"></div>
+        <div class="more" id="reloadState">刷新</div>
+        <div class="sw" id="sw"><i></i></div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="body"><div class="meta" id="stateHint">关闭后新启动的应用不再注入，无需重启手机</div></div>
+    </div>
+
+    <div class="card fold" data-id="scripts">
+      <div class="ch" data-fold>
+        <div class="t">注入脚本</div>
+        <div class="n" id="scriptCount">–</div>
+        <div class="sum" id="scriptSum"></div>
+        <div class="sp"></div>
+        <div class="more" id="reloadScripts">刷新</div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="body"><div id="scripts"><div class="empty">加载中…</div></div></div>
+    </div>
+
+    <div class="card fold" data-id="targets">
+      <div class="ch" data-fold>
+        <div class="t">目标应用</div>
+        <div class="n" id="targetCount">–</div>
+        <div class="sum" id="targetSum"></div>
+        <div class="sp"></div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="body"><div id="targets"><div class="empty">加载中…</div></div></div>
+    </div>
+
+    <div class="card fold" data-id="env">
+      <div class="ch" data-fold>
+        <div class="t">环境</div>
+        <div class="sum" id="envSum"></div>
+        <div class="sp"></div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="body">
+        <div class="kv"><b>Gadget</b><span id="gadget">-</span></div>
+        <div class="kv"><b>执行桥</b><span id="bridge">检测中…</span></div>
+        <div class="kv"><b>脚本目录</b><span id="sdir">-</span></div>
+      </div>
+    </div>
+
+    <div class="card fold" data-id="log">
+      <div class="ch" data-fold>
+        <div class="t">运行日志</div>
+        <div class="sum" id="logSum"></div>
+        <div class="sp"></div>
+        <div class="more" id="reloadLog">刷新</div>
+        <div class="chev">▼</div>
+      </div>
+      <div class="body"><div class="log" id="log">加载中…</div></div>
+    </div>
+  </div>
+
+  <div class="mask" id="mask"></div>
+  <div class="sheet" id="sheet">
+    <div class="sh"><div class="t" id="sheetTitle">脚本</div><button class="m" id="sheetClose">关闭</button></div>
+    <div class="sb"><pre id="sheetBody"></pre></div>
+  </div>
+
+<script>
+const MOD = '/data/adb/modules/rowan';
+const OFF = MOD + '/off';
+const SCRIPTS = MOD + '/scripts';
+
+// 执行桥：app = App 自带 WebView（回调名）；manager = KernelSU / APatch 原生（需探测 exec 签名）
+let BRIDGE = 'none';
+let EXEC_MODE = 'two';
+let EXEC_TIMEOUT = false;
+let CB_SEQ = 0;
+
+function nativeObj() {
+  if (window.ksu && ksu.exec) return ksu;
+  if (window.ap && ap.exec) return ap;
+  return null;
+}
+
+function isAppBridge(obj) {
+  if (window.__ROWAN_BRIDGE__ === 1) return true;
+  try { return !!(obj && obj.api && obj.api() === 'callback-id'); } catch (e) { return false; }
+}
+
+function execOnce(cmd, cb) {
+  const obj = nativeObj();
+  if (!obj) return false;
+  try {
+    // 本 App 自带的 WebUI 桥：回调要传「函数名字符串」
+    if (isAppBridge(obj)) {
+      const id = '__rowanCb' + (++CB_SEQ);
+      window[id] = (errno, stdout, stderr) => {
+        try { delete window[id]; } catch (e) {}
+        cb(errno, stdout, stderr);
+      };
+      obj.exec(cmd, id);
+      return true;
+    }
+    if (EXEC_MODE === 'three') obj.exec(cmd, '{}', cb);
+    else obj.exec(cmd, cb);
+    return true;
+  } catch (e) {}
+  return false;
+}
+
+// 管理器的 exec 有 (cmd, cb) 和 (cmd, options, cb) 两种签名，Function.length 不可靠；
+// 用一条只读探针命令实际试一次，避免回调传错位置导致永远没响应。
+function probeExec(mode) {
+  return new Promise((resolve) => {
+    const obj = nativeObj();
+    if (!obj) { resolve(false); return; }
+    let settled = false;
+    const done = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => done(false), 2500);
+    const cb = (errno, stdout) => done(String(stdout || '').indexOf('__rowan_probe__') >= 0);
+    try {
+      if (mode === 'three') obj.exec('echo __rowan_probe__', '{}', cb);
+      else obj.exec('echo __rowan_probe__', cb);
+    } catch (e) { done(false); }
+  });
+}
+
+async function detectBridge() {
+  const obj = nativeObj();
+  if (!obj) return 'none';
+  if (isAppBridge(obj)) return 'app';
+  for (const mode of ['three', 'two']) {
+    if (await probeExec(mode)) { EXEC_MODE = mode; return 'manager'; }
+  }
+  return 'none';
+}
+
+function exec(cmd) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (out) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(out == null ? '' : String(out));
+    };
+    const timer = setTimeout(() => {
+      EXEC_TIMEOUT = true;
+      finish('');
+    }, 20000);
+    const started = execOnce(cmd, (errno, stdout, stderr) => {
+      if (String(stderr || '').includes('ROWAN_TIMEOUT')) EXEC_TIMEOUT = true;
+      finish((stdout || '') + (stderr || ''));
+    });
+    if (!started) {
+      EXEC_TIMEOUT = true;
+      finish('');
+    }
+  });
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/* ---------- 折叠（默认全收起，记住用户选择） ---------- */
+document.querySelectorAll('.card').forEach((card) => {
+  const id = card.dataset.id;
+  const saved = localStorage.getItem('rowanFold_' + id);
+  if (saved === '0') card.classList.remove('fold');
+  card.querySelector('[data-fold]').addEventListener('click', (e) => {
+    if (e.target.closest('button') || e.target.closest('.more') || e.target.closest('.sw')) return;
+    card.classList.toggle('fold');
+    localStorage.setItem('rowanFold_' + id, card.classList.contains('fold') ? '1' : '0');
+  });
+});
+
+/* ---------- 状态 ---------- */
+async function refreshState() {
+  const off = (await exec(`[ -f ${OFF} ] && echo off || echo on`)).trim();
+  if (off !== 'on' && off !== 'off') {
+    document.getElementById('dot').className = 'dot';
+    document.getElementById('state').textContent = '读不到状态';
+    document.getElementById('stateSum').textContent = 'KernelSU 未响应或未授权';
+    document.getElementById('stateHint').textContent = EXEC_TIMEOUT
+      ? '没有拿到 Root 权限或命令超时：在 KernelSU / APatch 里允许 Rowan，允许后点上面的「刷新」'
+      : 'WebUI 需要 KernelSU / APatch 的执行权限；如果一直这样，重启一次管理器或更新它的版本';
+    return;
+  }
+  const isOff = off === 'off';
+  document.getElementById('dot').className = 'dot' + (isOff ? '' : ' on');
+  document.getElementById('state').textContent = isOff ? '已关闭' : '已开启';
+  document.getElementById('stateSum').textContent = isOff ? '不注入新进程' : '新启动的应用会注入';
+  document.getElementById('sw').className = 'sw' + (isOff ? ' off' : '');
+  document.getElementById('stateHint').textContent =
+    isOff ? '已关闭：新启动的应用不再注入；重新开启后重启目标应用即可恢复' : '关闭后新启动的应用不再注入，无需重启手机';
+}
+
+/* ---------- 脚本 ---------- */
+async function refreshScripts() {
+  const box = document.getElementById('scripts');
+  const raw = (await exec(`ls -1 ${SCRIPTS} 2>/dev/null`)).trim();
+  const list = raw ? raw.split('\n').filter(Boolean) : [];
+  const on = list.filter((n) => !n.endsWith('.off')).length;
+  document.getElementById('scriptCount').textContent = list.length;
+  document.getElementById('scriptSum').textContent = list.length ? `${on}/${list.length} 启用` : '空';
+  if (!list.length) {
+    box.innerHTML = EXEC_TIMEOUT
+      ? '<div class="empty">读不到 scripts 目录：没有 Root 权限或超时，允许后点上方「刷新」，并确认模块已安装。</div>'
+      : '<div class="empty">还没有脚本。让 AI 写一个放进 scripts 目录，重启目标应用即生效。</div>';
+    return;
+  }
+  box.innerHTML = list.map((n) => {
+    const off = n.endsWith('.off');
+    const base = off ? n.slice(0, -4) : n;
+    return `<div class="item">
+      <div class="ico ${off ? 'off' : ''}">JS</div>
+      <div style="flex:1">
+        <div class="nm ${off ? 'off' : ''}">${esc(base)}</div>
+        <div class="meta">${off ? '已停用 · 不会加载' : '启用中 · 启动时加载'}</div>
+      </div>
+      <div class="grp">
+        <button class="m" data-act="view" data-f="${esc(n)}">看</button>
+        <button class="m pri" data-act="toggle" data-f="${esc(n)}">${off ? '启用' : '停用'}</button>
+        <button class="m bad" data-act="del" data-f="${esc(n)}">删</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- 目标应用 ---------- */
+async function refreshTargets() {
+  const box = document.getElementById('targets');
+  const txt = await exec(`cat ${MOD}/config.json 2>/dev/null`);
+  let pkgs = [];
+  try { pkgs = (JSON.parse(txt).targets || []).map((t) => t.app_name).filter(Boolean); } catch (e) {}
+  document.getElementById('targetCount').textContent = pkgs.length;
+  document.getElementById('targetSum').textContent = pkgs.length ? '' : '未配置';
+  if (!pkgs.length && EXEC_TIMEOUT) {
+    box.innerHTML = '<div class="empty">读不到 config.json：没有 Root 权限或超时，允许后点刷新。</div>';
+    return;
+  }
+  box.innerHTML = pkgs.length
+    ? pkgs.map((p) => `<div class="item">
+        <div class="app">${esc(p.replace(/^.*\./, '').slice(0, 1).toUpperCase() || '?')}</div>
+        <div style="flex:1"><div class="nm">${esc(p)}</div><div class="meta">注入中</div></div>
+        <div class="grp"><button class="m pri" data-act="restart" data-f="${esc(p)}">重启</button></div>
+      </div>`).join('')
+    : '<div class="empty">还没有目标应用。让 AI 加一个包名，或手动改 config.json 的 targets。</div>';
+}
+
+/* ---------- 环境 ---------- */
+async function refreshEnv() {
+  const gadget = (await exec(`ls ${MOD}/lib/*/libgadget.so 2>/dev/null | head -1`)).trim();
+  document.getElementById('gadget').textContent = gadget || '-';
+  document.getElementById('sdir').textContent = SCRIPTS;
+  const arch = gadget.includes('/arm64/') ? 'arm64' : gadget.includes('/x86_64/') ? 'x64' : 'arm';
+  document.getElementById('envSum').textContent = gadget ? arch : '未知';
+}
+
+/* ---------- 日志 ---------- */
+async function refreshLog() {
+  const log = (await exec(`logcat -d -t 400 2>/dev/null | grep -Ei 'Rowan|gadget|zygisk' | tail -80`)).trim();
+  const lines = log ? log.split('\n') : [];
+  document.getElementById('logSum').textContent = lines.length ? `最近 ${lines.length} 行` : '暂无';
+  document.getElementById('log').innerHTML = lines.length
+    ? lines.slice(-60).map((l) => esc(l).replace(/\[Rowan\]/g, '<span class="k">[Rowan]</span>')).join('<br>')
+    : (EXEC_TIMEOUT ? '读不到日志：没有 Root 权限或超时，允许后点刷新' : '（暂无日志；打开一个目标应用后再刷新）');
+}
+
+/* ---------- 交互 ---------- */
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  e.stopPropagation();
+  const act = btn.dataset.act;
+  const f = btn.dataset.f;
+  if (act === 'view') {
+    const body = await exec(`cat ${SCRIPTS}/${f} 2>/dev/null`);
+    document.getElementById('sheetTitle').textContent = f;
+    document.getElementById('sheetBody').textContent = body || '（空）';
+    document.getElementById('sheet').classList.add('show');
+    document.getElementById('mask').classList.add('show');
+  } else if (act === 'toggle') {
+    if (f.endsWith('.off')) await exec(`mv ${SCRIPTS}/${f} ${SCRIPTS}/${f.slice(0, -4)}`);
+    else await exec(`mv ${SCRIPTS}/${f} ${SCRIPTS}/${f}.off`);
+    await refreshScripts();
+  } else if (act === 'del') {
+    if (confirm('删除 ' + f + '？')) {
+      await exec(`rm -f ${SCRIPTS}/${f}`);
+      await refreshScripts();
+    }
+  } else if (act === 'restart') {
+    await exec(`am force-stop ${f}; monkey -p ${f} -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1`);
+    document.getElementById('sheetTitle').textContent = '已重启 ' + f;
+    document.getElementById('sheetBody').textContent = '目标应用已重启，新脚本会在启动时加载。';
+    document.getElementById('sheet').classList.add('show');
+    document.getElementById('mask').classList.add('show');
+  }
+});
+
+document.getElementById('sw').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const off = await exec(`[ -f ${OFF} ] && echo off || echo on`);
+  if (off.trim() === 'off') await exec(`rm -f ${OFF}`);
+  else await exec(`touch ${OFF}`);
+  await refreshState();
+});
+document.getElementById('reloadState').addEventListener('click', (e) => { e.stopPropagation(); EXEC_TIMEOUT = false; refreshState(); });
+document.getElementById('reloadScripts').addEventListener('click', (e) => { e.stopPropagation(); EXEC_TIMEOUT = false; refreshScripts(); });
+document.getElementById('reloadLog').addEventListener('click', (e) => { e.stopPropagation(); EXEC_TIMEOUT = false; refreshLog(); });
+document.getElementById('sheetClose').addEventListener('click', () => {
+  document.getElementById('sheet').classList.remove('show');
+  document.getElementById('mask').classList.remove('show');
+});
+document.getElementById('mask').addEventListener('click', () => {
+  document.getElementById('sheet').classList.remove('show');
+  document.getElementById('mask').classList.remove('show');
+});
+
+function refreshAll() {
+  EXEC_TIMEOUT = false;
+  refreshState();
+  refreshScripts();
+  refreshTargets();
+  refreshEnv();
+  refreshLog();
+}
+
+(async () => {
+  BRIDGE = await detectBridge();
+  const tag = document.getElementById('bridge');
+  if (tag) tag.textContent = BRIDGE === 'app' ? 'App 内置' : BRIDGE === 'manager' ? '管理器' : '不可用';
+  if (BRIDGE === 'none') {
+    document.getElementById('dot').className = 'dot';
+    document.getElementById('state').textContent = '执行桥不可用';
+    document.getElementById('stateSum').textContent = '当前环境没有可用的 WebUI 执行接口';
+    document.getElementById('stateHint').textContent =
+      '请在 KernelSU / APatch 管理器或 Rowan App 里打开本页；两边都打不开请反馈'; 
+    document.getElementById('scripts').innerHTML = '<div class="empty">执行桥不可用</div>';
+    document.getElementById('targets').innerHTML = '<div class="empty">执行桥不可用</div>';
+    document.getElementById('log').textContent = '执行桥不可用';
+    return;
+  }
+  refreshAll();
+  setInterval(() => { EXEC_TIMEOUT = false; refreshState(); refreshLog(); }, 5000);
+})();
+</script>
+</body>
+</html>

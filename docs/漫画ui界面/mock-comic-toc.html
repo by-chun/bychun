@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{position:relative;width:380px;height:820px;background:#0B1220;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;display:flex;flex-direction:column;justify-content:flex-end}
+  .reader{position:absolute;inset:0 0 520px 0;display:flex;align-items:center;justify-content:center}
+  .page{width:230px;height:300px;background:#fff;border-radius:3px;padding:7px;display:grid;grid-template-rows:1fr 1.1fr;gap:6px;opacity:.55}
+  .p{background:#F1F5F9;border:2px solid #0F172A;position:relative;overflow:hidden}
+  .p::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,#E2E8F0 0 2px,transparent 2px 6px);opacity:.5}
+  .mask{position:absolute;inset:0;background:rgba(15,23,42,.5)}
+  .sheet{position:relative;height:520px;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.35);display:flex;flex-direction:column}
+  .grab{width:38px;height:4px;border-radius:2px;background:#E2E8F0;margin:9px auto 4px}
+  .hd{display:flex;align-items:center;padding:6px 16px 10px}
+  .hd .t{font-size:14px;font-weight:800;flex:1}
+  .hd .n{font:10px ui-monospace,monospace;color:#94A3B8}
+  .list{flex:1;overflow-y:auto}
+  .list::-webkit-scrollbar{width:5px}
+  .list::-webkit-scrollbar-thumb{background:#E2E8F0;border-radius:3px}
+  .ch{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid #F6F8FB}
+  .thumb{width:34px;height:46px;border-radius:4px;background:#F1F5F9;border:1.5px solid #0F172A;position:relative;overflow:hidden;flex:none}
+  .thumb::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,#E2E8F0 0 2px,transparent 2px 5px);opacity:.5}
+  .main{flex:1;min-width:0}
+  .nm{font-size:12px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font:9px ui-monospace,monospace;color:#B6C0CD;margin-top:3px}
+  .ch.on{background:#F3F8FF}
+  .ch.on .nm{color:#1D4ED8;font-weight:700}
+  .ch.on .sub{color:#2563EB}
+  .ch.on .thumb{border-color:#2563EB}
+  .ft{display:flex;align-items:center;gap:10px;padding:10px 16px 18px;border-top:1px solid #F1F5F9}
+  .btn{flex:1;height:36px;border-radius:10px;background:#F4F7FB;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .btn.pri{background:#2563EB;color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+  <div class="reader">
+    <div class="page">
+      <div class="p"></div>
+      <div class="p"></div>
+    </div>
+  </div>
+  <div class="mask"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="hd"><div class="t">目录</div><div class="n">共 48 话</div></div>
+    <div class="list">
+      <div class="ch"><div class="thumb"></div><div class="main"><div class="nm">第 9 话 门后的影子</div><div class="sub">24 页 · 已读</div></div></div>
+      <div class="ch"><div class="thumb"></div><div class="main"><div class="nm">第 10 话 短信</div><div class="sub">22 页 · 已读</div></div></div>
+      <div class="ch"><div class="thumb"></div><div class="main"><div class="nm">第 11 话 倒计时</div><div class="sub">20 页 · 已读</div></div></div>
+      <div class="ch on"><div class="thumb"></div><div class="main"><div class="nm">第 12 话 雨夜追踪</div><div class="sub">18 页 · 读到 12/180 页</div></div></div>
+      <div class="ch"><div class="thumb"></div><div class="main"><div class="nm">第 13 话 那双鞋</div><div class="sub">21 页 · 未读</div></div></div>
+      <div class="ch"><div class="thumb"></div><div class="main"><div class="nm">第 14 话 慢半拍</div><div class="sub">19 页 · 未读</div></div></div>
+      <div class="ch"><div class="thumb"></div><div class="main"><div class="nm">第 15 话 别回头</div><div class="sub">23 页 · 未读</div></div></div>
+    </div>
+    <div class="ft">
+      <div class="btn">上一话</div>
+      <div class="btn pri">下一话</div>
+    </div>
+  </div>
+</body>
+</html>

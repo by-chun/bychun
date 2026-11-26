@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:820px;height:380px;background:#000;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#fff;display:flex;flex-direction:column;justify-content:space-between}
+  .top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(180deg,rgba(0,0,0,.75),transparent)}
+  .x{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+  .t{flex:1;font-size:12px;color:#fff}
+  .txt{font-size:11px;color:#fff;padding:4px 6px}
+  .auto{font-size:10px;color:#fff;opacity:.75}
+  .sw{width:38px;height:22px;border-radius:11px;background:#2563EB;position:relative;margin-left:4px}
+  .sw i{position:absolute;top:3px;left:19px;width:16px;height:16px;border-radius:50%;background:#fff}
+  .center{flex:1;display:flex;align-items:center;justify-content:center}
+  .spin{width:30px;height:30px;border-radius:50%;border:3px solid #2563EB;border-top-color:transparent}
+  .bottom{display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(0deg,rgba(0,0,0,.75),transparent)}
+  .play{font-size:14px}
+  .time{font:10px ui-monospace,monospace;color:rgba(255,255,255,.7)}
+  .track{flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px}
+  .track i{display:block;width:3%;height:3px;background:#2563EB;border-radius:2px}
+  .speed{font-size:10.5px;color:#fff;font-weight:700;padding:4px 6px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="x">✕</div>
+    <div class="t">第 02 集</div>
+    <div class="txt">选集</div>
+    <div class="auto">自动</div>
+    <div class="sw"><i></i></div>
+  </div>
+  <div class="center"><div class="spin"></div></div>
+  <div class="bottom">
+    <div class="play">▶</div>
+    <div class="time">00:00</div>
+    <div class="track"><i></i></div>
+    <div class="time">00:00</div>
+    <div class="speed">1.0x</div>
+  </div>
+</body>
+</html>

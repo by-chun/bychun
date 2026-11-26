@@ -1,0 +1,348 @@
+From a6d4a1d73803b0b03368087bd4e801c836b3d162 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 20:06:47 +0800
+Subject: [PATCH] =?UTF-8?q?feat:=20=E5=A4=87=E4=BB=BD=E6=94=B9=E4=B8=BA?=
+ =?UTF-8?q?=E5=BC=B9=E7=AA=97=E5=8B=BE=E9=80=89=EF=BC=9B=E6=8F=92=E4=BB=B6?=
+ =?UTF-8?q?=E9=95=BF=E6=8C=89=E8=8F=9C=E5=8D=95=E5=8A=A0=E8=BF=90=E8=A1=8C?=
+ =?UTF-8?q?/=E4=BD=9C=E4=B8=BA=20Xposed=20=E6=A8=A1=E5=9D=97=E8=BF=90?=
+ =?UTF-8?q?=E8=A1=8C?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 备份页只留「导出数据」入口，点开弹窗勾选（全选/全不选 + 导出选中 N 项）
+- 抽屉文件长按菜单：运行脚本、作为 Xposed 模块运行（.js）、重命名、发到对话、删除
+- 运行按扩展名选解释器并弹 exit 输出；XP 填包名后写 xposed_scripts.json
+- 版本 6.10.4+704（仅本地）
+---
+ lib/pages/backup_page.dart   | 145 ++++++++++++++++++++++-------------
+ lib/widgets/tree_drawer.dart |  92 +++++++++++++++++++++-
+ pubspec.yaml                 |   2 +-
+ 3 files changed, 184 insertions(+), 55 deletions(-)
+
+diff --git a/lib/pages/backup_page.dart b/lib/pages/backup_page.dart
+index 9865755..92df5db 100644
+--- a/lib/pages/backup_page.dart
++++ b/lib/pages/backup_page.dart
+@@ -42,6 +42,92 @@ class _BackupPageState extends ConsumerState<BackupPage> {
+   final Set<String> _picked = {..._items.keys};
+   bool _busy = false;
+ 
++  Future<void> _pickAndExport() async {
++    final picked = <String>{..._items.keys};
++    final go = await showModalBottomSheet<bool>(
++      context: context,
++      backgroundColor: Colors.white,
++      isScrollControlled: true,
++      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
++      builder: (ctx) => StatefulBuilder(
++        builder: (ctx, setS) {
++          final allPicked = picked.length == _items.length;
++          return SafeArea(
++            child: Padding(
++              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
++              child: Column(
++                mainAxisSize: MainAxisSize.min,
++                crossAxisAlignment: CrossAxisAlignment.stretch,
++                children: [
++                  Center(
++                    child: Container(
++                      width: 36,
++                      height: 4,
++                      decoration: BoxDecoration(
++                        color: const Color(0xFFE2E8F0),
++                        borderRadius: BorderRadius.circular(2),
++                      ),
++                    ),
++                  ),
++                  Padding(
++                    padding: const EdgeInsets.fromLTRB(2, 12, 2, 4),
++                    child: Row(children: [
++                      const Text('选择要导出的数据', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
++                      const Spacer(),
++                      TextButton(
++                        onPressed: () => setS(() {
++                          if (allPicked) {
++                            picked.clear();
++                          } else {
++                            picked.addAll(_items.keys);
++                          }
++                        }),
++                        child: Text(allPicked ? '全不选' : '全选', style: const TextStyle(fontSize: 11.5)),
++                      ),
++                    ]),
++                  ),
++                  ConstrainedBox(
++                    constraints: const BoxConstraints(maxHeight: 360),
++                    child: ListView(
++                      shrinkWrap: true,
++                      children: [
++                        for (final e in _items.entries)
++                          CheckboxListTile(
++                            dense: true,
++                            contentPadding: EdgeInsets.zero,
++                            value: picked.contains(e.key),
++                            onChanged: (v) => setS(() {
++                              if (v == true) {
++                                picked.add(e.key);
++                              } else {
++                                picked.remove(e.key);
++                              }
++                            }),
++                            title: Text(e.value, style: const TextStyle(fontSize: 13)),
++                          ),
++                      ],
++                    ),
++                  ),
++                  const SizedBox(height: 8),
++                  FilledButton(
++                    onPressed: picked.isEmpty ? null : () => Navigator.pop(ctx, true),
++                    style: FilledButton.styleFrom(backgroundColor: AppColors.brand, minimumSize: const Size.fromHeight(44)),
++                    child: Text('导出选中的 ${picked.length} 项', style: const TextStyle(fontSize: 13.5)),
++                  ),
++                ],
++              ),
++            ),
++          );
++        },
++      ),
++    );
++    if (go != true) return;
++    _picked
++      ..clear()
++      ..addAll(picked);
++    await _export();
++  }
++
+   Future<void> _export() async {
+     if (_picked.isEmpty) {
+       showToast(context, '先勾选要导出的内容', error: true);
+@@ -158,71 +244,24 @@ class _BackupPageState extends ConsumerState<BackupPage> {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final allPicked = _picked.length == _items.length;
+     final body = ListView(
+         padding: const EdgeInsets.all(16),
+         children: [
+-          Row(children: [
+-            const Text('导出这些数据', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-            const Spacer(),
+-            TextButton(
+-              onPressed: () => setState(() {
+-                if (allPicked) {
+-                  _picked.clear();
+-                } else {
+-                  _picked.addAll(_items.keys);
+-                }
+-              }),
+-              child: Text(allPicked ? '全不选' : '全选', style: const TextStyle(fontSize: 11.5)),
+-            ),
+-          ]),
+-          GlassCard(
+-            child: Column(
+-              children: [
+-                for (final e in _items.entries)
+-                  InkWell(
+-                    onTap: () => setState(() {
+-                      if (_picked.contains(e.key)) {
+-                        _picked.remove(e.key);
+-                      } else {
+-                        _picked.add(e.key);
+-                      }
+-                    }),
+-                    child: Padding(
+-                      padding: const EdgeInsets.symmetric(vertical: 2),
+-                      child: Row(children: [
+-                        Checkbox(
+-                          value: _picked.contains(e.key),
+-                          onChanged: (_) => setState(() {
+-                            if (_picked.contains(e.key)) {
+-                              _picked.remove(e.key);
+-                            } else {
+-                              _picked.add(e.key);
+-                            }
+-                          }),
+-                          visualDensity: VisualDensity.compact,
+-                        ),
+-                        Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13))),
+-                      ]),
+-                    ),
+-                  ),
+-              ],
+-            ),
+-          ),
+-          const SizedBox(height: 10),
+           GlassCard(
+-            onTap: _busy ? null : _export,
++            onTap: _busy ? null : _pickAndExport,
+             child: Row(children: [
+               const Icon(Icons.file_upload_outlined, size: 20, color: AppColors.brand),
+               const SizedBox(width: 12),
+               Expanded(
+                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+-                  Text('导出选中的 ${_picked.length} 项',
+-                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
++                  const Text('导出数据',
++                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                   const SizedBox(height: 3),
+-                  const Text('存成 JSON 放到 Download 目录', style: TextStyle(fontSize: 11, color: AppColors.muted)),
++                  Text('点开勾选要导出的项（共 ${_items.length} 项）',
++                      style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                 ]),
+               ),
++              const Icon(Icons.chevron_right, size: 18, color: Color(0xFFCBD5E1)),
+             ]),
+           ),
+           const SizedBox(height: 10),
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index 391ca5d..d4fb48a 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -16,6 +16,7 @@ import '../pages/container_page.dart';
+ import '../pages/compact_page.dart';
+ import '../pages/backup_page.dart';
+ import '../pages/mcp_page.dart';
++import '../agent/xposed_store.dart';
+ import '../pages/git_page.dart';
+ 
+ /// 抽屉里的树状工作区：应用 / 文件 / 插件 / 设置，逐级向下展开。
+@@ -765,6 +766,10 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+               title: name,
+               onRename: () => _rename(full),
+               onDelete: () => _delete(full),
++              onRun: isDir ? null : () => _runFile(full, name),
++              onXposed: (!isDir && name.toLowerCase().endsWith('.js'))
++                  ? () => _markXposed(full, name)
++                  : null,
+             ),
+             child: Row(
+               children: [
+@@ -878,7 +883,13 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+     );
+   }
+ 
+-  Future<void> _rowMenu({required String title, VoidCallback? onRename, VoidCallback? onDelete}) async {
++  Future<void> _rowMenu({
++    required String title,
++    VoidCallback? onRename,
++    VoidCallback? onDelete,
++    VoidCallback? onRun,
++    VoidCallback? onXposed,
++  }) async {
+     final act = await showModalBottomSheet<String>(
+       context: context,
+       backgroundColor: Colors.white,
+@@ -895,6 +906,18 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+                       style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontFamily: 'monospace'))),
+             ]),
+           ),
++          if (onRun != null)
++            ListTile(
++              leading: const Icon(Icons.play_arrow_rounded, size: 20),
++              title: const Text('运行脚本', style: TextStyle(fontSize: 13.5)),
++              onTap: () => Navigator.pop(ctx, 'run'),
++            ),
++          if (onXposed != null)
++            ListTile(
++              leading: const Icon(Icons.extension_outlined, size: 20),
++              title: const Text('作为 Xposed 模块运行', style: TextStyle(fontSize: 13.5)),
++              onTap: () => Navigator.pop(ctx, 'xp'),
++            ),
+           if (onRename != null)
+             ListTile(
+               leading: const Icon(Icons.drive_file_rename_outline_rounded, size: 20),
+@@ -915,10 +938,77 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+         ]),
+       ),
+     );
++    if (act == 'run') onRun?.call();
++    if (act == 'xp') onXposed?.call();
+     if (act == 'rename') onRename?.call();
+     if (act == 'delete') onDelete?.call();
+   }
+ 
++  Future<void> _runFile(String path, String name) async {
++    final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
++    final interp = switch (ext) {
++      'sh' || 'bash' => 'sh',
++      'py' => 'python3',
++      'js' => 'node',
++      'lua' => 'lua',
++      _ => null,
++    };
++    if (interp == null) {
++      _toast('这个类型不能直接运行');
++      return;
++    }
++    final r = await NativeBridge.exec("$interp '${path.replaceAll("'", "'\\''")}'", timeout: 60);
++    if (!mounted) return;
++    final out = '${r.stdout}${r.stderr}'.trim();
++    await showDialog<void>(
++      context: context,
++      builder: (ctx) => AlertDialog(
++        backgroundColor: Colors.white,
++        title: Text('exit ${r.code}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
++        content: SingleChildScrollView(
++          child: Text(out.isEmpty ? '（无输出）' : out,
++              style: const TextStyle(fontSize: 11, fontFamily: 'monospace', height: 1.5)),
++        ),
++        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭'))],
++      ),
++    );
++  }
++
++  Future<void> _markXposed(String path, String name) async {
++    final t = TextEditingController();
++    final ok = await showDialog<bool>(
++      context: context,
++      builder: (ctx) => AlertDialog(
++        backgroundColor: Colors.white,
++        title: const Text('作为 Xposed 模块运行', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
++        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
++          const Text('目标包名，多个用逗号分隔', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
++          const SizedBox(height: 6),
++          TextField(controller: t, decoration: const InputDecoration(hintText: 'com.example.app')),
++        ]),
++        actions: [
++          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
++          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存')),
++        ],
++      ),
++    );
++    if (ok != true) return;
++    final targets = t.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
++    if (targets.isEmpty) return;
++    final r = await NativeBridge.exec("cat '${path.replaceAll("'", "'\\''")}'");
++    final list = await XposedStore.load();
++    final item = XposedScript(name: name, targets: targets, code: r.ok ? r.stdout : '');
++    final i = list.indexWhere((s) => s.name == name);
++    if (i >= 0) {
++      list[i] = item;
++    } else {
++      list.add(item);
++    }
++    await XposedStore.save(list);
++    if (!mounted) return;
++    _toast('已登记为 Xposed 模块，重启目标应用生效');
++  }
++
+   Future<void> _rename(String full) async {
+     final name = full.split('/').last;
+     final c = TextEditingController(text: name);
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 3f21de1..0d0c435 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.10.3+703
++version: 6.10.4+704
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

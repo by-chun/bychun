@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:820px;height:380px;background:#fff;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;display:flex;flex-direction:column}
+  .top{display:flex;align-items:center;gap:10px;padding:10px 18px 6px;border-bottom:1px solid #F4F7FB}
+  .top .x{width:26px;height:26px;border-radius:8px;background:#F4F7FB;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .top .t{flex:1;font-size:12px;font-weight:700}
+  .top .t span{font-weight:400;color:#94A3B8;font-size:9.5px;margin-left:8px}
+  .chip{font-size:10px;font-weight:600;color:#64748B;background:#F4F7FB;border-radius:7px;padding:5px 8px;margin-left:6px}
+  .chip.on{background:#2563EB;color:#fff}
+  .body{flex:1;display:flex;gap:22px;padding:10px 26px 0;overflow:hidden}
+  .col{flex:1;font-size:12.5px;line-height:1.95;color:#334155}
+  .col p{margin-bottom:9px;text-indent:2em}
+  .bottom{display:flex;align-items:center;gap:12px;padding:8px 18px 12px}
+  .btn{height:30px;min-width:40px;border-radius:9px;background:#F4F7FB;color:#475569;display:flex;align-items:center;justify-content:center;font-size:11px;padding:0 10px}
+  .btn.pri{background:#2563EB;color:#fff;font-weight:700}
+  .info{font:10px ui-monospace,monospace;color:#64748B}
+  .info b{color:#2563EB}
+  .track{flex:1;height:3px;border-radius:2px;background:#EDF2F8}
+  .track i{display:block;width:2%;height:3px;background:#2563EB;border-radius:2px}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="x">✕</div>
+    <div class="t">第 3 章 雨夜 <span>小说 · 横屏阅读</span></div>
+    <div class="chip">自动</div>
+    <div class="chip">竖</div>
+    <div class="chip on">横</div>
+  </div>
+  <div class="body">
+    <div class="col">
+      <p>雨下得很大，巷子里的灯光被水汽揉成一团模糊的橙色。他站在屋檐下，听着雨水敲打铁皮的声音，像是在数一场没有尽头的倒计时。</p>
+      <p>手机屏幕亮了一下，是一条没有署名的消息。只有一行字：别回头。</p>
+      <p>他先是愣住，随后本能地想转身，又硬生生停住。身后除了雨声，什么都没有。</p>
+      <p>手机屏幕暗下去，又被他点亮。那条消息还在，没有发送者，也没有时间。</p>
+      <p>雨更大了，屋檐开始滴水，砸在台阶上溅起细小的回声。</p>
+    </div>
+    <div class="col">
+      <p>可他知道，那种被注视的感觉不会凭白出现，就像代码里突然多出来的一行，总有人写进去过。</p>
+      <p>他把手机塞回口袋，沿着墙根往前走。雨水顺着台阶往下淌，没过鞋底。拐角处的便利店还亮着灯。</p>
+      <p>「要伞吗？」店员问。他摇了摇头。</p>
+      <p>玻璃门合上时，他才发现自己一直在屏住呼吸。雨声重新漫上来，把街道填得满满的。</p>
+      <p>他没有回头，顺着马路往前走，直到灯光一盏一盏退到身后。</p>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="btn">‹</div>
+    <div class="info">第 <b>3</b> / 74 页 · 左右滑动翻页</div>
+    <div class="btn pri">›</div>
+    <div class="btn">A</div>
+    <div class="track"><i></i></div>
+    <div class="btn">目录</div>
+  </div>
+</body>
+</html>

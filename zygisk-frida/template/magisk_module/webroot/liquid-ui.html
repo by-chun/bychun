@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rowan · 液态水珠全局 UI</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{--brand:#475569;--ink:#0F172A;--mut:#64748B;--faint:#9AA3AF}
+  body{background:#0b1020;display:flex;flex-direction:column;align-items:center;gap:22px;padding:18px 0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  .cap{font-size:13px;font-weight:800;color:#5b6b85;align-self:center;margin:4px 0 2px}
+
+  /* 纯白底，无水彩色晕 */
+  .screen{width:390px;position:relative;overflow:hidden;background:radial-gradient(120% 90% at 8% 0%, #FFB199, transparent 55%),radial-gradient(120% 90% at 92% 12%, #A78BFA, transparent 55%),radial-gradient(130% 100% at 50% 100%, #F472B6, transparent 60%),linear-gradient(160deg,#FFC4A8,#C9AFFF 50%,#F9A8D4)}
+
+  /* ===== 无色水珠玻璃 ===== */
+  .drop{background:rgba(255,255,255,.12);backdrop-filter:blur(28px) saturate(1.6);-webkit-backdrop-filter:blur(28px) saturate(1.6);
+    border:1px solid rgba(255,255,255,.55);border-radius:22px;position:relative;overflow:hidden;
+    box-shadow:0 6px 20px rgba(0,0,0,.06),inset 0 1px 1px rgba(255,255,255,.65)}
+  .drop::before{content:"";position:absolute;top:4px;left:9px;right:9px;height:42%;
+    background:radial-gradient(ellipse at 22% 0%,rgba(255,255,255,.85),rgba(255,255,255,0) 65%);pointer-events:none;z-index:1}
+  .drop > *{position:relative;z-index:2}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;cursor:pointer;font-weight:700;position:relative;overflow:hidden;border-radius:14px}
+  .btn::before{content:"";position:absolute;top:2px;left:6px;right:6px;height:50%;background:radial-gradient(ellipse at 20% 0%,rgba(255,255,255,.95),rgba(255,255,255,0) 70%);pointer-events:none}
+  .btn:active{transform:scale(.96)}
+  .btn-pri{background:transparent;color:#334155;padding:11px 22px;font-size:14px;border:1px solid rgba(100,116,139,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.6)}
+  .btn-ghost{background:transparent;border:1px solid rgba(0,0,0,.12);color:#334155;padding:11px 22px;font-size:14px;box-shadow:inset 0 1px 1px rgba(255,255,255,.6)}
+  .btn-icon{width:42px;height:42px;border-radius:15px;background:transparent;border:1px solid rgba(0,0,0,.12);color:#334155;box-shadow:inset 0 1px 1px rgba(255,255,255,.6)}
+  .btn-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .btn-send{background:transparent;color:#334155;padding:0 18px;height:40px;border-radius:14px;font-size:13.5px;border:1px solid rgba(100,116,139,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.6)}
+
+  .sw{width:46px;height:28px;border-radius:14px;position:relative;cursor:pointer;flex:none;background:transparent;border:1px solid rgba(0,0,0,.15);box-shadow:inset 0 1px 1px rgba(255,255,255,.5)}
+  .sw.on{border:1px solid rgba(100,116,139,.35)}
+  .sw .knob{position:absolute;top:2px;left:3px;width:22px;height:22px;border-radius:50%;background:#9AA3AF;box-shadow:0 2px 5px rgba(0,0,0,.2);transition:.2s}
+  .sw.on .knob{left:20px;background:#475569}
+
+  .card{margin:0 12px 10px;padding:0}
+  .ch{display:flex;align-items:center;gap:9px;padding:13px 14px}
+  .ch .ic{width:34px;height:34px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.7)}
+  .ch .ic::before{content:"";position:absolute;top:2px;left:3px;right:3px;height:50%;background:radial-gradient(ellipse at 25% 0%,rgba(255,255,255,.9),rgba(255,255,255,0) 70%)}
+  .ch .ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;position:relative}
+  .ch .t{flex:1;font-size:13.5px;font-weight:800;color:var(--ink)}
+  .ch .n{font-size:10px;color:var(--faint);font-family:monospace}
+  .card .row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid rgba(0,0,0,.04)}
+  .card .row .tt{flex:1;font-size:12.5px;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .row .mm{font-size:9.5px;color:var(--faint);font-family:monospace}
+  .badge{font-size:9px;font-weight:700;color:#475569;background:rgba(100,116,139,.14);border-radius:6px;padding:1px 7px}
+  .card .fld{padding:10px 14px 0}
+  .card .fld label{font-size:9.5px;color:var(--faint);font-weight:600}
+  .card .fld .inp{margin-top:4px;height:34px;border-radius:11px;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;padding:0 11px;font-size:11px;color:var(--ink);font-family:monospace}
+  .card .btnrow{display:flex;gap:8px;padding:10px 14px}
+
+  .bub{max-width:80%;padding:11px 14px;border-radius:17px;font-size:13px;line-height:1.55;position:relative;overflow:hidden}
+  .bub.a{align-self:flex-start;background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.04);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .bub.a::before{content:"";position:absolute;top:3px;left:6px;right:6px;height:45%;background:radial-gradient(ellipse at 22% 0%,rgba(255,255,255,.7),rgba(255,255,255,0) 70%)}
+  .bub.b{align-self:flex-end;background:rgba(255,255,255,.5);color:#334155;border:1px solid rgba(100,116,139,.14)}
+
+  .inputbar{display:flex;gap:8px;align-items:center;margin:0 12px 14px;padding:8px;border-radius:22px;position:relative;overflow:hidden;
+    background:rgba(255,255,255,.18);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,.06);box-shadow:0 6px 20px rgba(0,0,0,.07),inset 0 1px 1px rgba(255,255,255,.6)}
+  .inputbar::before{content:"";position:absolute;top:3px;left:8px;right:8px;height:45%;background:radial-gradient(ellipse at 22% 0%,rgba(255,255,255,.7),rgba(255,255,255,0) 70%);pointer-events:none}
+  .inputbar input{flex:1;border:none;outline:none;background:transparent;font-size:13.5px;color:var(--ink);padding:10px 8px;position:relative;z-index:2}
+  .inputbar input::placeholder{color:var(--faint)}
+
+  .island{position:absolute;left:50%;top:16px;transform:translateX(-50%);height:38px;min-width:130px;max-width:230px;background:rgba(255,255,255,.16);backdrop-filter:blur(22px) saturate(1.5);border:1px solid rgba(255,255,255,.6);border-radius:20px;display:flex;align-items:center;gap:8px;padding:0 14px;color:#334155;box-shadow:0 8px 22px rgba(0,0,0,.12),inset 0 1px 1px rgba(255,255,255,.65);z-index:5;overflow:hidden}
+  .island::before{content:"";position:absolute;top:3px;left:8px;right:8px;height:50%;background:radial-gradient(ellipse at 20% 0%,rgba(255,255,255,1),rgba(255,255,255,0) 70%);pointer-events:none}
+  .island .dot{width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#FF3B30 60%);box-shadow:0 0 10px 2px rgba(255,59,48,.8);flex:none;position:relative;z-index:2;animation:glint 2.2s ease-in-out infinite}
+  .island .tt{flex:1;overflow:hidden;position:relative;height:16px;z-index:2}
+  .island .tt span{position:absolute;white-space:nowrap;font-size:11px;font-weight:600;line-height:16px;animation:scroll 9s linear infinite}
+  @keyframes glint{0%,100%{box-shadow:0 0 8px 2px rgba(255,59,48,.65)}50%{box-shadow:0 0 16px 5px rgba(255,59,48,.95)}}
+@keyframes scroll{0%{transform:translateX(110%)}100%{transform:translateX(-110%)}}
+  .win{position:absolute;left:34px;top:80px;width:320px;height:560px;border-radius:30px;z-index:4;overflow:hidden;
+    background:rgba(255,255,255,.14);backdrop-filter:blur(32px) saturate(1.6);border:1px solid rgba(255,255,255,.6);
+    box-shadow:0 18px 50px rgba(0,0,0,.12),inset 0 1px 1px rgba(255,255,255,.7)}
+  .win::before{content:"";position:absolute;top:3px;left:12px;right:12px;height:40%;border-radius:30px;background:radial-gradient(ellipse at 20% 0%,rgba(255,255,255,1),rgba(255,255,255,.3) 55%,rgba(255,255,255,0) 75%);pointer-events:none}
+  .win .hd{display:flex;align-items:center;padding:13px 16px;margin:0 10px;border-bottom:1px solid rgba(0,0,0,.06);position:relative;z-index:2}
+  .win .hd .ct{flex:1;font-size:13px;font-weight:800;color:var(--ink)}
+  .win .bd{padding:12px;height:calc(100% - 100px);overflow-y:auto;display:flex;flex-direction:column;gap:9px;position:relative;z-index:2}
+  .win .ft{display:flex;gap:7px;padding:11px 14px;margin:0 10px;border-top:1px solid rgba(0,0,0,.06);position:relative;z-index:2}
+  .win .ft input{flex:1;border:1px solid rgba(0,0,0,.06);background:rgba(0,0,0,.04);border-radius:12px;padding:8px 11px;font-size:12px;outline:none;color:var(--ink)}
+  .grip{position:absolute;right:0;bottom:0;width:34px;height:34px;z-index:3}
+  .grip .gv{position:absolute;right:7px;bottom:7px;width:14px;height:14px;border-right:2px solid rgba(100,116,139,.4);border-bottom:2px solid rgba(100,116,139,.4);border-bottom-right-radius:5px}
+
+  /* 弹窗（玻璃对话框 + 底部弹层） */
+  .mask{position:absolute;inset:0;background:rgba(15,23,42,.18);backdrop-filter:blur(6px);z-index:6}
+  .dialog{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:272px;border-radius:24px;z-index:7;overflow:hidden;
+    background:rgba(255,255,255,.16);backdrop-filter:blur(30px) saturate(1.6);border:1px solid rgba(255,255,255,.62);
+    box-shadow:0 22px 60px rgba(0,0,0,.2),inset 0 1px 1px rgba(255,255,255,.75)}
+  .dialog::before{content:"";position:absolute;top:3px;left:9px;right:9px;height:38%;background:radial-gradient(ellipse at 20% 0%,rgba(255,255,255,1),rgba(255,255,255,.28) 55%,rgba(255,255,255,0) 75%);pointer-events:none}
+  .dialog .tt{padding:20px 20px 8px;font-size:16px;font-weight:800;color:#0F172A;position:relative;z-index:2;text-align:center}
+  .dialog .msg{padding:4px 20px 16px;font-size:12.5px;color:#475569;line-height:1.6;text-align:center;position:relative;z-index:2}
+  .dialog .btns{display:flex;gap:8px;padding:4px 14px 16px;position:relative;z-index:2}
+  .dbtn{flex:1;padding:11px;border-radius:14px;font-size:13.5px;font-weight:700;text-align:center;cursor:pointer;border:none;position:relative;overflow:hidden}
+  .dbtn.ghost{background:rgba(0,0,0,.05);color:#334155}
+  .dbtn.pri{background:#2563EB;color:#fff;box-shadow:0 8px 20px rgba(37,99,235,.3),inset 0 1px 1px rgba(255,255,255,.5)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;border-radius:26px 26px 0 0;z-index:7;overflow:hidden;
+    background:rgba(255,255,255,.18);backdrop-filter:blur(30px) saturate(1.6);border-top:1px solid rgba(255,255,255,.62);
+    box-shadow:0 -16px 50px rgba(0,0,0,.18),inset 0 1px 1px rgba(255,255,255,.7);padding:0 18px 24px}
+  .sheet::before{content:"";position:absolute;top:3px;left:12px;right:12px;height:30%;background:radial-gradient(ellipse at 22% 0%,rgba(255,255,255,.9),rgba(255,255,255,0) 70%);pointer-events:none}
+  .sheet .grab{width:36px;height:5px;border-radius:3px;background:rgba(0,0,0,.12);margin:10px auto 12px;position:relative;z-index:2}
+  .sheet .tt2{font-size:16px;font-weight:800;color:#0F172A;text-align:center;position:relative;z-index:2}
+  .sheet .opt{display:flex;align-items:center;gap:10px;padding:13px 14px;margin-top:10px;border-radius:14px;background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.6);position:relative;z-index:2}
+  .sheet .opt .tt{font-size:13.5px;color:#334155;font-weight:600}
+  .sheet .opt .chk{margin-left:auto;width:20px;height:20px;border-radius:6px;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.08)}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-apps" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+  <symbol id="i-pic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></symbol>
+</svg>
+
+<!-- ① 按钮 -->
+<div class="cap">① 按钮</div>
+<div class="screen" style="height:520px">
+  <div style="position:relative;padding:26px 20px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;gap:12px;align-items:center">
+      <button class="btn btn-pri">主要按钮</button>
+      <button class="btn btn-ghost">次要按钮</button>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <button class="btn btn-icon"><svg><use href="#i-plus"/></svg></button>
+      <button class="btn btn-icon"><svg><use href="#i-mic"/></svg></button>
+      <button class="btn btn-icon"><svg><use href="#i-pic"/></svg></button>
+      <button class="btn btn-send"><svg style="width:16px;height:16px;stroke:#64748B;fill:none;stroke-width:2" viewBox="0 0 24 24"><use href="#i-send"/></svg>发送</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px"><span style="font-size:13px;color:#334155">悬浮窗开关</span><div class="sw on"><span class="knob"></span></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px"><span style="font-size:13px;color:#334155">某权限</span><div class="sw"><span class="knob"></span></div></div>
+  </div>
+</div>
+
+<!-- ② 卡片 -->
+<div class="cap">② 卡片</div>
+<div class="screen" style="height:560px">
+  <div style="position:relative;padding-top:18px">
+    <div class="drop card">
+      <div class="ch"><div class="ic" style="color:#64748B"><svg><use href="#i-apps"/></svg></div><div class="t">已安装应用</div><div class="n">3 项</div></div>
+      <div class="row"><span class="tt">微信</span><span class="mm">com.tencent.mm</span><span class="badge">用户</span></div>
+      <div class="row"><span class="tt">抖音</span><span class="mm">com.ss.android.ugc.aweme</span><span class="badge">用户</span></div>
+      <div class="row"><span class="tt">设置</span><span class="mm">com.android.settings</span><span class="badge">系统</span></div>
+    </div>
+    <div class="drop card">
+      <div class="ch"><div class="ic" style="color:#64748B"><svg><use href="#i-file"/></svg></div><div class="t">配置收集</div></div>
+      <div class="fld"><label>仓库地址</label><div class="inp">https://github.com/…</div></div>
+      <div class="btnrow"><button class="btn btn-ghost" style="flex:1;padding:9px">取消</button><button class="btn btn-pri" style="flex:1;padding:9px">提交</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 主会话 -->
+<div class="cap">③ 主会话</div>
+<div class="screen" style="height:640px">
+  <div style="position:relative;height:100%;display:flex;flex-direction:column">
+    <div class="drop" style="margin:14px 12px 0;padding:0">
+      <div class="ch"><div class="ic" style="color:#64748B"><svg><use href="#i-chat"/></svg></div><div class="t">帮我分析这个 App</div><div class="n">Rowan</div></div>
+    </div>
+    <div style="flex:1;padding:14px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+      <div class="bub b">帮我看看这个 App 里有哪些广告 SDK</div>
+      <div class="bub a">好的，我扫一下它的依赖，稍等。</div>
+      <div class="drop card" style="margin:0">
+        <div class="ch"><div class="ic" style="color:#64748B"><svg><use href="#i-apps"/></svg></div><div class="t">检测结果</div><div class="n">2 个</div></div>
+        <div class="row"><span class="tt">穿山甲广告 SDK</span><span class="badge">已发现</span></div>
+        <div class="row"><span class="tt">广点通 SDK</span><span class="badge">已发现</span></div>
+      </div>
+    </div>
+    <div class="inputbar">
+      <button class="btn btn-icon" style="width:38px;height:38px"><svg><use href="#i-plus"/></svg></button>
+      <input placeholder="发消息，或把文件拖进来…" />
+      <button class="btn btn-send"><svg style="width:15px;height:15px;stroke:#64748B;fill:none;stroke-width:2" viewBox="0 0 24 24"><use href="#i-send"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<!-- ④ 悬浮窗 -->
+<div class="cap">④ 悬浮窗</div>
+<div class="screen" style="height:700px">
+  <div style="position:relative;height:100%">
+    <div class="island"><span class="dot"></span><div class="tt"><span>正在分析目标应用的网络请求…已完成 3/8 步</span></div></div>
+    <div class="win">
+      <div class="hd"><span class="ct">Rowan</span><span style="font-size:10px;color:#94A3B8">收起 ▾</span></div>
+      <div class="bd">
+        <div class="bub a">列好了，卡片你直接在悬浮窗里看、填。</div>
+        <div class="drop card" style="margin:0">
+          <div class="ch"><div class="ic" style="color:#64748B"><svg><use href="#i-apps"/></svg></div><div class="t">已安装应用</div><div class="n">3 项</div></div>
+          <div class="row"><span class="tt">微信</span><span class="mm">com.tencent.mm</span></div>
+          <div class="row"><span class="tt">抖音</span><span class="mm">com.ss.android.ugc.aweme</span></div>
+          <div class="row"><span class="tt">设置</span><span class="mm">com.android.settings</span></div>
+        </div>
+      </div>
+      <div class="ft"><input placeholder="给 AI 发消息…" /><button class="btn btn-send" style="height:34px">发送</button></div>
+      <div class="grip"><span class="gv"></span></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ⑤ 弹窗 -->
+<div class="cap">⑤ 弹窗（玻璃对话框 + 底部弹层）</div>
+<div class="screen" style="height:760px">
+  <div class="tint" style="width:260px;height:260px;background:#D6E4FF;top:-60px;left:-40px"></div>
+  <div class="tint" style="width:240px;height:240px;background:#E9D5FF;top:40%;right:-70px"></div>
+  <div class="tint" style="width:220px;height:220px;background:#FEE2F0;bottom:-30px;left:15%"></div>
+  <!-- 玻璃对话框 -->
+  <div class="mask"></div>
+  <div class="dialog">
+    <div class="tt">确认清空会话？</div>
+    <div class="msg">清空后不可恢复，所有对话记录都会被删除。</div>
+    <div class="btns"><button class="dbtn ghost">取消</button><button class="dbtn pri">确认</button></div>
+  </div>
+  <!-- 底部弹层 -->
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="tt2">选择操作</div>
+    <div class="opt"><span class="tt">导出为 JSON</span><span class="chk"></span></div>
+    <div class="opt"><span class="tt">导出为 Markdown</span><span class="chk"></span></div>
+    <div class="opt"><span class="tt">分享链接</span><span class="chk"></span></div>
+  </div>
+</div>
+</body>
+</html>

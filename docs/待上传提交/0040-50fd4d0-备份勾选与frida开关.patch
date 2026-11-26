@@ -1,0 +1,590 @@
+From 50fd4d0f232c1e60f55feadc08d8704865728b71 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 20:04:33 +0800
+Subject: [PATCH] =?UTF-8?q?feat:=20=E5=A4=87=E4=BB=BD=E5=8F=AF=E5=8B=BE?=
+ =?UTF-8?q?=E9=80=89=E3=80=81frida=20=E6=94=B6=E6=88=90=E5=BC=80=E5=85=B3?=
+ =?UTF-8?q?=E3=80=81=E6=8F=92=E4=BB=B6=E6=98=BE=E7=A4=BA=20XP=20=E7=8A=B6?=
+ =?UTF-8?q?=E6=80=81?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 备份与恢复：改为勾选清单（供应商/人物/子代理/插件/容器记录/MCP/外观/权限/压缩/Xposed 脚本/提示词/记忆/快捷项），全选/全不选，只导出选中；子代理走数据库、容器只记录名称；去掉无意义的 workspace.json
+- 权限页 frida-server 改成一行开关（同 Shizuku 风格），展开才显示路径、自动查找、启动
+- 插件页已登记的 .js 显示「已作为 Xposed 模块 + 目标包名」，点一下取消
+- 版本 6.10.3+703（仅本地）
+---
+ lib/pages/backup_page.dart   | 190 ++++++++++++++++++++++++++---------
+ lib/pages/plugins_page.dart  |  47 ++++++++-
+ lib/pages/settings_page.dart | 143 ++++++++++++++++++--------
+ pubspec.yaml                 |   2 +-
+ 4 files changed, 285 insertions(+), 97 deletions(-)
+
+diff --git a/lib/pages/backup_page.dart b/lib/pages/backup_page.dart
+index e08126e..9865755 100644
+--- a/lib/pages/backup_page.dart
++++ b/lib/pages/backup_page.dart
+@@ -1,63 +1,85 @@
+ import 'dart:convert';
+ 
++import 'package:drift/drift.dart' show Value;
+ import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
++import '../data/app_db.dart';
++import '../data/db_provider.dart';
+ import '../native/native_bridge.dart';
+ import '../theme/app_theme.dart';
+ import '../theme/glass.dart';
+-import '../theme/glass_dialog.dart';
+ import '../theme/toast.dart';
+ import 'settings_page.dart' show embedShell;
+ 
+-/// 整包备份与恢复（配置 + 插件 + 记忆 + 提示词 + 人物 + MCP + 供应商…）。
+-class BackupPage extends StatefulWidget {
++/// 备份与恢复：勾选要导出的数据，导出为 JSON；恢复时覆盖选中的项。
++class BackupPage extends ConsumerStatefulWidget {
+   final bool embedded;
+   const BackupPage({super.key, this.embedded = false});
+ 
+   @override
+-  State<BackupPage> createState() => _BackupPageState();
++  ConsumerState<BackupPage> createState() => _BackupPageState();
+ }
+ 
+-class _BackupPageState extends State<BackupPage> {
+-  static const _files = [
+-    'providers.json',
+-    'prompts.json',
+-    'personas.json',
+-    'scripts.json',
+-    'mcp.json',
+-    'appearance.json',
+-    'workspace.json',
+-    'permission.json',
+-    'compact.json',
+-    'xposed_scripts.json',
+-    'quick_actions.json',
+-    'quick_hidden.json',
+-    'memory.json',
+-  ];
++class _BackupPageState extends ConsumerState<BackupPage> {
++  /// key 前缀：file=应用目录下的 json，db=数据库表，env=容器记录。
++  static const Map<String, String> _items = {
++    'file:providers.json': 'AI 供应商',
++    'file:personas.json': '人物',
++    'db:subagents': '子代理',
++    'file:scripts.json': '插件',
++    'env:containers': '容器记录',
++    'file:mcp.json': 'MCP 服务器',
++    'file:appearance.json': '外观 / 背景图',
++    'file:permission.json': '权限与工具规则',
++    'file:compact.json': '上下文压缩',
++    'file:xposed_scripts.json': 'Xposed 脚本',
++    'file:prompts.json': '提示词',
++    'file:memory.json': '记忆',
++    'file:quick_actions.json': '快捷项',
++  };
+ 
++  final Set<String> _picked = {..._items.keys};
+   bool _busy = false;
+ 
+   Future<void> _export() async {
++    if (_picked.isEmpty) {
++      showToast(context, '先勾选要导出的内容', error: true);
++      return;
++    }
+     setState(() => _busy = true);
+     try {
+-      final data = <String, dynamic>{};
+-      var count = 0;
+-      for (final f in _files) {
+-        final txt = await NativeBridge.readAppFile(f);
+-        if (txt != null && txt.trim().isNotEmpty) {
+-          data[f] = txt;
+-          count++;
++      final files = <String, dynamic>{};
++      List<Map<String, dynamic>>? subs;
++      List<Map<String, dynamic>>? envs;
++      for (final key in _picked) {
++        final i = key.indexOf(':');
++        final kind = key.substring(0, i);
++        final name = key.substring(i + 1);
++        if (kind == 'file') {
++          final txt = await NativeBridge.readAppFile(name);
++          if (txt != null && txt.trim().isNotEmpty) files[name] = txt;
++        } else if (kind == 'db' && name == 'subagents') {
++          final list = await ref.read(appDbProvider).allSubAgents();
++          subs = [
++            for (final s in list)
++              {'name': s.name, 'description': s.description, 'modelTier': s.modelTier, 'enabled': s.enabled},
++          ];
++        } else if (kind == 'env') {
++          envs = await NativeBridge.envList();
+         }
+       }
+-      if (count == 0) {
+-        if (mounted) showToast(context, '没有可导出的配置', error: true);
++      if (files.isEmpty && subs == null && envs == null) {
++        if (mounted) showToast(context, '选中的内容都是空的，没有可导出的东西', error: true);
+         return;
+       }
+-      final payload = {
++      final payload = <String, dynamic>{
+         'app': 'anvil',
+-        'version': 1,
++        'version': 2,
+         'exportedAt': DateTime.now().toIso8601String(),
+-        'files': data,
++        'files': files,
++        if (subs != null) 'subAgents': subs,
++        if (envs != null) 'containers': envs,
+       };
+       final name = 'anvil-backup-${DateTime.now().millisecondsSinceEpoch}.json';
+       final ok = await NativeBridge.exportJson(name, const JsonEncoder.withIndent('  ').convert(payload));
+@@ -71,23 +93,32 @@ class _BackupPageState extends State<BackupPage> {
+     final text = await NativeBridge.pickTextFile();
+     if (text == null || text.trim().isEmpty) return;
+     Map<String, dynamic>? files;
++    List<dynamic>? subs;
++    var hasContainers = false;
+     try {
+       final m = jsonDecode(text);
+-      if (m is Map && m['files'] is Map) {
+-        files = Map<String, dynamic>.from(m['files'] as Map);
++      if (m is Map) {
++        if (m['files'] is Map) files = Map<String, dynamic>.from(m['files'] as Map);
++        if (m['subAgents'] is List) subs = m['subAgents'] as List;
++        hasContainers = m['containers'] is List;
+       }
+     } catch (_) {}
+-    if (files == null) {
++    if (files == null && subs == null) {
+       if (mounted) showToast(context, '不是有效的备份文件', error: true);
+       return;
+     }
+     if (!mounted) return;
++    final names = <String>[
++      ...?files?.keys,
++      if (subs != null) 'subAgents（子代理）',
++      if (hasContainers) 'containers（容器记录，仅记录不自动安装）',
++    ];
+     final ok = await showDialog<bool>(
+       context: context,
+       builder: (c) => AlertDialog(
+         title: const Text('恢复备份', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+         content: Text(
+-          '将覆盖以下 ${files!.keys.length} 项配置：\n${files.keys.join('\n')}\n\n当前配置会被替换，确定吗？',
++          '将覆盖以下 ${names.length} 项：\n${names.join('\n')}\n\n当前配置会被替换，确定吗？',
+           style: const TextStyle(fontSize: 12.5, height: 1.6),
+         ),
+         actions: [
+@@ -101,12 +132,24 @@ class _BackupPageState extends State<BackupPage> {
+     setState(() => _busy = true);
+     try {
+       var n = 0;
+-      for (final e in files.entries) {
+-        final name = e.key;
+-        if (!_files.contains(name)) continue;
+-        final okw = await NativeBridge.writeAppFile(name, e.value.toString());
++      for (final e in (files ?? const <String, dynamic>{}).entries) {
++        if (!_items.containsKey('file:${e.key}')) continue;
++        final okw = await NativeBridge.writeAppFile(e.key, e.value.toString());
+         if (okw) n++;
+       }
++      if (subs != null) {
++        final db = ref.read(appDbProvider);
++        for (final raw in subs) {
++          final m = Map<String, dynamic>.from(raw as Map);
++          await db.upsertSubAgent(SubAgentsCompanion.insert(
++            name: (m['name'] ?? '').toString(),
++            description: Value((m['description'] ?? '').toString()),
++            modelTier: Value((m['modelTier'] ?? 'standard').toString()),
++            enabled: Value(m['enabled'] != false),
++          ));
++          n++;
++        }
++      }
+       if (mounted) showToast(context, '已恢复 $n 项，建议重启 App', error: n == 0);
+     } finally {
+       if (mounted) setState(() => _busy = false);
+@@ -115,20 +158,69 @@ class _BackupPageState extends State<BackupPage> {
+ 
+   @override
+   Widget build(BuildContext context) {
++    final allPicked = _picked.length == _items.length;
+     final body = ListView(
+         padding: const EdgeInsets.all(16),
+         children: [
++          Row(children: [
++            const Text('导出这些数据', style: TextStyle(fontSize: 11, color: AppColors.muted)),
++            const Spacer(),
++            TextButton(
++              onPressed: () => setState(() {
++                if (allPicked) {
++                  _picked.clear();
++                } else {
++                  _picked.addAll(_items.keys);
++                }
++              }),
++              child: Text(allPicked ? '全不选' : '全选', style: const TextStyle(fontSize: 11.5)),
++            ),
++          ]),
++          GlassCard(
++            child: Column(
++              children: [
++                for (final e in _items.entries)
++                  InkWell(
++                    onTap: () => setState(() {
++                      if (_picked.contains(e.key)) {
++                        _picked.remove(e.key);
++                      } else {
++                        _picked.add(e.key);
++                      }
++                    }),
++                    child: Padding(
++                      padding: const EdgeInsets.symmetric(vertical: 2),
++                      child: Row(children: [
++                        Checkbox(
++                          value: _picked.contains(e.key),
++                          onChanged: (_) => setState(() {
++                            if (_picked.contains(e.key)) {
++                              _picked.remove(e.key);
++                            } else {
++                              _picked.add(e.key);
++                            }
++                          }),
++                          visualDensity: VisualDensity.compact,
++                        ),
++                        Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13))),
++                      ]),
++                    ),
++                  ),
++              ],
++            ),
++          ),
++          const SizedBox(height: 10),
+           GlassCard(
+             onTap: _busy ? null : _export,
+-            child: Row(children: const [
+-              Icon(Icons.file_upload_outlined, size: 20, color: AppColors.brand),
+-              SizedBox(width: 12),
++            child: Row(children: [
++              const Icon(Icons.file_upload_outlined, size: 20, color: AppColors.brand),
++              const SizedBox(width: 12),
+               Expanded(
+                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+-                  Text('导出全部配置', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+-                  SizedBox(height: 3),
+-                  Text('供应商 / 提示词 / 人物 / 插件 / MCP / 外观 / 工作区 / 权限 / 记忆',
+-                      style: TextStyle(fontSize: 11, color: AppColors.muted)),
++                  Text('导出选中的 ${_picked.length} 项',
++                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
++                  const SizedBox(height: 3),
++                  const Text('存成 JSON 放到 Download 目录', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                 ]),
+               ),
+             ]),
+@@ -143,7 +235,7 @@ class _BackupPageState extends State<BackupPage> {
+                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                   Text('从备份恢复', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                   SizedBox(height: 3),
+-                  Text('选择导出的 json，覆盖当前配置（会先确认）',
++                  Text('选择导出的 json，覆盖对应项（会先确认）',
+                       style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                 ]),
+               ),
+@@ -155,7 +247,7 @@ class _BackupPageState extends State<BackupPage> {
+           ],
+           const SizedBox(height: 22),
+           const Text(
+-            '导出的文件在手机 Download 目录，可以拷到别的设备再导入。\n注意：备份里包含 API Key，分享前请自行处理。',
++            '不含：聊天记录、抓包记录、容器里的系统文件（属于运行时数据）。\n备份里包含 API Key，分享前请自行处理。',
+             style: TextStyle(fontSize: 11, color: AppColors.muted, height: 1.7),
+           ),
+         ],
+diff --git a/lib/pages/plugins_page.dart b/lib/pages/plugins_page.dart
+index b500900..aad07c1 100644
+--- a/lib/pages/plugins_page.dart
++++ b/lib/pages/plugins_page.dart
+@@ -23,6 +23,8 @@ class PluginViewPage extends ConsumerStatefulWidget {
+ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+   String? _content;
+   bool _loading = true;
++  bool _xposed = false;
++  List<String> _xpTargets = const [];
+ 
+   String get _ext {
+     final n = widget.name;
+@@ -44,6 +46,24 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+   void initState() {
+     super.initState();
+     _load();
++    _loadXp();
++  }
++
++  Future<void> _loadXp() async {
++    final list = await XposedStore.load();
++    final hit = list.where((s) => s.name == widget.name).toList();
++    if (!mounted) return;
++    setState(() {
++      _xposed = hit.isNotEmpty;
++      _xpTargets = hit.isEmpty ? const [] : hit.first.targets;
++    });
++  }
++
++  Future<void> _removeXposed() async {
++    final list = await XposedStore.load();
++    list.removeWhere((s) => s.name == widget.name);
++    await XposedStore.save(list);
++    await _loadXp();
+   }
+ 
+   Future<void> _load() async {
+@@ -112,6 +132,7 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+       list.add(item);
+     }
+     await XposedStore.save(list);
++    await _loadXp();
+     if (!mounted) return;
+     ScaffoldMessenger.of(context)
+         .showSnackBar(const SnackBar(content: Text('已保存，重启目标应用生效')));
+@@ -195,12 +216,28 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+                   if (_ext == 'js') ...[
+                     const SizedBox(height: 10),
+                     GlassCard(
+-                      onTap: _setXposed,
++                      onTap: _xposed ? _removeXposed : _setXposed,
+                       child: Row(
+-                        children: const [
+-                          Icon(Icons.extension_outlined, size: 18, color: AppColors.brand),
+-                          SizedBox(width: 10),
+-                          Expanded(child: Text('设为 Xposed 脚本', style: TextStyle(fontSize: 13))),
++                        children: [
++                          Icon(_xposed ? Icons.check_circle_rounded : Icons.extension_outlined,
++                              size: 18, color: AppColors.brand),
++                          const SizedBox(width: 10),
++                          Expanded(
++                            child: Column(
++                              crossAxisAlignment: CrossAxisAlignment.start,
++                              children: [
++                                Text(_xposed ? '已作为 Xposed 模块' : '设为 Xposed 脚本',
++                                    style: const TextStyle(fontSize: 13)),
++                                if (_xposed)
++                                  Text(_xpTargets.join(', '),
++                                      maxLines: 1,
++                                      overflow: TextOverflow.ellipsis,
++                                      style: const TextStyle(fontSize: 10.5, color: AppColors.muted)),
++                              ],
++                            ),
++                          ),
++                          if (_xposed)
++                            const Text('取消', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                         ],
+                       ),
+                     ),
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index ab4d872..5d0bb43 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -909,6 +909,8 @@ class PowerPage extends ConsumerStatefulWidget {
+ class _PowerPageState extends ConsumerState<PowerPage> {
+   final _ctrl = TextEditingController();
+   String _moduleMsg = '';
++  bool _fridaOpen = false;
++  bool _fridaOn = false;
+   Map<String, bool> _perm = {};
+   final Set<String> _checking = {};
+   final Set<String> _checked = {};
+@@ -1125,6 +1127,7 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+             await Future.delayed(const Duration(milliseconds: 800));
+             _loadPerm();
+           }),
++          _fridaRow(),
+           const Padding(
+             padding: EdgeInsets.only(top: 4),
+             child: Text('网络、前台服务、开机自启、唤醒锁安装时自动授予，不需要手动开。',
+@@ -1183,69 +1186,125 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+                 Padding(padding: const EdgeInsets.only(top: 6), child: Text(_moduleMsg, style: const TextStyle(fontSize: 11.5, color: AppColors.muted))),
+             ]),
+           ),
+-          const SizedBox(height: 10),
+-          GlassCard(
+-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+-              Row(children: const [
+-                Icon(Icons.bug_report_outlined, size: 20, color: AppColors.brand),
+-                SizedBox(width: 12),
+-                Expanded(child: Text('frida-server', style: TextStyle(fontSize: 13))),
++        ],
++      );
++    if (widget.embedded) {
++      return embedShell(title: '权限', body: body);
++    }
++    return Scaffold(
++      backgroundColor: Colors.white,
++      appBar: AppBar(
++        leading: const BackButton(),
++        backgroundColor: Colors.white,
++        elevation: 0,
++        title: const Text('权限', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
++      ),
++      body: body,
++    );
++  }
++
++  Widget _fridaRow() {
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      children: [
++        Padding(
++          padding: const EdgeInsets.symmetric(vertical: 6),
++          child: Row(children: [
++            Expanded(
++              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
++                const Text('frida-server', style: TextStyle(fontSize: 13)),
++                Padding(
++                  padding: const EdgeInsets.only(top: 2),
++                  child: Text(
++                    _fridaOn ? '服务已启动' : '服务已停止 · 点开可设路径',
++                    style: const TextStyle(fontSize: 10.5, color: AppColors.muted),
++                  ),
++                ),
+               ]),
+-              const SizedBox(height: 6),
++            ),
++            Switch(
++              value: _fridaOn,
++              activeThumbColor: AppColors.brand,
++              onChanged: _toggleFrida,
++            ),
++            InkWell(
++              onTap: () => setState(() => _fridaOpen = !_fridaOpen),
++              borderRadius: BorderRadius.circular(8),
++              child: Padding(
++                padding: const EdgeInsets.all(6),
++                child: Icon(
++                  _fridaOpen ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
++                  size: 18,
++                  color: const Color(0xFFCBD5E1),
++                ),
++              ),
++            ),
++          ]),
++        ),
++        if (_fridaOpen)
++          Padding(
++            padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
++            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+               TextField(
+                 controller: _ctrl,
+                 decoration: const InputDecoration(
+                   isDense: true,
+-                  labelText: '二进制路径',
++                  labelText: '二进制路径（不内置）',
+                   hintText: '/data/local/tmp/frida-server',
+                 ),
+               ),
+               const SizedBox(height: 8),
+               Row(children: [
+                 Expanded(
+-                  child: GlassButton(
+-                    label: '启动',
+-                    icon: Icons.play_arrow_rounded,
+-                    onTap: () async {
+-                      final p = _ctrl.text.trim().isEmpty ? '/data/local/tmp/frida-server' : _ctrl.text.trim();
+-                      final ok = await NativeBridge.fridaStart(p);
+-                      if (!mounted) return;
+-                      showToast(context, ok ? 'frida-server 已启动' : '启动失败：文件不存在或无权限', error: !ok);
+-                    },
+-                  ),
++                  child: GlassButton(label: '自动查找', icon: Icons.search_rounded, onTap: _probeFrida),
+                 ),
+                 const SizedBox(width: 10),
+                 Expanded(
+-                  child: GlassButton(
+-                    label: '停止',
+-                    icon: Icons.stop_rounded,
+-                    onTap: () async {
+-                      final ok = await NativeBridge.fridaStop();
+-                      if (!mounted) return;
+-                      showToast(context, ok ? 'frida-server 已停止' : '没有在运行', error: !ok);
+-                    },
+-                  ),
++                  child: GlassButton(label: '启动', icon: Icons.play_arrow_rounded, onTap: () => _toggleFrida(true)),
+                 ),
+               ]),
+             ]),
+           ),
+-        ],
+-      );
+-    if (widget.embedded) {
+-      return embedShell(title: '权限', body: body);
+-    }
+-    return Scaffold(
+-      backgroundColor: Colors.white,
+-      appBar: AppBar(
+-        leading: const BackButton(),
+-        backgroundColor: Colors.white,
+-        elevation: 0,
+-        title: const Text('权限', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+-      ),
+-      body: body,
++      ],
+     );
+   }
+ 
++  Future<void> _probeFrida() async {
++    const candidates = [
++      '/data/local/tmp/frida-server',
++      '/data/adb/frida-server',
++      '/data/adb/modules/frida-server/system/bin/frida-server',
++    ];
++    for (final p in candidates) {
++      final r = await NativeBridge.rootExec('ls -l $p');
++      if (r.ok && '${r.stdout}${r.stderr}'.contains('frida-server')) {
++        if (!mounted) return;
++        setState(() => _ctrl.text = p);
++        showToast(context, '找到 $p');
++        return;
++      }
++    }
++    if (!mounted) return;
++    showToast(context, '常见位置没找到，请手动填路径', error: true);
++  }
++
++  Future<void> _toggleFrida(bool v) async {
++    if (!v) {
++      await NativeBridge.fridaStop();
++      if (!mounted) return;
++      setState(() => _fridaOn = false);
++      return;
++    }
++    final p = _ctrl.text.trim().isEmpty ? '/data/local/tmp/frida-server' : _ctrl.text.trim();
++    final ok = await NativeBridge.fridaStart(p);
++    if (!mounted) return;
++    setState(() {
++      if (ok) _ctrl.text = p;
++      _fridaOn = ok;
++    });
++    if (!ok) showToast(context, '启动失败：文件不存在或无权限，展开可改路径', error: true);
++  }
++
+   Widget _toolRow(PermissionPolicy policy, String name) {
+     final decision = policy.allow.contains(name)
+         ? 'allow'
+diff --git a/pubspec.yaml b/pubspec.yaml
+index e00c66c..3f21de1 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.10.2+702
++version: 6.10.3+703
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

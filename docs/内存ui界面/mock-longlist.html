@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;padding:12px}
+  .card{background:#fff;border:1px solid #EEF2F7;border-radius:16px;box-shadow:0 8px 22px rgba(15,23,42,.06);margin-bottom:12px;overflow:hidden}
+  .hd{display:flex;align-items:center;padding:11px 12px 8px}
+  .hd .t{font-size:12.5px;font-weight:700;flex:1}
+  .hd .n{font:9.5px ui-monospace,monospace;color:#94A3B8}
+  .div{height:1px;background:#F5F8FC}
+  .scroll{overflow-y:auto}
+  .scroll::-webkit-scrollbar{width:6px}
+  .scroll::-webkit-scrollbar-thumb{background:#DCE3EC;border-radius:3px}
+  .scroll::-webkit-scrollbar-track{background:transparent}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #F7FAFD}
+  .row:last-child{border-bottom:none}
+  .ico{width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,#EFF5FF,#DCE9FF);color:#2563EB;
+       display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex:none}
+  .ico.gray{background:#F2F5FA;color:#94A3B8}
+  .main{flex:1;min-width:0}
+  .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font:9.5px ui-monospace,monospace;color:#94A3B8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .badge{font-size:8px;color:#2563EB;background:#EAF1FE;border-radius:5px;padding:2px 6px;flex:none}
+  .badge.gray{color:#64748B;background:#F1F5F9}
+  .ft{font-size:9.5px;color:#94A3B8;padding:7px 12px;background:#FBFCFE;border-top:1px solid #F5F8FC;display:flex}
+  .ft .r{margin-left:auto}
+  .h460{height:330px}
+  .h300{height:220px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="hd"><div class="t">已安装应用</div><div class="n">521 项</div></div>
+    <div class="div"></div>
+    <div class="scroll h460">
+      <div class="row"><div class="ico">AP</div><div class="main"><div class="nm">123 云盘</div><div class="sub">com.mfcloudcalculate.networkdisk</div></div><div class="badge">用户</div></div>
+      <div class="row"><div class="ico">AP</div><div class="main"><div class="nm">AGG</div><div class="sub">com.apocalua.run</div></div><div class="badge">用户</div></div>
+      <div class="row"><div class="ico gray">AP</div><div class="main"><div class="nm">AI 写作</div><div class="sub">com.oplus.aiwriter</div></div><div class="badge gray">系统</div></div>
+      <div class="row"><div class="ico">AP</div><div class="main"><div class="nm">AIDE</div><div class="sub">com.aide.ui.mgai</div></div><div class="badge">用户</div></div>
+      <div class="row"><div class="ico">AP</div><div class="main"><div class="nm">Alook</div><div class="sub">com.alook.browser</div></div><div class="badge">用户</div></div>
+      <div class="row"><div class="ico">AP</div><div class="main"><div class="nm">Apktool M</div><div class="sub">ru.maximoff.apktool</div></div><div class="badge">用户</div></div>
+      <div class="row"><div class="ico gray">AP</div><div class="main"><div class="nm">蓝牙</div><div class="sub">com.android.bluetooth</div></div><div class="badge gray">系统</div></div>
+      <div class="row"><div class="ico">AP</div><div class="main"><div class="nm">Chrome</div><div class="sub">com.android.chrome</div></div><div class="badge">用户</div></div>
+      <div class="row"><div class="ico">AP</div><div class="main"><div class="nm">Frida</div><div class="sub">com.example.frida</div></div><div class="badge">用户</div></div>
+    </div>
+    <div class="ft"><span>共 521 项 · 卡片内滚动</span><span class="r">显示 1-9</span></div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><div class="t">文件夹 · /sdcard/Rowan</div><div class="n">86 项</div></div>
+    <div class="div"></div>
+    <div class="scroll h300">
+      <div class="row"><div class="ico">DIR</div><div class="main"><div class="nm">plugins</div><div class="sub">文件夹 · 12 项</div></div><div class="badge gray">目录</div></div>
+      <div class="row"><div class="ico">DIR</div><div class="main"><div class="nm">scripts</div><div class="sub">文件夹 · 3 项</div></div><div class="badge gray">目录</div></div>
+      <div class="row"><div class="ico">JS</div><div class="main"><div class="nm">hook.js</div><div class="sub">4.2 KB · 11-24 18:02</div></div><div class="badge">脚本</div></div>
+      <div class="row"><div class="ico gray">TXT</div><div class="main"><div class="nm">notes.md</div><div class="sub">1.1 KB · 11-23 09:41</div></div><div class="badge gray">文本</div></div>
+      <div class="row"><div class="ico">APK</div><div class="main"><div class="nm">Rowan-b9c970e.apk</div><div class="sub">49.0 MB · 11-26 08:20</div></div><div class="badge">APK</div></div>
+      <div class="row"><div class="ico">ZIP</div><div class="main"><div class="nm">rowan-module.zip</div><div class="sub">28.2 MB · 11-26 08:09</div></div><div class="badge">压缩包</div></div>
+    </div>
+    <div class="ft"><span>共 86 项 · 卡片内滚动</span><span class="r">显示 1-6</span></div>
+  </div>
+</body>
+</html>

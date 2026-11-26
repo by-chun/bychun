@@ -1,0 +1,118 @@
+From f67bf2ccadfea96b3da320acff48eaebc712ba95 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 19:04:55 +0800
+Subject: [PATCH] =?UTF-8?q?feat(container):=20=E4=B8=80=E9=94=AE=E8=A3=85?=
+ =?UTF-8?q?=E7=BC=96=E8=AF=91=E7=8E=AF=E5=A2=83=EF=BC=88build-base=20+=20c?=
+ =?UTF-8?q?lang=EF=BC=89=E5=B9=B6=E5=86=99=E8=BF=9B=E9=BB=98=E8=AE=A4?=
+ =?UTF-8?q?=E8=A7=84=E5=88=99?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 容器页新增「安装编译环境（gcc / g++ / clang / make）」，执行 apk add --no-cache build-base clang，结果弹窗显示
+- 处理中遮罩文案改为通用
+- 默认提示词补充：需要编译时先装 build-base/clang；可执行文件出 arm64 二进制，动态库用 -shared -fPIC
+- 版本 6.9.6+696（仅本地）
+---
+ lib/agent/default_prompt.dart |  2 ++
+ lib/pages/container_page.dart | 43 ++++++++++++++++++++++++++++++++++-
+ pubspec.yaml                  |  2 +-
+ 3 files changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/lib/agent/default_prompt.dart b/lib/agent/default_prompt.dart
+index 495a4dc..1575665 100644
+--- a/lib/agent/default_prompt.dart
++++ b/lib/agent/default_prompt.dart
+@@ -13,6 +13,8 @@ const String kDefaultPromptContent = '''【你能用的手脚】
+ 【原则】
+ - 环境不要假设已存在：容器里默认只有 busybox，需要什么（python、node、curl、git、抓包工具等）你自己装；
+   装不上就自己查原因（网络、源、版本）再调整，别停在报错上。
++- 需要编译时：先在容器里 `apk add --no-cache build-base clang`，再编；
++  可执行文件直接 gcc/g++ 产出 arm64 二进制，动态库用 `g++ -shared -fPIC -o libxxx.so xxx.cpp`，产物在容器里跑。
+ - 不确定的事情先用终端查证再动手，不要猜。
+ - 需要多行脚本时用 writeFile 写文件再执行，避免转义问题。
+ - 涉及删文件、写系统目录、安装/卸载这类有风险的操作，先说清楚再执行。
+diff --git a/lib/pages/container_page.dart b/lib/pages/container_page.dart
+index 43eb2fe..2b58c3f 100644
+--- a/lib/pages/container_page.dart
++++ b/lib/pages/container_page.dart
+@@ -86,6 +86,35 @@ class _ContainerPageState extends State<ContainerPage> {
+     _showResult(r);
+   }
+ 
++  /// 在容器里装编译链：之后 AI 能直接编 arm64 二进制和 .so。
++  Future<void> _installToolchain() async {
++    setState(() => _busy = true);
++    ExecResult r;
++    try {
++      r = await NativeBridge.exec('apk add --no-cache build-base clang', timeout: 900);
++    } finally {
++      if (mounted) setState(() => _busy = false);
++    }
++    if (!mounted) return;
++    await showDialog<void>(
++      context: context,
++      builder: (ctx) => AlertDialog(
++        backgroundColor: Colors.white,
++        title: Text(r.ok ? '编译环境已装好' : '安装失败',
++            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
++        content: SingleChildScrollView(
++          child: Text(
++            r.ok
++                ? '已安装：gcc / g++ / clang / make。\n之后 AI 可以直接编 arm64 二进制和 .so。'
++                : '${r.stderr}\n\n需要先在容器里装一个发行版（Alpine 等）。',
++            style: const TextStyle(fontSize: 11.5, height: 1.6),
++          ),
++        ),
++        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('好'))],
++      ),
++    );
++  }
++
+   Future<void> _import() async {
+     final pathCtrl = TextEditingController(text: '/sdcard/Download/');
+     final nameCtrl = TextEditingController();
+@@ -211,6 +240,18 @@ class _ContainerPageState extends State<ContainerPage> {
+                   ],
+                 ),
+               ),
++              const SizedBox(height: 8),
++              GlassCard(
++                onTap: _busy ? null : _installToolchain,
++                child: Row(
++                  children: const [
++                    Icon(Icons.construction_outlined, size: 18, color: AppColors.brand),
++                    SizedBox(width: 10),
++                    Expanded(child: Text('安装编译环境（gcc / g++ / clang / make）', style: TextStyle(fontSize: 13))),
++                    Icon(Icons.chevron_right, size: 18, color: Color(0xFFCBD5E1)),
++                  ],
++                ),
++              ),
+               const SizedBox(height: 10),
+               const Text(
+                 '支持 tar / tar.gz / tar.xz（按文件头自动识别）。需要什么发行版就贴哪个的 arm64 rootfs 直链。',
+@@ -232,7 +273,7 @@ class _ContainerPageState extends State<ContainerPage> {
+                         SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3)),
+                         SizedBox(height: 12),
+                         Text('处理中…', style: TextStyle(fontSize: 12)),
+-                        Text('下载和解压可能需要几十秒', style: TextStyle(fontSize: 10, color: AppColors.muted)),
++                        Text('下载、安装可能需要一会儿', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                       ],
+                     ),
+                   ),
+diff --git a/pubspec.yaml b/pubspec.yaml
+index d0e31aa..67745fb 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.9.5+695
++version: 6.9.6+696
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

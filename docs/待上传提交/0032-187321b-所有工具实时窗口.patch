@@ -1,0 +1,129 @@
+From 187321b86ba0fb910e48c51f0ff27317fa374022 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:43:34 +0800
+Subject: [PATCH] =?UTF-8?q?feat(ui):=20=E6=89=80=E6=9C=89=E5=B7=A5?=
+ =?UTF-8?q?=E5=85=B7=E6=89=A7=E8=A1=8C=E9=83=BD=E7=BB=99=E5=AE=9E=E6=97=B6?=
+ =?UTF-8?q?=E8=BE=93=E5=87=BA=E7=AA=97=E5=8F=A3?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- _execTool 统一开 live 窗口（参数 + 结果），结束生成「工具 · 名称」卡片
+- shell/containerShell/rootShell 仍由工具自己推流，未关闭时兜底 endLive
+- endLive 支持 prefix；startLive 带 prefix，引擎新增 livePrefix，聊天页标题跟随
+- 执行异常也捕获成失败结果并关窗
+- 版本 6.9.3+693（仅本地）
+---
+ lib/agent/agent_engine.dart | 39 +++++++++++++++++++++++++++++--------
+ lib/pages/chat_page.dart    |  2 +-
+ pubspec.yaml                |  2 +-
+ 3 files changed, 33 insertions(+), 10 deletions(-)
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index 7586243..c88e6d3 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -190,6 +190,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+   /// 正在执行的命令：实时输出渲染成 stream 卡片。
+   bool liveActive = false;
+   String liveTitle = '';
++  String livePrefix = '终端';
+   final List<String> liveLines = [];
+   DateTime? liveStartedAt;
+   Timer? _liveTicker;
+@@ -199,8 +200,9 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+       ? 0
+       : DateTime.now().difference(liveStartedAt!).inSeconds;
+ 
+-  void startLive(String title) {
++  void startLive(String title, {String prefix = '终端'}) {
+     liveActive = true;
++    livePrefix = prefix;
+     liveStartedAt = DateTime.now();
+     liveTitle = title.length > 40 ? '${title.substring(0, 40)}…' : title;
+     liveLines.clear();
+@@ -219,7 +221,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     notifyListeners();
+   }
+ 
+-  void endLive(int code) {
++  void endLive(int code, {String prefix = '终端'}) {
+     if (!liveActive) return;
+     final elapsed = liveElapsed;
+     liveActive = false;
+@@ -230,7 +232,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     notifyListeners();
+     _add(ChatMsg('view', '',
+         view: 'stream',
+-        viewTitle: '终端 · $liveTitle',
++        viewTitle: '$prefix · $liveTitle',
+         viewData: {'lines': lines, 'running': false, 'elapsed': elapsed}));
+   }
+ 
+@@ -575,11 +577,32 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+   }
+ 
+   /// 工具执行带超时：卡住时不会把整个会话拖死。
+-  Future<ToolResult> _execTool(AgentTool tool, Map<String, String> args) {
+-    return tool.execute(args).timeout(
+-      const Duration(seconds: 180),
+-      onTimeout: () => const ToolResult(false, '执行超时，已中止（可重新尝试）'),
+-    );
++  /// 除自带实时输出的 shell 类工具外，每个工具都给一张实时窗口卡片。
++  Future<ToolResult> _execTool(AgentTool tool, Map<String, String> args) async {
++    final selfLive = tool.name == 'shell' || tool.name == 'containerShell' || tool.name == 'rootShell';
++    if (!selfLive) {
++      startLive(tool.name, prefix: '工具');
++      final a = args.entries.map((e) => '${e.key}: ${e.value}').join('\n').trim();
++      if (a.isNotEmpty) pushLive(a.length > 300 ? '${a.substring(0, 300)}…' : a);
++    }
++    ToolResult r;
++    try {
++      r = await tool.execute(args).timeout(
++        const Duration(seconds: 180),
++        onTimeout: () => const ToolResult(false, '执行超时，已中止（可重新尝试）'),
++      );
++    } catch (e) {
++      r = ToolResult(false, '执行出错：$e');
++    }
++    if (selfLive) {
++      // 工具自己没关窗口时兜底关掉，避免卡片一直转
++      if (liveActive) endLive(r.ok ? 0 : 1);
++    } else {
++      final out = r.content.trim();
++      if (out.isNotEmpty) pushLive(out.length > 600 ? '${out.substring(0, 600)}…' : out);
++      endLive(r.ok ? 0 : 1, prefix: '工具');
++    }
++    return r;
+   }
+ 
+   Future<void> _runLoop(List<Map<String, dynamic>> api, List<Map<String, dynamic>> tools) async {
+diff --git a/lib/pages/chat_page.dart b/lib/pages/chat_page.dart
+index 72b715b..fda42aa 100644
+--- a/lib/pages/chat_page.dart
++++ b/lib/pages/chat_page.dart
+@@ -401,7 +401,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+                   if (engine.liveActive) {
+                     msgs.add(ChatMsg('view', '',
+                         view: 'stream',
+-                        viewTitle: '终端 · ${engine.liveTitle}',
++                        viewTitle: '${engine.livePrefix} · ${engine.liveTitle}',
+                         viewData: {
+                           'lines': List<String>.from(engine.liveLines),
+                           'running': true,
+diff --git a/pubspec.yaml b/pubspec.yaml
+index ec832ed..9f303cc 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.9.2+692
++version: 6.9.3+693
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

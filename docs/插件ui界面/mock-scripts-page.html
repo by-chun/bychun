@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; gap: 24px; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden; position: relative;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+
+  /* ---- 左：抽屉 ---- */
+  .drawer { position: absolute; left: 0; top: 0; bottom: 0; width: 274px;
+            background: #fff; border-right: 1px solid #eef2f7;
+            box-shadow: 14px 0 40px rgba(15,23,42,.10);
+            display: flex; flex-direction: column; }
+  .dhead { padding: 16px 16px 12px; display: flex; align-items: center; gap: 10px; }
+  .logo { width: 34px; height: 34px; border-radius: 10px;
+          background: linear-gradient(135deg,#2563eb,#7c3aed); color: #fff;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 15px; font-weight: 800; }
+  .dhead b { font-size: 14px; color: #0f172a; font-weight: 800; }
+  .dhead span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 1px; }
+
+  .menu { flex: 1; padding: 6px 10px; }
+  .mi { display: flex; align-items: center; gap: 10px; padding: 10px 10px;
+        border-radius: 11px; font-size: 13px; color: #334155; margin-bottom: 2px; }
+  .mi .ic { width: 18px; text-align: center; color: #64748b; font-size: 14px; }
+  .mi.on { background: #eaf1fe; color: #2563eb; font-weight: 700; }
+  .mi.on .ic { color: #2563eb; }
+  .mi .badge { margin-left: auto; font-size: 9px; background: #f1f4f8; color: #64748b;
+               padding: 2px 6px; border-radius: 6px; }
+  .mi.on .badge { background: #d6e4fd; color: #2563eb; }
+  .dsep { height: 1px; background: #f1f4f8; margin: 8px 12px; }
+  .dfoot { padding: 12px 16px 18px; font-size: 10px; color: #b6c0cd; }
+
+  /* 抽屉遮住的右侧 */
+  .behind { position: absolute; inset: 0; background: #f7f9fc; }
+  .behind .mask { position: absolute; inset: 0; background: rgba(15,23,42,.25); }
+
+  /* ---- 右：脚本页 ---- */
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  .bar .ham { font-size: 18px; color: #64748b; }
+  .bar h1 { font-size: 17px; font-weight: 800; color: #0f172a; }
+  .bar .sp { flex: 1; }
+  .bar .add { width: 32px; height: 32px; border-radius: 10px; background: #2563eb; color: #fff;
+              display: flex; align-items: center; justify-content: center; font-size: 17px; }
+
+  .searchrow { padding: 0 16px 10px; }
+  .search { height: 36px; border-radius: 18px; background: #f4f7fb; display: flex;
+            align-items: center; gap: 8px; padding: 0 14px; color: #94a3b8; font-size: 12px; }
+
+  .list { flex: 1; padding: 0 16px; overflow: hidden; }
+  .head { font-size: 10px; color: #94a3b8; padding: 2px 4px 8px; }
+  .item { display: flex; gap: 10px; align-items: center; padding: 11px 12px;
+          background: #fff; border: 1px solid #eef2f7; border-radius: 14px;
+          box-shadow: 0 6px 16px rgba(15,23,42,.04); margin-bottom: 8px; }
+  .ico { width: 32px; height: 32px; border-radius: 9px; flex: none;
+         display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .i-cap { background: #eff6ff; color: #2563eb; }
+  .i-vpn { background: rgba(22,163,74,.1); color: #16a34a; }
+  .i-vid { background: rgba(139,92,246,.12); color: #7c3aed; }
+  .i-dl { background: #f1f4f8; color: #64748b; }
+  .mid { flex: 1; min-width: 0; }
+  .mid b { display: block; font-size: 12.5px; color: #0f172a; font-weight: 600;
+           font-family: ui-monospace, monospace; }
+  .mid span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 2px; }
+  .mid span em { color: #2563eb; font-style: normal; }
+  .run { flex: none; font-size: 10px; color: #2563eb; font-weight: 600;
+         background: #eaf1fe; padding: 5px 10px; border-radius: 8px; }
+
+  .nav { height: 58px; border-top: 1px solid #f1f4f8; display: flex; align-items: center;
+         justify-content: space-around; }
+  .nav .n { font-size: 9.5px; color: #94a3b8; text-align: center; }
+  .nav .n .g { font-size: 15px; display: block; margin-bottom: 2px; }
+  .nav .n.on { color: #2563eb; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- 左：抽屉 -->
+<div class="phone">
+  <div class="behind"><div class="mask"></div></div>
+  <div class="status"><span>23:21</span><span>5G ▮▮▮ 84%</span></div>
+
+  <div class="drawer">
+    <div class="dhead">
+      <div class="logo">G</div>
+      <div><b>G</b><span>全能工作台</span></div>
+    </div>
+
+    <div class="menu">
+      <div class="mi"><span class="ic">💬</span>对话</div>
+      <div class="mi on"><span class="ic">🧩</span>插件<span class="badge">4</span></div>
+      <div class="mi"><span class="ic">▣</span>容器<span class="badge">alpine</span></div>
+      <div class="mi"><span class="ic">◉</span>抓包</div>
+      <div class="mi"><span class="ic">⇅</span>VPN</div>
+      <div class="mi"><span class="ic">📁</span>文件</div>
+      <div class="dsep"></div>
+      <div class="mi"><span class="ic">⚙</span>设置</div>
+    </div>
+
+    <div class="dfoot">v5.8.1 · 本地运行</div>
+  </div>
+</div>
+
+<!-- 右：脚本页 -->
+<div class="phone">
+  <div class="status"><span>23:21</span><span>5G ▮▮▮ 84%</span></div>
+
+  <div class="bar">
+    <span class="ham">☰</span>
+    <h1>插件</h1>
+    <span class="sp"></span>
+    <span class="add">＋</span>
+  </div>
+
+  <div class="searchrow">
+    <div class="search"><span>🔍</span><span>搜索插件名 / 类型</span></div>
+  </div>
+
+  <div class="list">
+    <div class="head">/sdcard/G/plugins · 4 个</div>
+
+    <div class="item">
+      <div class="ico i-cap">⇅</div>
+      <div class="mid"><b>login.sh</b><span>抓包插件 · POST api.example.com · <em>可重放</em></span></div>
+      <div class="run">运行</div>
+    </div>
+
+    <div class="item">
+      <div class="ico i-vpn">🌐</div>
+      <div class="mid"><b>vpn-hk01.json</b><span>VPN 插件 · 香港-01 · <em>12 节点</em></span></div>
+      <div class="run">选地址</div>
+    </div>
+
+    <div class="item">
+      <div class="ico i-vid">▶</div>
+      <div class="mid"><b>某部剧.json</b><span>视频插件 · <em>第 8 集 12:38</em> · 1.5x</span></div>
+      <div class="run">继续看</div>
+    </div>
+
+    <div class="item">
+      <div class="ico i-dl">↓</div>
+      <div class="mid"><b>某部剧-第8集.sh</b><span>下载插件 · yt-dlp · 1080p</span></div>
+      <div class="run">运行</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="n on"><span class="g">💬</span>对话</div>
+    <div class="n"><span class="g">▣</span>容器</div>
+    <div class="n"><span class="g">◉</span>抓包</div>
+    <div class="n"><span class="g">⚙</span>设置</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>Rowan · 悬浮窗（横竖屏 + 卡片）</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  :root{--brand:#2563EB;--ink:#0F172A;--mut:#64748B;--faint:#94A3B8}
+  html,body{height:100%}
+  body{background:#0e1320;display:flex;flex-direction:column;align-items:center;gap:18px;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:16px 0}
+  .cap{font-size:11px;color:#5b6b85;font-weight:800;align-self:flex-start;margin-left:6px}
+
+  .phone{width:390px;height:844px;background:linear-gradient(160deg,#dbe6ff,#e0d7ff 45%,#ffd9ec);position:relative;overflow:hidden;touch-action:none;border-radius:18px}
+  .stage{position:absolute;left:14px;top:12px;font-size:10px;font-weight:800;color:#5b6b85;z-index:5}
+
+  .island{position:absolute;left:50%;top:18px;transform:translateX(-50%);height:36px;min-width:120px;max-width:250px;background:#111827;border-radius:20px;display:flex;align-items:center;gap:8px;padding:0 13px;color:#fff;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:20;overflow:hidden}
+  .island .dot{width:7px;height:7px;border-radius:50%;background:#3B82F6;flex:none;animation:pulse 1.6s infinite}
+  .island .tt{flex:1;overflow:hidden;position:relative;height:18px}
+  .island .tt span{position:absolute;white-space:nowrap;font-size:11px;font-weight:600;line-height:18px;animation:scroll 9s linear infinite}
+  @keyframes scroll{0%{transform:translateX(110%)}100%{transform:translateX(-110%)}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.5)}50%{box-shadow:0 0 0 5px rgba(59,130,246,0)}}
+
+  .win{position:absolute;left:30px;top:80px;width:320px;height:560px;background:linear-gradient(135deg,rgba(255,255,255,.82),rgba(255,255,255,.62));
+    backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);
+    border:1px solid rgba(255,255,255,.85);border-radius:18px;box-shadow:0 14px 40px rgba(15,23,42,.16),inset 0 1px 0 rgba(255,255,255,.7);
+    overflow:hidden;display:none;z-index:15;transform-origin:top center}
+  .win.show{display:block;animation:pop .6s cubic-bezier(.22,1,.36,1)}
+  @keyframes pop{0%{opacity:0;transform:scale(.5) translateY(-40px)}55%{opacity:1;transform:scale(1.05) translateY(5px)}78%{transform:scale(.985) translateY(-2px)}100%{transform:scale(1) translateY(0)}}
+
+  .win .hd{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:grab;touch-action:none;border-bottom:1px solid rgba(255,255,255,.5)}
+  .win .hd .ct{flex:1;font-size:11.5px;font-weight:700;color:var(--ink)}
+  .win .hd .cl{font-size:10px;color:var(--faint);cursor:pointer;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,.5)}
+  .win .bd{padding:11px;height:calc(100% - 84px);overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+
+  .m{max-width:84%;padding:9px 12px;border-radius:14px;font-size:12px;line-height:1.55}
+  .m.a{align-self:flex-start;background:rgba(255,255,255,.62);color:var(--ink);border:1px solid rgba(255,255,255,.85)}
+  .m.b{align-self:flex-end;background:#E8EFFD;color:#1E3A8A}
+
+  /* 卡片：跟 App 统一玻璃风 */
+  .card{background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(255,255,255,.52));border:1px solid rgba(255,255,255,.8);border-radius:16px;overflow:hidden;box-shadow:0 10px 24px rgba(15,23,42,.09),inset 0 1px 0 rgba(255,255,255,.7)}
+  .card .ch{display:flex;align-items:center;gap:8px;padding:9px 11px}
+  .card .ch .ic{width:24px;height:24px;border-radius:7px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;flex:none}
+  .card .ch .ic svg{width:13px;height:13px;stroke:var(--brand);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .card .ch .t{font-size:11.5px;font-weight:800;color:var(--ink)}
+  .card .ch .sp{flex:1}
+  .card .ch .n{font-size:9px;color:var(--faint);font-family:monospace}
+  .card .row{display:flex;align-items:center;gap:8px;padding:8px 11px;border-top:1px solid rgba(255,255,255,.5)}
+  .card .row .main{flex:1;min-width:0}
+  .card .row .tt{font-size:11px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .row .mm{font-size:8.5px;color:var(--faint);font-family:monospace;margin-top:1px}
+  .badge{font-size:8px;font-weight:700;color:var(--brand);background:rgba(37,99,235,.1);border-radius:5px;padding:1px 6px;flex:none}
+  .card .fld{padding:8px 11px 0}
+  .card .fld label{font-size:9px;color:var(--faint);font-weight:600}
+  .card .fld .inp{margin-top:4px;height:32px;border-radius:10px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.8);display:flex;align-items:center;padding:0 10px;font-size:10.5px;color:var(--ink);font-family:monospace}
+  .card .btnrow{display:flex;gap:7px;padding:10px 11px}
+  .card .btn{flex:1;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer}
+  .card .btn.ghost{background:rgba(255,255,255,.6);color:#475569;border:1px solid rgba(255,255,255,.8)}
+  .card .btn.pri{background:linear-gradient(140deg,#3B82F6,#2563EB);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.28)}
+
+  .win .ft{display:flex;gap:6px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.5)}
+  .win .ft input{flex:1;border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.6);border-radius:12px;padding:8px 11px;font-size:11.5px;outline:none;color:var(--ink)}
+  .win .ft button{background:linear-gradient(140deg,#3B82F6,#2563EB);color:#fff;border:none;border-radius:12px;padding:0 15px;font-size:11.5px;font-weight:700;box-shadow:0 4px 12px rgba(37,99,235,.3)}
+  .grip{position:absolute;right:0;bottom:0;width:34px;height:34px;cursor:nwse-resize;touch-action:none;z-index:3}
+  .grip .gv{position:absolute;right:7px;bottom:7px;width:14px;height:14px;pointer-events:none;border-right:2px solid rgba(100,116,139,.35);border-bottom:2px solid rgba(100,116,139,.35);border-bottom-right-radius:5px}
+  .hint{position:absolute;left:14px;bottom:14px;font-size:10px;color:var(--faint);line-height:1.7;z-index:4}
+
+  /* 横屏 */
+  .land{width:390px;height:200px;background:linear-gradient(120deg,#1e3a8a,#7c3aed 60%,#db2777);position:relative;overflow:hidden;border-radius:14px}
+  .land .scr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-size:12px}
+  .land .isl{position:absolute;left:50%;top:8px;transform:translateX(-50%);height:32px;min-width:110px;background:#111827;border-radius:18px;display:flex;align-items:center;gap:7px;padding:0 12px;color:#fff;font-size:10.5px;box-shadow:0 5px 14px rgba(0,0,0,.4);overflow:hidden}
+  .land .isl .dot{width:6px;height:6px;border-radius:50%;background:#3B82F6;flex:none}
+  .land .isl .tt{overflow:hidden;position:relative;height:16px;flex:1}
+  .land .isl .tt span{position:absolute;white-space:nowrap;font-size:10px;line-height:16px;animation:scroll 9s linear infinite}
+  .land .win2{position:absolute;left:50%;top:44px;transform:translateX(-50%);width:300px;height:140px;background:linear-gradient(135deg,rgba(255,255,255,.85),rgba(255,255,255,.65));border:1px solid rgba(255,255,255,.85);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.28);overflow:hidden}
+  .land .win2 .hd{display:flex;align-items:center;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.5);font-size:10.5px;font-weight:700;color:var(--ink);gap:6px}
+  .land .win2 .hd .sp{flex:1}
+  .land .win2 .bd{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+  .land .win2 .m{max-width:80%;padding:7px 10px;border-radius:12px;font-size:10.5px;line-height:1.5}
+  .land .win2 .grip{position:absolute;right:0;bottom:0}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-form" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+</svg>
+
+<div class="cap">竖屏</div>
+<div class="phone" id="phone">
+  <div class="stage">竖屏 · 悬浮窗（卡片+表单）</div>
+  <div class="island" id="island" onclick="openWin()">
+    <span class="dot"></span><div class="tt"><span>正在分析目标应用的网络请求…已完成 3/8 步</span></div>
+  </div>
+  <div class="win" id="win">
+    <div class="hd" id="hd"><span class="ct">Rowan</span><span class="cl" onclick="closeWin()">收起 ▾</span></div>
+    <div class="bd">
+      <div class="m a">列好了，卡片你直接在悬浮窗里看、填。</div>
+      <div class="card">
+        <div class="ch"><div class="ic"><svg><use href="#i-list"/></svg></div><div class="t">已安装应用</div><div class="sp"></div><div class="n">3 项</div></div>
+        <div class="row"><div class="main"><div class="tt">微信</div><div class="mm">com.tencent.mm</div></div><span class="badge">用户</span></div>
+        <div class="row"><div class="main"><div class="tt">抖音</div><div class="mm">com.ss.android.ugc.aweme</div></div><span class="badge">用户</span></div>
+        <div class="row"><div class="main"><div class="tt">设置</div><div class="mm">com.android.settings</div></div><span class="badge">系统</span></div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ic"><svg><use href="#i-form"/></svg></div><div class="t">配置收集</div><div class="sp"></div></div>
+        <div class="fld"><label>仓库地址</label><div class="inp">https://github.com/…</div></div>
+        <div class="btnrow"><div class="btn ghost">取消</div><div class="btn pri">提交</div></div>
+      </div>
+    </div>
+    <div class="ft"><input placeholder="给 AI 发消息…" /><button>发送</button></div>
+    <div class="grip" id="grip"><span class="gv"></span></div>
+  </div>
+  <div class="hint">点胶囊展开（慢弹簧动画）；拖头部移动；右下角淡线放大，卡片跟着变宽。</div>
+</div>
+
+<div class="cap">横屏</div>
+<div class="land">
+  <div class="scr">游戏 / 别的 App 全屏</div>
+  <div class="isl"><span class="dot"></span><div class="tt"><span>正在分析目标应用的网络请求…</span></div></div>
+  <div class="win2">
+    <div class="hd"><span>Rowan</span><span class="sp"></span><span style="color:#94A3B8;font-weight:400;font-size:9px">收起 ▾</span></div>
+    <div class="bd">
+      <div class="m a">正在分析网络请求…第 4 步</div>
+      <div class="m b">继续。</div>
+    </div>
+    <div class="grip"><span class="gv"></span></div>
+  </div>
+</div>
+
+<script>
+  const phone=document.getElementById('phone');
+  const island=document.getElementById('island');
+  const win=document.getElementById('win');
+  const hd=document.getElementById('hd');
+  const grip=document.getElementById('grip');
+  function openWin(){ island.style.display='none'; win.classList.remove('hide'); win.style.display='block'; win.classList.remove('show'); void win.offsetWidth; win.classList.add('show'); }
+  function closeWin(){ win.classList.remove('show'); win.classList.add('hide'); setTimeout(()=>{ win.style.display='none'; win.classList.remove('hide'); island.style.display='flex'; },300); }
+  function px(e){ return e.touches ? e.touches[0] : e; }
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  let mv=null;
+  function mvStart(e){ const p=px(e); mv={x:p.clientX-win.offsetLeft,y:p.clientY-win.offsetTop}; e.preventDefault(); }
+  function mvMove(e){ if(!mv)return; const p=px(e); e.preventDefault(); win.style.left=clamp(p.clientX-mv.x,0,phone.clientWidth-win.offsetWidth)+'px'; win.style.top=clamp(p.clientY-mv.y,0,phone.clientHeight-44)+'px'; }
+  function mvEnd(){ mv=null; }
+  hd.addEventListener('mousedown',mvStart); hd.addEventListener('touchstart',mvStart,{passive:false});
+  document.addEventListener('mousemove',mvMove); document.addEventListener('touchmove',mvMove,{passive:false});
+  document.addEventListener('mouseup',mvEnd); document.addEventListener('touchend',mvEnd);
+  let rz=null;
+  function rzStart(e){ const p=px(e); rz={x:p.clientX,y:p.clientY,w:win.offsetWidth,h:win.offsetHeight}; e.preventDefault(); e.stopPropagation(); }
+  function rzMove(e){ if(!rz)return; const p=px(e); e.preventDefault(); win.style.width=clamp(rz.w+(p.clientX-rz.x),220,360)+'px'; win.style.height=clamp(rz.h+(p.clientY-rz.y),280,780)+'px'; }
+  function rzEnd(){ rz=null; }
+  grip.addEventListener('mousedown',rzStart); grip.addEventListener('touchstart',rzStart,{passive:false});
+  document.addEventListener('mousemove',rzMove); document.addEventListener('touchmove',rzMove,{passive:false});
+  document.addEventListener('mouseup',rzEnd); document.addEventListener('touchend',rzEnd);
+</script>
+</body>
+</html>

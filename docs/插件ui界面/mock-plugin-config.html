@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; gap: 24px; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  .bar .ham { font-size: 18px; color: #64748b; }
+  .bar .back { font-size: 20px; color: #2563eb; }
+  .bar h1 { font-size: 16.5px; font-weight: 800; color: #0f172a; }
+  .bar .sp { flex: 1; }
+  .bar .add { width: 32px; height: 32px; border-radius: 10px; background: #2563eb; color: #fff;
+              display: flex; align-items: center; justify-content: center; font-size: 17px; }
+
+  .searchrow { padding: 0 16px 10px; }
+  .search { height: 36px; border-radius: 18px; background: #f4f7fb; display: flex;
+            align-items: center; gap: 8px; padding: 0 14px; color: #94a3b8; font-size: 12px; }
+
+  /* 列表（无底部导航） */
+  .chips { display: flex; gap: 6px; padding: 0 16px 10px; overflow: hidden; }
+  .chip { flex: none; font-size: 10.5px; padding: 6px 11px; border-radius: 999px;
+          background: #f4f7fb; color: #64748b; }
+  .chip.on { background: #2563eb; color: #fff; font-weight: 600; }
+  .chip.add { background: #fff; border: 1px dashed #d6e4fd; color: #2563eb; font-weight: 600; }
+
+  .list { flex: 1; padding: 0 16px; overflow: hidden; }
+  .head { font-size: 10px; color: #94a3b8; padding: 2px 4px 8px; }
+  .item { display: flex; gap: 10px; align-items: center; padding: 11px 12px;
+          background: #fff; border: 1px solid #eef2f7; border-radius: 14px;
+          box-shadow: 0 6px 16px rgba(15,23,42,.04); margin-bottom: 8px; }
+  .item.on { border-color: #d6e4fd; background: #fbfdff; }
+  .ico { width: 32px; height: 32px; border-radius: 9px; flex: none;
+         display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .i-cap { background: #eff6ff; color: #2563eb; }
+  .i-vpn { background: rgba(22,163,74,.1); color: #16a34a; }
+  .i-vid { background: rgba(139,92,246,.12); color: #7c3aed; }
+  .i-dl { background: #f1f4f8; color: #64748b; }
+  .mid { flex: 1; min-width: 0; }
+  .mid b { display: block; font-size: 12.5px; color: #0f172a; font-weight: 600;
+           font-family: ui-monospace, monospace; }
+  .mid span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 2px; }
+  .mid span em { color: #2563eb; font-style: normal; }
+  .chev { color: #cbd5e1; font-size: 15px; flex: none; }
+
+  /* 配置页 */
+  .chev2 { color: #cbd5e1; font-size: 14px; }
+
+  .scroll { flex: 1; overflow: hidden; padding: 0 16px; }
+  .lab { font-size: 10px; color: #94a3b8; padding: 10px 4px 5px; }
+  .box { background: #fff; border: 1px solid #eef2f7; border-radius: 12px; overflow: hidden; }
+  .row { display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+         border-bottom: 1px solid #f7fafd; font-size: 11.5px; }
+  .row:last-child { border-bottom: 0; }
+  .row .k { color: #94a3b8; width: 66px; flex: none; font-size: 10px; }
+  .row .v { flex: 1; min-width: 0; color: #0f172a; font-family: ui-monospace, monospace;
+            font-size: 10.5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .row .v.sel { color: #2563eb; font-weight: 600; }
+  .row .tag { flex: none; font-size: 8.5px; background: #f1f4f8; color: #64748b;
+              padding: 2px 5px; border-radius: 4px; }
+
+  .method { display: flex; gap: 5px; padding: 10px 12px; }
+  .m2 { flex: 1; height: 28px; border-radius: 7px; background: #f4f7fb;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; color: #64748b; font-family: ui-monospace, monospace; }
+  .m2.on { background: #2563eb; color: #fff; font-weight: 700; }
+
+  .body { margin: 0; padding: 10px 12px; font-family: ui-monospace, monospace;
+          font-size: 10px; color: #334155; line-height: 1.65; background: #f7f9fc; }
+  .body .k { color: #2563eb; }
+
+  .foot { display: flex; gap: 8px; padding: 12px 16px 18px; border-top: 1px solid #f1f4f8; }
+  .btn { flex: 1; height: 40px; border-radius: 12px; display: flex; align-items: center;
+         justify-content: center; font-size: 12.5px; font-weight: 600; }
+  .btn.p { background: #2563eb; color: #fff; }
+  .btn.s { background: #f1f4f8; color: #475569; }
+</style>
+</head>
+<body>
+
+<!-- 左：插件列表（无底部导航） -->
+<div class="phone">
+  <div class="status"><span>23:31</span><span>5G ▮▮▮ 84%</span></div>
+  <div class="bar"><span class="ham">☰</span><h1>插件</h1><span class="sp"></span><span class="add">＋</span></div>
+  <div class="searchrow"><div class="search"><span>🔍</span><span>搜索插件名 / 类型</span></div></div>
+  <div class="chips">
+    <div class="chip on">全部 4</div>
+    <div class="chip">抓包 1</div>
+    <div class="chip">VPN 1</div>
+    <div class="chip">视频 2</div>
+    <div class="chip add">＋ 新建分组</div>
+  </div>
+  <div class="list">
+    <div class="head">抓包</div>
+    <div class="item on">
+      <div class="ico i-cap">⇅</div>
+      <div class="mid"><b>login.sh</b><span>抓包插件 · POST api.example.com · <em>可重放</em></span></div>
+      <span class="chev">›</span>
+    </div>
+    <div class="head">VPN</div>
+    <div class="item">
+      <div class="ico i-vpn">🌐</div>
+      <div class="mid"><b>vpn-hk01.json</b><span>VPN 插件 · 香港-01 · 12 节点</span></div>
+      <span class="chev">›</span>
+    </div>
+    <div class="head">视频</div>
+    <div class="item">
+      <div class="ico i-vid">▶</div>
+      <div class="mid"><b>某部剧.json</b><span>视频插件 · 第 8 集 12:38 · 1.5x</span></div>
+      <span class="chev">›</span>
+    </div>
+    <div class="item">
+      <div class="ico i-dl">↓</div>
+      <div class="mid"><b>某部剧-第8集.sh</b><span>下载插件 · yt-dlp · 1080p</span></div>
+      <span class="chev">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- 右：插件配置 -->
+<div class="phone">
+  <div class="status"><span>23:31</span><span>5G ▮▮▮ 84%</span></div>
+  <div class="bar"><span class="back">‹</span><h1>login.sh</h1><span class="sp"></span><span class="chev2">⋯</span></div>
+
+  <div class="scroll">
+    <div class="lab">类型</div>
+    <div class="box">
+      <div class="row"><span class="k">插件类型</span><span class="v sel">抓包 · 请求重放</span><span class="chev2">›</span></div>
+    </div>
+
+    <div class="lab">请求</div>
+    <div class="box">
+      <div class="method">
+        <div class="m2">GET</div><div class="m2 on">POST</div><div class="m2">PUT</div><div class="m2">DELETE</div>
+      </div>
+      <div class="row"><span class="k">URL</span><span class="v">https://api.example.com/v1/login</span></div>
+    </div>
+
+    <div class="lab">请求头（3）</div>
+    <div class="box">
+      <div class="row"><span class="k">Content-Type</span><span class="v">application/json</span><span class="tag">改</span></div>
+      <div class="row"><span class="k">Authorization</span><span class="v">Bearer eyJhbGciOi…</span><span class="tag">改</span></div>
+      <div class="row"><span class="k">User-Agent</span><span class="v">okhttp/4.9.3</span><span class="tag">改</span></div>
+      <div class="row"><span class="k"></span><span class="v sel">＋ 添加请求头</span></div>
+    </div>
+
+    <div class="lab">请求体</div>
+    <div class="box">
+      <div class="body">{<br>&nbsp;&nbsp;<span class="k">"user"</span>: "wuchun",<br>&nbsp;&nbsp;<span class="k">"pass"</span>: "******",<br>&nbsp;&nbsp;<span class="k">"device"</span>: "aarch64"<br>}</div>
+    </div>
+
+    <div class="lab">运行</div>
+    <div class="box">
+      <div class="row"><span class="k">运行环境</span><span class="v sel">容器 alpine</span><span class="chev2">›</span></div>
+      <div class="row"><span class="k">超时</span><span class="v">30 秒</span></div>
+      <div class="row"><span class="k">输出保存到</span><span class="v">/sdcard/G/抓包/result.json</span></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="btn s">保存</div>
+    <div class="btn p">运行</div>
+  </div>
+</div>
+
+</body>
+</html>

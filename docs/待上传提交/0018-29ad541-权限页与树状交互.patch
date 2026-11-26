@@ -1,0 +1,522 @@
+From 29ad541d80c37cd4c9748c0a4a2b6d7c5a19263c Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 16:12:56 +0800
+Subject: [PATCH] =?UTF-8?q?feat(ui):=20=E6=9D=83=E9=99=90=E9=A1=B5?=
+ =?UTF-8?q?=E6=94=B9=E7=89=88=20+=20=E6=A0=91=E7=8A=B6=E6=8A=BD=E5=B1=89?=
+ =?UTF-8?q?=E8=A1=A5=E6=96=B0=E5=BB=BA=E4=B8=8E=E5=8F=B3=E6=BB=91=E5=88=A0?=
+ =?UTF-8?q?=E9=99=A4?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+权限页：标题改「权限」，系统权限改为 Switch；工具授权分常用/高危两组逐项开关；
+Frida 改为说明（不再内置 frida-server，由 AI 按架构现场下载）。
+树状抽屉：文件/插件层 ＋ 弹层（新建文件夹/新建文件自由命名/导入/安装内置插件）；
+文件行右滑露出红色删除，确认后 rm -rf。
+版本 6.6.0+660（仅本地提交）
+---
+ lib/pages/settings_page.dart | 178 +++++++++++++++++-----------
+ lib/widgets/tree_drawer.dart | 222 +++++++++++++++++++++++++++++------
+ pubspec.yaml                 |   2 +-
+ 3 files changed, 291 insertions(+), 111 deletions(-)
+
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index 2dbb995..d968202 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -1056,22 +1056,32 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+     if (mounted) setState(() => _perm = p);
+   }
+ 
+-  /// 权限行：显示真实状态；点一下跳到对应授权页（关闭需在系统里手动操作）。
+-  Widget _permRow(String label, bool granted, Future<void> Function() onTap) {
++  /// 权限行：右侧开关反映真实状态；点开关去授权（关闭需在系统设置里改）。
++  Widget _permRow(String label, String desc, bool granted, Future<void> Function() onTap) {
+     return GlassCard(
+-      onTap: () async {
+-        await onTap();
+-        await _loadPerm();
+-      },
++      margin: const EdgeInsets.only(bottom: 6),
+       child: Row(children: [
+-        Icon(granted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+-            size: 20, color: granted ? AppColors.green : const Color(0xFFCBD5E1)),
+-        const SizedBox(width: 12),
+-        Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
+-        Text(granted ? '已授权' : '去授权',
+-            style: TextStyle(fontSize: 12, color: granted ? AppColors.green : AppColors.brand)),
+-        const SizedBox(width: 4),
+-        const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFFCBD5E1)),
++        Expanded(
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.start,
++            children: [
++              Text(label, style: const TextStyle(fontSize: 13)),
++              if (desc.isNotEmpty)
++                Padding(
++                  padding: const EdgeInsets.only(top: 2),
++                  child: Text(desc, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
++                ),
++            ],
++          ),
++        ),
++        Switch(
++          value: granted,
++          activeColor: AppColors.brand,
++          onChanged: (_) async {
++            await onTap();
++            await _loadPerm();
++          },
++        ),
+       ]),
+     );
+   }
+@@ -1138,81 +1148,80 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+         leading: const BackButton(),
+         backgroundColor: Colors.white,
+         elevation: 0,
+-        title: const Text('工具授权 / 软件权限', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+-        actions: [
+-          IconButton(onPressed: () => _addRuleDialog(policy), icon: const Icon(Icons.add_rounded, color: Color(0xFF334155))),
+-        ],
++        title: const Text('权限', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+       ),
+       body: ListView(
+         padding: const EdgeInsets.all(16),
+         children: [
+-          const Text('工具规则（空 = 默认允许；长按删）', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-          if (policy.allow.isEmpty && policy.deny.isEmpty && policy.confirm.isEmpty)
+-            const Padding(
+-              padding: EdgeInsets.symmetric(vertical: 10),
+-              child: Text('暂无规则，点右上角 ＋ 自定义', style: TextStyle(fontSize: 11.5, color: AppColors.muted)),
+-            )
+-          else
+-            for (final e in _allRules(policy))
+-              GlassCard(
+-                margin: const EdgeInsets.only(bottom: 6),
+-                onTap: () async {
+-                  // 点一下循环切换：允许 → 需确认 → 拒绝
+-                  final next = e.$2 == 'allow' ? 'confirm' : e.$2 == 'confirm' ? 'deny' : 'allow';
+-                  await policy.setDecision(e.$1, next);
+-                  setState(() {});
+-                },
+-                onLongPress: () async {
+-                  e.$3.remove(e.$1);
+-                  await policy.save();
+-                  setState(() {});
+-                },
+-                child: Row(children: [
+-                  Icon(
+-                    e.$2 == 'deny' ? Icons.block_rounded : e.$2 == 'confirm' ? Icons.help_outline_rounded : Icons.check_circle_rounded,
+-                    size: 16,
+-                    color: e.$2 == 'deny' ? AppColors.red : e.$2 == 'confirm' ? AppColors.orange : AppColors.green,
+-                  ),
+-                  const SizedBox(width: 8),
+-                  Expanded(child: Text(e.$1, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5))),
+-                  Text(e.$2 == 'deny' ? '拒绝' : e.$2 == 'confirm' ? '需确认' : '允许',
+-                      style: TextStyle(fontSize: 11, color: e.$2 == 'deny' ? AppColors.red : e.$2 == 'confirm' ? AppColors.orange : AppColors.green)),
+-                ]),
+-              ),
+-          const SizedBox(height: 12),
+-          _permRow('悬浮窗权限（显示在其他应用上层）', _perm['overlay'] == true, NativeBridge.openOverlaySettings),
+-          const SizedBox(height: 8),
+-          _permRow('所有文件访问（存储）', _perm['allFiles'] == true, () async {
++          const Text('系统权限', style: TextStyle(fontSize: 11, color: AppColors.muted)),
++          _permRow('所有文件访问', '读写 /sdcard、读 APK', _perm['allFiles'] == true, () async {
+             await NativeBridge.requestStorage();
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+           }),
+-          const SizedBox(height: 8),
+-          _permRow('通知权限', _perm['notification'] == true, () async {
++          _permRow('通知权限', '后台任务完成时提醒', _perm['notification'] == true, () async {
+             await NativeBridge.requestStorage();
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+           }),
+-          const SizedBox(height: 8),
+-          _permRow('Shizuku', false, () async {
++          _permRow('悬浮窗', '日志窗、小窗终端', _perm['overlay'] == true, NativeBridge.openOverlaySettings),
++          _permRow('Shizuku', '免 root 的 shell 能力', false, () async {
+             showToast(context, 'Shizuku 需安装 Shizuku App 并授权', error: true);
+           }),
+-          const SizedBox(height: 8),
+-          _permRow('Root', _perm['root'] == true, () async {
++          _permRow('Root', '高危操作需要', _perm['root'] == true, () async {
+             await _loadPerm();
+             if (mounted) showToast(context, _perm['root'] == true ? 'Root 已授权' : '未获取到 root，请在超级用户里允许 G');
+           }),
+-          const SizedBox(height: 8),
+-          const SizedBox(height: 8),
++          _permRow('VPN', '开抓时才请求', false, () async {
++            showToast(context, '抓包时由 AI 发起 VPN 授权');
++          }),
++          const SizedBox(height: 14),
++          Row(children: [
++            const Expanded(child: Text('AI 工具授权', style: TextStyle(fontSize: 11, color: AppColors.muted))),
++            TextButton(
++              onPressed: () => _addRuleDialog(policy),
++              child: const Text('添加规则', style: TextStyle(fontSize: 11.5)),
++            ),
++          ]),
++          if (policy.allow.isEmpty && policy.deny.isEmpty && policy.confirm.isEmpty)
++            const Padding(
++              padding: EdgeInsets.only(bottom: 6),
++              child: Text('默认全部允许；关掉开关就是不再允许该工具',
++                  style: TextStyle(fontSize: 11.5, color: AppColors.muted)),
++            )
++          else ...[
++            const Text('常用', style: TextStyle(fontSize: 10.5, color: Color(0xFFB6C0CD))),
++            for (final n in policy.allow.where((n) => !PermissionPolicy.isHighRisk(n)))
++              _toolRow(policy, n),
++            if (policy.allow.where((n) => !PermissionPolicy.isHighRisk(n)).isEmpty)
++              const Padding(
++                padding: EdgeInsets.only(bottom: 6),
++                child: Text('（还没有勾选任何常用工具）', style: TextStyle(fontSize: 10.5, color: AppColors.muted)),
++              ),
++            const SizedBox(height: 6),
++            const Text('高危 · 每次询问', style: TextStyle(fontSize: 10.5, color: Color(0xFFB6C0CD))),
++            for (final n in policy.allow.where(PermissionPolicy.isHighRisk))
++              _toolRow(policy, n),
++            for (final n in policy.deny.where(PermissionPolicy.isHighRisk))
++              _toolRow(policy, n),
++            for (final n in policy.confirm.where(PermissionPolicy.isHighRisk))
++              _toolRow(policy, n),
++          ],
++          const SizedBox(height: 14),
+           GlassCard(
+             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+               Row(children: const [
+                 Icon(Icons.extension_outlined, size: 20, color: AppColors.brand),
+                 SizedBox(width: 12),
+-                Expanded(child: Text('安装 Frida 模块（Zygisk）', style: TextStyle(fontSize: 13))),
++                Expanded(child: Text('Frida / Zygisk 模块', style: TextStyle(fontSize: 13))),
+               ]),
+               const SizedBox(height: 6),
+-              GlassButton(label: '安装此模块到 Magisk', icon: Icons.system_update_alt_rounded, onTap: _installModule),
++              const Text(
++                'frida-server 不再内置：让 AI 按当前架构下载最新版并启动即可（换设备/换版本都不用等更新）。\n模块文件内置在 App 里，可随时部署到 /data/adb/modules。',
++                style: TextStyle(fontSize: 10.5, color: AppColors.muted, height: 1.6),
++              ),
++              const SizedBox(height: 8),
++              GlassButton(label: '部署内置模块', icon: Icons.system_update_alt_rounded, onTap: _installModule),
+               const SizedBox(height: 8),
+               GlassButton(label: '打开模块 WebUI（日志/开关）', icon: Icons.dashboard_customize_outlined, onTap: NativeBridge.openModuleWebUi),
+               if (_moduleMsg.isNotEmpty)
+@@ -1224,12 +1233,39 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+     );
+   }
+ 
+-  List<(String, String, List<String>)> _allRules(policy) {
+-    return [
+-      for (final n in policy.allow) (n, 'allow', policy.allow),
+-      for (final n in policy.deny) (n, 'deny', policy.deny),
+-      for (final n in policy.confirm) (n, 'confirm', policy.confirm),
+-    ];
++  Widget _toolRow(PermissionPolicy policy, String name) {
++    final decision = policy.allow.contains(name)
++        ? 'allow'
++        : policy.deny.contains(name)
++            ? 'deny'
++            : 'confirm';
++    final hr = PermissionPolicy.isHighRisk(name);
++    return GlassCard(
++      margin: const EdgeInsets.only(bottom: 6),
++      child: Row(children: [
++        Expanded(child: Text(name, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5))),
++        if (hr)
++          Container(
++            margin: const EdgeInsets.only(right: 6),
++            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
++            decoration: BoxDecoration(
++              color: const Color(0xFFFFF7ED),
++              borderRadius: BorderRadius.circular(5),
++            ),
++            child: const Text('每次问', style: TextStyle(fontSize: 9, color: Color(0xFFC2410C))),
++          ),
++        Switch(
++          value: decision == 'allow',
++          activeColor: AppColors.brand,
++          onChanged: hr
++              ? null
++              : (v) async {
++                  await policy.setDecision(name, v ? 'allow' : 'deny');
++                  setState(() {});
++                },
++        ),
++      ]),
++    );
+   }
+ 
+   Future<void> _addRuleDialog(policy) async {
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index dfbbf65..6769814 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -102,13 +102,15 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+                   const SizedBox(height: 6),
+                   _card([
+                     _section('files', '文件', _typeIcon(Icons.folder_outlined), const Color(0xFF64748B)),
+-                    if (_isOpen('files')) _searchAdd('files', onAdd: null),
++                    if (_isOpen('files'))
++                      _searchAdd('files', onAdd: () => _newSheet('/storage/emulated/0')),
+                     if (_isOpen('files')) _dirChildren('files', '/storage/emulated/0', 1),
+                   ]),
+                   const SizedBox(height: 6),
+                   _card([
+                     _section('plugins', '插件', _typeIcon(Icons.extension_outlined), const Color(0xFF64748B)),
+-                    if (_isOpen('plugins')) _searchAdd('plugins', onAdd: null),
++                    if (_isOpen('plugins'))
++                      _searchAdd('plugins', onAdd: () => _newSheet('/storage/emulated/0/G/plugins')),
+                     if (_isOpen('plugins')) _dirChildren('plugins', '/storage/emulated/0/G/plugins', 1),
+                   ]),
+                   const SizedBox(height: 6),
+@@ -166,6 +168,108 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+     );
+   }
+ 
++  /// ＋ 号：新建文件夹 / 新建文件（自由命名）/ 导入 / 安装内置插件。
++  Future<void> _newSheet(String dir) async {
++    await NativeBridge.exec("mkdir -p '$dir'");
++    final isPluginDir = dir.contains('/G/plugins');
++    final act = await showModalBottomSheet<String>(
++      context: context,
++      backgroundColor: Colors.white,
++      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
++      builder: (ctx) => SafeArea(
++        child: Column(mainAxisSize: MainAxisSize.min, children: [
++          const Padding(
++            padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
++            child: Align(
++              alignment: Alignment.centerLeft,
++              child: Text('新建', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
++            ),
++          ),
++          ListTile(
++            leading: const Icon(Icons.create_new_folder_outlined, size: 20, color: Color(0xFF2563EB)),
++            title: const Text('新建文件夹', style: TextStyle(fontSize: 13.5)),
++            onTap: () => Navigator.pop(ctx, 'dir'),
++          ),
++          ListTile(
++            leading: const Icon(Icons.note_add_outlined, size: 20, color: Color(0xFF2563EB)),
++            title: const Text('新建文件', style: TextStyle(fontSize: 13.5)),
++            subtitle: const Text('自己写文件名和后缀，不限格式', style: TextStyle(fontSize: 10.5)),
++            onTap: () => Navigator.pop(ctx, 'file'),
++          ),
++          ListTile(
++            leading: const Icon(Icons.file_upload_outlined, size: 20, color: Color(0xFF2563EB)),
++            title: const Text('从本地导入', style: TextStyle(fontSize: 13.5)),
++            subtitle: const Text('任意文件都行', style: TextStyle(fontSize: 10.5)),
++            onTap: () => Navigator.pop(ctx, 'import'),
++          ),
++          if (isPluginDir)
++            ListTile(
++              leading: const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF2563EB)),
++              title: const Text('安装内置插件', style: TextStyle(fontSize: 13.5)),
++              subtitle: const Text('请求模板、示例脚本', style: TextStyle(fontSize: 10.5)),
++              onTap: () => Navigator.pop(ctx, 'seed'),
++            ),
++          const SizedBox(height: 8),
++        ]),
++      ),
++    );
++    if (act == null) return;
++    if (act == 'seed') {
++      await NativeBridge.exec(
++        "cd '$dir' && printf '%s\\n' '{\"method\":\"POST\",\"url\":\"https://example.com/api\"}' > '请求模板.json' "
++        "&& printf '%s\\n' '#!/bin/sh' 'echo hello from plugin' > '示例.sh' && chmod 755 '示例.sh'",
++      );
++      _dirs.clear();
++      if (mounted) setState(() {});
++      return;
++    }
++    if (act == 'import') {
++      _toast('用终端 cp 或直接把文件拖进对话让 AI 放进该目录');
++      return;
++    }
++    final c = TextEditingController();
++    final ok = await showDialog<bool>(
++      context: context,
++      builder: (ctx) => AlertDialog(
++        backgroundColor: Colors.white,
++        title: Text(act == 'dir' ? '新建文件夹' : '新建文件',
++            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
++        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
++          Text('在 $dir 下创建',
++              style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
++          const SizedBox(height: 8),
++          TextField(controller: c, autofocus: true),
++          if (act == 'file')
++            const Padding(
++              padding: EdgeInsets.only(top: 6),
++              child: Text('后缀随意：.sh .py .js .json .yaml .cmd .conf …',
++                  style: TextStyle(fontSize: 9.5, color: Color(0xFFB6C0CD))),
++            ),
++        ]),
++        actions: [
++          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
++          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('创建')),
++        ],
++      ),
++    );
++    final name = c.text.trim();
++    c.dispose();
++    if (ok != true || name.isEmpty) return;
++    final target = '$dir/${name.replaceAll("'", "'\\''")}';
++    if (act == 'dir') {
++      await NativeBridge.exec("mkdir -p '$target'");
++    } else {
++      await NativeBridge.exec("touch '$target'");
++    }
++    _dirs.remove(dir);
++    if (mounted) setState(() {});
++  }
++
++  void _toast(String msg) {
++    if (!mounted) return;
++    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
++  }
++
+   Widget _searchAdd(String key, {VoidCallback? onAdd}) {
+     return Padding(
+       padding: const EdgeInsets.fromLTRB(24, 0, 8, 8),
+@@ -340,46 +444,86 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+     final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+     return Column(
+       children: [
+-        _draggableRow(
+-          ref: ChatRef(type: 'file', name: name, detail: full),
+-          onTap: () => _toggle(key),
+-          onLongPress: () => _rowMenu(
+-            title: name,
+-            onRename: () => _rename(full),
+-            onDelete: () => _delete(full),
++        Dismissible(
++          key: ValueKey('fs:$full'),
++          direction: DismissDirection.endToStart,
++          background: Container(
++            alignment: Alignment.centerRight,
++            padding: const EdgeInsets.only(right: 16),
++            decoration: BoxDecoration(
++              color: const Color(0xFFFEF2F2),
++              borderRadius: BorderRadius.circular(8),
++            ),
++            child: const Text('删除',
++                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
+           ),
+-          child: Row(
+-            children: [
+-              SizedBox(
+-                width: 10,
+-                child: Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
+-                    size: 14, color: const Color(0xFFC3CCD8)),
+-              ),
+-              const SizedBox(width: 6),
+-              Icon(
+-                isDir ? Icons.folder_outlined : Icons.description_outlined,
+-                size: 17,
+-                color: isDir ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+-              ),
+-              const SizedBox(width: 8),
+-              Expanded(
+-                child: Text(name,
+-                    maxLines: 1,
+-                    overflow: TextOverflow.ellipsis,
+-                    style: TextStyle(
+-                        fontSize: isDir ? 12.5 : 12,
+-                        fontFamily: isDir ? null : 'monospace',
+-                        fontWeight: isDir ? FontWeight.w600 : FontWeight.w500)),
++          confirmDismiss: (_) async {
++            final ok = await showDialog<bool>(
++              context: context,
++              builder: (ctx) => AlertDialog(
++                backgroundColor: Colors.white,
++                title: Text(isDir ? '删除「$name」文件夹？' : '删除「$name」？',
++                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
++                content: Text(isDir ? '里面的文件会一起删掉，无法恢复。' : '文件将被删除，无法恢复。',
++                    style: const TextStyle(fontSize: 12, height: 1.6)),
++                actions: [
++                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
++                  FilledButton(
++                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
++                    onPressed: () => Navigator.pop(ctx, true),
++                    child: const Text('删除'),
++                  ),
++                ],
+               ),
+-              if (ext == 'sh' || ext == 'py' || ext == 'js')
+-                Container(
+-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+-                  decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(3)),
+-                  child: Text(ext, style: const TextStyle(fontSize: 8, color: Color(0xFF16A34A), fontWeight: FontWeight.w700)),
++            );
++            return ok == true;
++          },
++          onDismissed: (_) async {
++            await NativeBridge.exec("rm -rf '${full.replaceAll("'", "'\\''")}'");
++            _dirs.clear();
++            if (mounted) setState(() {});
++          },
++          child: _draggableRow(
++            ref: ChatRef(type: 'file', name: name, detail: full),
++            onTap: () => _toggle(key),
++            onLongPress: () => _rowMenu(
++              title: name,
++              onRename: () => _rename(full),
++              onDelete: () => _delete(full),
++            ),
++            child: Row(
++              children: [
++                SizedBox(
++                  width: 10,
++                  child: Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
++                      size: 14, color: const Color(0xFFC3CCD8)),
+                 ),
+-              const SizedBox(width: 4),
+-              const Icon(Icons.drag_handle_rounded, size: 14, color: Color(0xFFE2E8F0)),
+-            ],
++                const SizedBox(width: 6),
++                Icon(
++                  isDir ? Icons.folder_outlined : Icons.description_outlined,
++                  size: 17,
++                  color: isDir ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
++                ),
++                const SizedBox(width: 8),
++                Expanded(
++                  child: Text(name,
++                      maxLines: 1,
++                      overflow: TextOverflow.ellipsis,
++                      style: TextStyle(
++                          fontSize: isDir ? 12.5 : 12,
++                          fontFamily: isDir ? null : 'monospace',
++                          fontWeight: isDir ? FontWeight.w600 : FontWeight.w500)),
++                ),
++                if (ext == 'sh' || ext == 'py' || ext == 'js' || ext == 'json' || ext == 'yaml')
++                  Container(
++                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
++                    decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(3)),
++                    child: Text(ext, style: const TextStyle(fontSize: 8, color: Color(0xFF16A34A), fontWeight: FontWeight.w700)),
++                  ),
++                const SizedBox(width: 4),
++                const Icon(Icons.drag_handle_rounded, size: 14, color: Color(0xFFE2E8F0)),
++              ],
++            ),
+           ),
+         ),
+         if (open && isDir) Padding(padding: const EdgeInsets.only(left: 16), child: _dirChildren(rootKey, full, depth + 1)),
+diff --git a/pubspec.yaml b/pubspec.yaml
+index adec825..06231ad 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.5.1+651
++version: 6.6.0+660
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

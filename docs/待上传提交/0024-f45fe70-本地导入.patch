@@ -1,0 +1,74 @@
+From f45fe704dba781916c12ad32d5cedb69a7df7471 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:03:04 +0800
+Subject: [PATCH] =?UTF-8?q?feat(drawer):=20=E4=BB=8E=E6=9C=AC=E5=9C=B0?=
+ =?UTF-8?q?=E5=AF=BC=E5=85=A5=E7=9C=9F=E6=AD=A3=E5=8F=AF=E7=94=A8=EF=BC=88?=
+ =?UTF-8?q?=E9=80=89=E6=96=87=E4=BB=B6=E2=86=92=E5=86=99=E8=BF=9B=E5=BD=93?=
+ =?UTF-8?q?=E5=89=8D=E7=9B=AE=E5=BD=95=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+版本 6.7.4+674（仅本地）
+---
+ lib/widgets/tree_drawer.dart | 30 +++++++++++++++++++++++++++++-
+ pubspec.yaml                 |  2 +-
+ 2 files changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index fd90535..772a63d 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -226,7 +226,35 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+       return;
+     }
+     if (act == 'import') {
+-      _toast('用终端 cp 或直接把文件拖进对话让 AI 放进该目录');
++      // 选一个文本文件，写入当前目录（名字可改）
++      final content = await NativeBridge.pickTextFile();
++      if (content == null || content.isEmpty || !mounted) return;
++      final c = TextEditingController();
++      final ok = await showDialog<bool>(
++        context: context,
++        builder: (ctx) => AlertDialog(
++          backgroundColor: Colors.white,
++          title: const Text('导入文件名', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
++          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
++            Text('存到 $dir',
++                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
++            const SizedBox(height: 8),
++            TextField(controller: c, autofocus: true),
++          ]),
++          actions: [
++            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
++            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('导入')),
++          ],
++        ),
++      );
++      final name = c.text.trim();
++      c.dispose();
++      if (ok != true || name.isEmpty) return;
++      final safeName = name.replaceAll("'", "'\\''");
++      final safeBody = content.replaceAll("'", "'\\''");
++      await NativeBridge.exec("printf '%s' '$safeBody' > '$dir/$safeName'");
++      _dirs.clear();
++      if (mounted) setState(() {});
+       return;
+     }
+     final c = TextEditingController();
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 01fa781..84700cb 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.7.3+673
++version: 6.7.4+674
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

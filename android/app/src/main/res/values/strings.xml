@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_desc">Rowan 读屏：读取当前屏幕控件、截图、模拟点击/滑动/输入（供 AI 操作手机）。</string>
+</resources>

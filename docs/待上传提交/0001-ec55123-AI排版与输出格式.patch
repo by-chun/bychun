@@ -1,0 +1,188 @@
+From ec55123e4f4708fdf2a16c099db7b73e26394ec7 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 14:57:20 +0800
+Subject: [PATCH] =?UTF-8?q?feat(chat):=20AI=20=E8=BE=93=E5=87=BA=E6=8E=92?=
+ =?UTF-8?q?=E7=89=88=E8=90=BD=E5=9C=B0=EF=BC=88=E5=AD=97=E5=8F=B7/?=
+ =?UTF-8?q?=E8=A1=8C=E9=AB=98/=E5=88=97=E8=A1=A8/=E5=8D=A1=E7=89=87?=
+ =?UTF-8?q?=EF=BC=89+=20=E5=BC=BA=E5=88=B6=E8=BE=93=E5=87=BA=E6=A0=BC?=
+ =?UTF-8?q?=E5=BC=8F?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 气泡改白色卡片 + 细边 + 微阴影，内边距 13/11
+- 字号 13、行高 1.62；标题 15.5/13.5/13；列表 12.5、缩进 14、blockSpacing 7
+- system prompt 固定追加输出格式要求（### 标题+emoji 同行、列表项不空行、
+  行内反引号、开头先给结论），不依赖用户提示词
+- 默认提示词同步补上格式段
+- 版本 6.2.1+621（仅本地提交，未推送）
+---
+ AGENTS.md                     | 28 +++++++++++++++++++++++++
+ lib/agent/agent_engine.dart   |  5 +++++
+ lib/agent/default_prompt.dart |  9 +++++++-
+ lib/pages/chat_message.dart   | 39 +++++++++++++++++++----------------
+ pubspec.yaml                  |  2 +-
+ 5 files changed, 63 insertions(+), 20 deletions(-)
+ create mode 100644 AGENTS.md
+
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 0000000..6d6af11
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,28 @@
++# G 项目开发约定（AI 必读）
++
++> 这些是用户明确要求的流程规则，优先级高于 AI 的默认习惯。
++
++## 1. 不自动 push、不自动触发 CI
++
++**用户原话：** *"以后先不着急上传 cl，记住没写进项目里，我要求上传才上传"*
++
++- 改完代码**只提交到本地**，**不要自动 `git push`**，也不要主动触发 GitHub Actions。
++- 只有用户明确说「上传 / push / 构建 / 出包 / 跑 CI」时，才推送。
++- 推送前若本地有多个提交，先说明将推送哪几个。
++
++## 2. 每次改完代码要截图给用户看
++
++- 界面改动：先写 HTML 原型（380×820，浅色白卡 + 品牌蓝 #2563EB），
++  用 browser 截图、ImageMagick 裁剪手机区域，`sendFile` 发出。
++- 纯逻辑改动无法截图时，说明「用户会看到什么变化」+ 验证步骤。
++- 定稿截图存 `~/workspace/<功能>ui界面/` 与 `g_app2/docs/<功能>ui界面/`
++  （每张 PNG + 对应 mock-*.html 源）。
++
++## 3. 截图与上传的关系
++
++- 顺序：写代码 → 出截图 → 用户确认 → **等用户说上传** → 才 push。
++- 不要在用户没确认前就推送并开始盯 CI。
++
++## 4. 其他已确认的产品约定
++
++见 `docs/架构与待办.md`（架构原则、视图组件、抓包/VPN/播放器/插件/注入的待办与技术约束）。
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index 764153a..9a5cd6c 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -419,6 +419,11 @@ class AgentEngine extends ChangeNotifier {
+             '记忆：\n${memory.summary()}\n'
+             '当前工作区：${workspace ?? '（未设置，可在文件页长按文件夹拖到对话框设置）'}\n'
+             '需要时调用工具，再依据结果回答。\n'
++            '\n输出格式（必须遵守）：\n'
++            '- 小标题用 `### 标题`，emoji 与标题同行，不要单独占一行\n'
++            '- 列表用 `- `，列表项之间**不要空行**，不要把每项整句加粗\n'
++            '- 行内命令/路径用反引号，多行代码用代码块\n'
++            '- 开头先给结论或下一步动作；除分段外不要插多余空行\n'
+             '\n${_promptText.isEmpty ? '' : '用户自定义要求：\n$_promptText'}\n${_personaText.isEmpty ? '' : '当前人物设定：\n$_personaText'}',
+       },
+     ];
+diff --git a/lib/agent/default_prompt.dart b/lib/agent/default_prompt.dart
+index 59db055..495a4dc 100644
+--- a/lib/agent/default_prompt.dart
++++ b/lib/agent/default_prompt.dart
+@@ -15,4 +15,11 @@ const String kDefaultPromptContent = '''【你能用的手脚】
+   装不上就自己查原因（网络、源、版本）再调整，别停在报错上。
+ - 不确定的事情先用终端查证再动手，不要猜。
+ - 需要多行脚本时用 writeFile 写文件再执行，避免转义问题。
+-- 涉及删文件、写系统目录、安装/卸载这类有风险的操作，先说清楚再执行。''';
++- 涉及删文件、写系统目录、安装/卸载这类有风险的操作，先说清楚再执行。
++
++【输出格式（重要，直接影响可读性）】
++- 用简洁的 Markdown。小标题用 `### 标题`，把 emoji 和标题写在同一行，如 `### 🔍 逆向分析`。
++- 列表用 `- `，**列表项之间不要加空行**，也不要每项都加粗整句。
++- 行内命令/路径/文件名用 `反引号`；多行代码用 ``` 代码块。
++- 回答开头先给结论或下一步动作，不要重复用户的话。
++- 除了分段，不要插多余空行，避免输出松散。''';
+diff --git a/lib/pages/chat_message.dart b/lib/pages/chat_message.dart
+index d181f95..8600d70 100644
+--- a/lib/pages/chat_message.dart
++++ b/lib/pages/chat_message.dart
+@@ -101,15 +101,17 @@ class AssistantBubble extends StatelessWidget {
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 6),
+       child: Container(
+-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
++        padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+         decoration: BoxDecoration(
+-          color: const Color(0xFFF7F9FC),
++          color: Colors.white,
+           borderRadius: const BorderRadius.only(
+             topLeft: Radius.circular(4),
+-            topRight: Radius.circular(16),
+-            bottomLeft: Radius.circular(16),
+-            bottomRight: Radius.circular(16),
++            topRight: Radius.circular(14),
++            bottomLeft: Radius.circular(14),
++            bottomRight: Radius.circular(14),
+           ),
++          border: Border.all(color: const Color(0xFFEEF2F7)),
++          boxShadow: const [BoxShadow(color: Color(0x0A0F172A), blurRadius: 14, offset: Offset(0, 4))],
+         ),
+         child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+@@ -124,27 +126,28 @@ class AssistantBubble extends StatelessWidget {
+                         data: blocks[i].text,
+                         selectable: false,
+                         styleSheet: MarkdownStyleSheet(
+-                          p: const TextStyle(fontSize: 13, color: AppColors.text, height: 1.7),
+-                          h1: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.text, height: 1.5),
+-                          h2: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: AppColors.text, height: 1.5),
+-                          h3: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text),
+-                          strong: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
++                          p: const TextStyle(fontSize: 13, color: AppColors.text, height: 1.62),
++                          h1: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: AppColors.text, height: 1.45),
++                          h2: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.text, height: 1.45),
++                          h3: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text, height: 1.4),
++                          strong: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.text),
+                           em: const TextStyle(fontStyle: FontStyle.italic),
+-                          listBullet: const TextStyle(fontSize: 13, color: AppColors.text, height: 1.6),
++                          listBullet: const TextStyle(fontSize: 12.5, color: AppColors.text, height: 1.6),
+                           blockquote: const TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.6),
+                           blockquoteDecoration: BoxDecoration(
+-                            color: const Color(0xFFF7F9FC),
+-                            borderRadius: BorderRadius.circular(8),
+-                            border: const Border(left: BorderSide(color: AppColors.brand, width: 3)),
++                            color: const Color(0xFFF8FAFC),
++                            borderRadius: BorderRadius.circular(9),
++                            border: const Border(left: BorderSide(color: AppColors.brand, width: 2)),
+                           ),
++                          blockquotePadding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                           code: const TextStyle(
+                             fontFamily: 'monospace',
+-                            fontSize: 12,
++                            fontSize: 11.5,
+                             backgroundColor: Color(0xFFF1F4F8),
+                             color: Color(0xFF334155),
+                           ),
+                           codeblockDecoration: BoxDecoration(
+-                            color: const Color(0xFFF7F9FC),
++                            color: const Color(0xFFF8FAFC),
+                             borderRadius: BorderRadius.circular(10),
+                             border: Border.all(color: const Color(0xFFE6EAF0)),
+                           ),
+@@ -155,8 +158,8 @@ class AssistantBubble extends StatelessWidget {
+                           tableHead: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                           tableBody: const TextStyle(fontSize: 12),
+                           tableBorder: TableBorder.all(color: const Color(0xFFE6EAF0), width: 1),
+-                          blockSpacing: 6,
+-                          listIndent: 16,
++                          blockSpacing: 7,
++                          listIndent: 14,
+                         ),
+                       ),
+                     )
+diff --git a/pubspec.yaml b/pubspec.yaml
+index b64abdf..1f92139 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.2.0+620
++version: 6.2.1+621
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

@@ -1,0 +1,181 @@
+From d02ea4228a73825a61727a13d3566a3d79056180 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:39:36 +0800
+Subject: [PATCH] =?UTF-8?q?feat(drawer):=20=E5=BA=94=E7=94=A8=E8=8A=82?=
+ =?UTF-8?q?=E7=82=B9=E5=8F=AF=E5=B1=95=E5=BC=80=E7=9C=8B=20APK=20=E9=87=8C?=
+ =?UTF-8?q?=E7=9A=84=E6=96=87=E4=BB=B6?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 应用展开后多一项「APK 里的文件」，点开逐级展开 zip 条目（目录可继续展开）
+- 用 NativeBridge.zipList 构建 目录 → 条目 索引，结果按 apk 缓存
+- 面板固定 240 高、内部滚动；读不到时提示
+- 版本 6.9.1+691（仅本地）
+---
+ lib/widgets/tree_drawer.dart | 124 +++++++++++++++++++++++++++++++++++
+ pubspec.yaml                 |   2 +-
+ 2 files changed, 125 insertions(+), 1 deletion(-)
+
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index a644145..f6787b7 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -466,10 +466,12 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+                 ? Padding(
+                     padding: const EdgeInsets.fromLTRB(42, 4, 8, 6),
+                     child: Column(
++                      crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         _kvLine('APK', _size((a['size'] as num?)?.toInt() ?? 0)),
+                         _kvLine('路径', (a['apk'] ?? '—').toString()),
+                         _kvLine('类型', a['system'] == true ? '系统应用' : '用户应用'),
++                        _apkFiles((a['apk'] ?? '').toString(), pkg),
+                       ],
+                     ),
+                   )
+@@ -495,6 +497,128 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+         ),
+       );
+ 
++  // ---------------- APK 内部文件树 ----------------
++  /// apk 路径 → 父目录 → 该层条目（{name, path, dir}）
++  final Map<String, Map<String, List<Map<String, dynamic>>>> _zipIndex = {};
++
++  Future<void> _loadZip(String apk) async {
++    if (_zipIndex.containsKey(apk)) return;
++    final list = await NativeBridge.zipList(apk);
++    final idx = <String, List<Map<String, dynamic>>>{};
++    for (final e in list) {
++      final raw = (e['name'] ?? '').toString();
++      final isDir = e['dir'] == true || raw.endsWith('/');
++      final clean = isDir ? raw.replaceAll(RegExp(r'/+$'), '') : raw;
++      if (clean.isEmpty) continue;
++      final i = clean.lastIndexOf('/');
++      final parent = i < 0 ? '' : clean.substring(0, i);
++      idx.putIfAbsent(parent, () => []).add({
++        'name': i < 0 ? clean : clean.substring(i + 1),
++        'path': clean,
++        'dir': isDir,
++      });
++    }
++    for (final l in idx.values) {
++      l.sort((a, b) {
++        if (a['dir'] != b['dir']) return a['dir'] == true ? -1 : 1;
++        return (a['name'] as String).toLowerCase().compareTo((b['name'] as String).toLowerCase());
++      });
++    }
++    if (mounted) setState(() => _zipIndex[apk] = idx);
++  }
++
++  Widget _apkFiles(String apk, String pkg) {
++    if (apk.isEmpty) return const SizedBox(width: double.infinity);
++    final rootKey = 'ziproot:$pkg';
++    final open = _isOpen(rootKey);
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      children: [
++        InkWell(
++          onTap: () {
++            if (!_zipIndex.containsKey(apk)) _loadZip(apk);
++            _toggle(rootKey);
++          },
++          child: Padding(
++            padding: const EdgeInsets.only(top: 6, bottom: 2),
++            child: Row(children: [
++              Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
++                  size: 13, color: const Color(0xFFC3CCD8)),
++              const SizedBox(width: 6),
++              const Icon(Icons.folder_zip_outlined, size: 14, color: Color(0xFF64748B)),
++              const SizedBox(width: 6),
++              const Text('APK 里的文件', style: TextStyle(fontSize: 11, color: Color(0xFF334155))),
++            ]),
++          ),
++        ),
++        if (open)
++          Container(
++            height: 240,
++            margin: const EdgeInsets.only(top: 2, bottom: 4),
++            decoration: BoxDecoration(
++              color: const Color(0xFFF7F9FC),
++              borderRadius: BorderRadius.circular(8),
++              border: Border.all(color: const Color(0xFFEEF2F7)),
++            ),
++            child: !_zipIndex.containsKey(apk)
++                ? const Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)))
++                : (_zipIndex[apk]!.isEmpty
++                    ? const Padding(
++                        padding: EdgeInsets.all(10),
++                        child: Text('（读不到 APK 内容）', style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
++                      )
++                    : ListView(padding: const EdgeInsets.symmetric(vertical: 4), children: _zipLevel(apk, ''))),
++          ),
++      ],
++    );
++  }
++
++  List<Widget> _zipLevel(String apk, String dir) {
++    final items = _zipIndex[apk]?[dir] ?? const <Map<String, dynamic>>[];
++    return [for (final it in items) _zipRow(apk, it)];
++  }
++
++  Widget _zipRow(String apk, Map<String, dynamic> it) {
++    final isDir = it['dir'] == true;
++    final path = it['path'] as String;
++    final name = it['name'] as String;
++    final key = 'zip:$apk:$path';
++    final open = _isOpen(key);
++    final row = InkWell(
++      onTap: isDir ? () => _toggle(key) : null,
++      child: Padding(
++        padding: const EdgeInsets.fromLTRB(8, 5, 8, 5),
++        child: Row(children: [
++          Icon(
++            isDir
++                ? (open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded)
++                : Icons.insert_drive_file_outlined,
++            size: 12,
++            color: isDir ? const Color(0xFF94A3B8) : const Color(0xFFCBD5E1),
++          ),
++          const SizedBox(width: 5),
++          Expanded(
++            child: Text(name,
++                maxLines: 1,
++                overflow: TextOverflow.ellipsis,
++                style: TextStyle(
++                    fontSize: 10.5,
++                    fontFamily: 'monospace',
++                    color: isDir ? const Color(0xFF334155) : const Color(0xFF64748B))),
++          ),
++        ]),
++      ),
++    );
++    if (!isDir) return row;
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.start,
++      children: [
++        row,
++        if (open) Padding(padding: const EdgeInsets.only(left: 9), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _zipLevel(apk, path))),
++      ],
++    );
++  }
++
+   // ---------------- 目录（文件 / 插件） ----------------
+   Widget _dirChildren(String rootKey, String path, int depth) {
+     return FutureBuilder<List<(String, bool)>>(
+diff --git a/pubspec.yaml b/pubspec.yaml
+index b2f84ae..3d1e2a8 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.9.0+690
++version: 6.9.1+691
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

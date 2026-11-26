@@ -1,0 +1,148 @@
+From d9b41a0896d2be6dac5b86f705a57cb9ab1b4015 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:51:34 +0800
+Subject: [PATCH] =?UTF-8?q?refactor(ui):=20=E5=88=A0=E6=8E=89=E6=82=AC?=
+ =?UTF-8?q?=E6=B5=AE=E7=AA=97=E8=AE=BE=E7=BD=AE=E9=A1=B5=EF=BC=8C=E6=82=AC?=
+ =?UTF-8?q?=E6=B5=AE=E7=AA=97=E5=8F=AA=E4=BF=9D=E7=95=99=E6=9D=83=E9=99=90?=
+ =?UTF-8?q?=E9=A1=B9?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 删除 OvsetPage（启用悬浮球/大小/透明度/图标/面板背景图）
+- 抽屉设置节点移除「悬浮窗」，权限页的「悬浮窗」开关保留
+- 版本 6.9.5+695（仅本地）
+---
+ lib/pages/settings_page.dart | 89 ------------------------------------
+ lib/widgets/tree_drawer.dart |  1 -
+ pubspec.yaml                 |  2 +-
+ 3 files changed, 1 insertion(+), 91 deletions(-)
+
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index 6a9299b..fdb24de 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -198,95 +198,6 @@ class _AppearancePageState extends ConsumerState<AppearancePage> {
+   }
+ }
+ 
+-// ---------------- 悬浮窗设置 ----------------
+-class OvsetPage extends StatefulWidget {
+-  final bool embedded;
+-  const OvsetPage({super.key, this.embedded = false});
+-  @override
+-  State<OvsetPage> createState() => _OvsetPageState();
+-}
+-
+-class _OvsetPageState extends State<OvsetPage> {
+-  double _size = 48;
+-  double _opacity = 80;
+-  double _panelOpacity = 92;
+-  bool _draggable = true;
+-
+-  Future<void> _pick(String fileName) async {
+-    final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+-    if (x == null) return;
+-    final dir = await NativeBridge.appDataDir();
+-    if (dir.isEmpty) return;
+-    await File(x.path).copy('$dir/$fileName');
+-    await NativeBridge.setOverlayPref(size: _size.round(), opacity: _opacity / 100);
+-    if (mounted) {
+-      showToast(context, '已保存，重新打开悬浮窗生效', error: false);
+-    }
+-  }
+-
+-  Widget _rw(String label, String value, {String? action, VoidCallback? onTap, Widget? trailing}) {
+-    return Padding(
+-      padding: const EdgeInsets.symmetric(vertical: 9),
+-      child: Row(children: [
+-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text)),
+-        const Spacer(),
+-        if (value.isNotEmpty) Text(value, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+-        if (action != null) ...[
+-          const SizedBox(width: 12),
+-          GestureDetector(onTap: onTap, child: Text(action, style: const TextStyle(fontSize: 11.5, color: AppColors.brand, fontWeight: FontWeight.w600))),
+-        ],
+-        if (trailing != null) trailing,
+-      ]),
+-    );
+-  }
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    final body = ListView(
+-        padding: const EdgeInsets.all(16),
+-        children: [
+-          const Text('悬浮球', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-          GlassCard(
+-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+-            child: Column(children: [
+-              _rw('悬浮球图标', '默认 G 标', action: '更换', onTap: () => _pick('overlay_icon.png')),
+-              NumberFieldRow(label: '大小', value: _size, min: 32, max: 80, suffix: 'dp', onChanged: (v) => setState(() => _size = v)),
+-              NumberFieldRow(label: '透明度', value: _opacity, min: 20, max: 100, suffix: '%', onChanged: (v) => setState(() => _opacity = v)),
+-              _rw('贴边位置', '自动（左/右）'),
+-            ]),
+-          ),
+-          const SizedBox(height: 12),
+-          const Text('搜索面板', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-          GlassCard(
+-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+-            child: Column(children: [
+-              _rw('面板背景', '纯白', action: '更换', onTap: () => _pick('overlay_bg.png')),
+-              NumberFieldRow(label: '面板透明度', value: _panelOpacity, min: 40, max: 100, suffix: '%', onChanged: (v) => setState(() => _panelOpacity = v)),
+-              _rw('可拖动 / 缩放 / 最小化', '', trailing: Switch(value: _draggable, activeThumbColor: AppColors.brand, onChanged: (v) => setState(() => _draggable = v))),
+-            ]),
+-          ),
+-          const Padding(
+-            padding: EdgeInsets.only(top: 10),
+-            child: Text('悬浮窗支持拖动、按钮/双指缩放、最小化到悬浮球', style: TextStyle(fontSize: 10.5, color: AppColors.muted)),
+-          ),
+-        ],
+-      );
+-    if (widget.embedded) {
+-      return embedShell(title: '悬浮窗设置', body: body);
+-    }
+-    return Scaffold(
+-      backgroundColor: Colors.white,
+-      appBar: AppBar(
+-        leading: const BackButton(),
+-        backgroundColor: Colors.white,
+-        elevation: 0,
+-        title: const Text('悬浮窗设置', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+-      ),
+-      body: body,
+-    );
+-  }
+-}
+-
+ class ProvidersPage extends StatefulWidget {
+   final bool embedded;
+   const ProvidersPage({super.key, this.embedded = false});
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index f6787b7..583fb18 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -911,7 +911,6 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+         _settingNode('subagent', '子代理', const SkillsSubPage(embedded: true)),
+         _settingNode('prompt', '提示词', const PromptPage(embedded: true)),
+         _settingNode('appearance', '外观 / 背景图', const AppearancePage(embedded: true)),
+-        _settingNode('ovset', '悬浮窗', const OvsetPage(embedded: true)),
+         _settingNode('container', '容器', const ContainerPage(embedded: true)),
+         _settingNode('perm', '权限', const PowerPage(embedded: true)),
+         _settingNode('mcp', 'MCP 服务器', const McpPage(embedded: true)),
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 56c7b2b..d0e31aa 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.9.4+694
++version: 6.9.5+695
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

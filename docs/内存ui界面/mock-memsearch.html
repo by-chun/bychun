@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;padding:12px}
+  .card{background:#fff;border:1px solid #EEF2F7;border-radius:16px;box-shadow:0 8px 22px rgba(15,23,42,.06);margin-bottom:12px;overflow:hidden}
+  .hd{display:flex;align-items:center;padding:11px 12px 8px}
+  .hd .t{font-size:12.5px;font-weight:700;flex:1}
+  .hd .n{font:9.5px ui-monospace,monospace;color:#94A3B8}
+  .div{height:1px;background:#F5F8FC}
+  .body{padding:10px 12px 12px}
+  .lab{font-size:10px;color:#94A3B8;margin:2px 0 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{display:flex;align-items:baseline;gap:4px;background:#F4F7FB;border:1px solid #EDF2F8;border-radius:9px;padding:5px 8px}
+  .chip b{font:700 11px ui-monospace,monospace;color:#475569}
+  .chip i{font-style:normal;font-size:8.5px;color:#94A3B8}
+  .chip.on{background:#2563EB;border-color:#2563EB}
+  .chip.on b,.chip.on i{color:#fff}
+  .inrow{display:flex;gap:8px}
+  .input{flex:1;height:36px;background:#F7F9FC;border:1px solid #E2E8F0;border-radius:11px;display:flex;align-items:center;padding:0 11px;font:12px ui-monospace,monospace}
+  .btn{width:66px;height:36px;border-radius:11px;background:#2563EB;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .hint{margin-top:8px;font-size:9.5px;line-height:1.6;color:#94A3B8}
+  .scroll{max-height:300px;overflow-y:auto}
+  .scroll::-webkit-scrollbar{width:6px}
+  .scroll::-webkit-scrollbar-thumb{background:#DCE3EC;border-radius:3px}
+  .row{padding:8px 12px;border-bottom:1px solid #F7FAFD}
+  .l1{display:flex;align-items:center;gap:8px}
+  .addr{font:600 11.5px ui-monospace,monospace}
+  .badge{margin-left:auto;font:700 8.5px ui-monospace,monospace;color:#2563EB;background:#EAF1FE;border-radius:5px;padding:2px 6px}
+  .l2{margin-top:2px;display:flex;gap:8px;align-items:center}
+  .val{font:9.5px ui-monospace,monospace;color:#2563EB}
+  .mod{font:9px ui-monospace,monospace;color:#94A3B8}
+  .asm{margin-top:4px;background:#F7F9FC;border:1px solid #EFF3F9;border-radius:7px;padding:4px 7px;font:9.5px/1.4 ui-monospace,monospace;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .asm .op{color:#2563EB;font-weight:700}
+  .ft{font-size:9.5px;color:#94A3B8;padding:7px 12px;background:#FBFCFE;border-top:1px solid #F5F8FC;display:flex}
+  .ft .r{margin-left:auto}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="hd"><div class="t">内存搜索</div><div class="n">pid 12345</div></div>
+    <div class="div"></div>
+    <div class="body">
+      <div class="lab">类型</div>
+      <div class="chips">
+        <div class="chip"><b>A</b><i>自动</i></div>
+        <div class="chip on"><b>D</b><i>Dword</i></div>
+        <div class="chip"><b>Q</b><i>Qword</i></div>
+        <div class="chip"><b>B</b><i>Byte</i></div>
+        <div class="chip"><b>W</b><i>Word</i></div>
+        <div class="chip"><b>F</b><i>Float</i></div>
+        <div class="chip"><b>E</b><i>Double</i></div>
+        <div class="chip"><b>H</b><i>Hex</i></div>
+      </div>
+      <div class="lab">搜索值</div>
+      <div class="inrow">
+        <div class="input">1234</div>
+        <div class="btn">搜索</div>
+      </div>
+      <div class="hint">A 自动：整数按 D，超出 32 位按 Q，带小数点按 F，0x 开头按 H</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><div class="t">结果</div><div class="n">128 hits</div></div>
+    <div class="div"></div>
+    <div class="scroll">
+      <div class="row">
+        <div class="l1"><div class="addr">0x7B8A2C10</div><div class="badge">D</div></div>
+        <div class="l2"><div class="val">= 1234</div><div class="mod">libil2cpp.so + 0x2C10</div></div>
+        <div class="asm"><span class="op">mov</span> w8, #0x4d2</div>
+      </div>
+      <div class="row">
+        <div class="l1"><div class="addr">0x7B9C41A8</div><div class="badge">Q</div></div>
+        <div class="l2"><div class="val">= 1234</div><div class="mod">[heap] + 0x1A8</div></div>
+        <div class="asm"><span class="op">ldr</span> x8, [x0, #0x18]</div>
+      </div>
+      <div class="row">
+        <div class="l1"><div class="addr">0x7BC0F5D4</div><div class="badge">D</div></div>
+        <div class="l2"><div class="val">= 1234</div><div class="mod">[stack] + 0x5D4</div></div>
+        <div class="asm"><span class="op">add</span> w8, w0, #0x4d2</div>
+      </div>
+      <div class="row">
+        <div class="l1"><div class="addr">0x7BC1123C</div><div class="badge">F</div></div>
+        <div class="l2"><div class="val">= 1234.0</div><div class="mod">libunity.so + 0x123C</div></div>
+        <div class="asm"><span class="op">fmov</span> s0, #1.5</div>
+      </div>
+      <div class="row">
+        <div class="l1"><div class="addr">0x7BC39A08</div><div class="badge">D</div></div>
+        <div class="l2"><div class="val">= 1234</div><div class="mod">[anon:libc_malloc] + 0x1A08</div></div>
+        <div class="asm"><span class="op">str</span> w8, [x19, #0x30]</div>
+      </div>
+    </div>
+    <div class="ft"><span>共 128 条 · 卡片内滚动</span><span class="r">显示 1-5</span></div>
+  </div>
+</body>
+</html>

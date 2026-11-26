@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #e9edf3; display: flex; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.16); overflow: hidden;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  .bar .back { font-size: 20px; color: #2563eb; }
+  .bar h1 { font-size: 16px; font-weight: 800; color: #0f172a; }
+  .chat { flex: 1; padding: 4px 14px 0; overflow: hidden; }
+
+  .me { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .me .b { background: #2563eb; color: #fff; font-size: 13px; padding: 9px 13px;
+           border-radius: 15px 15px 4px 15px; max-width: 80%; }
+
+  .ai { display: flex; gap: 8px; margin-bottom: 12px; }
+  .av { width: 26px; height: 26px; border-radius: 50%; background: #eaf1fe; color: #2563eb;
+        font-size: 11px; font-weight: 700; display: flex; align-items: center;
+        justify-content: center; flex: none; }
+  .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .bubble { background: #f7f9fc; border-radius: 14px; padding: 10px 13px; font-size: 13px;
+            color: #334155; line-height: 1.55; max-width: 92%; }
+
+  /* AI 发出的详情卡 */
+  .card { background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+          box-shadow: 0 10px 26px rgba(15,23,42,.07); overflow: hidden;
+          max-width: 300px; display: flex; flex-direction: column; }
+
+  .chead { display: flex; align-items: flex-start; gap: 7px; padding: 11px 12px 8px; }
+  .chead .m { font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 4px;
+              background: rgba(34,197,94,.12); color: #16a34a; flex: none; margin-top: 1px; }
+  .chead .u { flex: 1; min-width: 0; font-family: ui-monospace, monospace; font-size: 10.5px;
+              color: #0f172a; line-height: 1.45; word-break: break-all; }
+  .chead .exp { flex: none; color: #cbd5e1; font-size: 12px; }
+
+  .tabs { display: flex; padding: 0 6px; border-bottom: 1px solid #f1f4f8; }
+  .tab { padding: 7px 9px; font-size: 10.5px; color: #94a3b8; position: relative; }
+  .tab.on { color: #2563eb; font-weight: 700; }
+  .tab.on:after { content: ""; position: absolute; left: 9px; right: 9px; bottom: -1px;
+                  height: 2px; background: #2563eb; border-radius: 2px; }
+
+  /* 内部可滚动 */
+  .cbody { height: 196px; overflow: hidden; padding: 6px 10px 0; position: relative; }
+  .cbody:after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22px;
+                 background: linear-gradient(transparent, #fff); }
+  .kv { display: flex; gap: 8px; padding: 6px 2px; border-bottom: 1px solid #f5f8fc; font-size: 10px; }
+  .kv .k { color: #94a3b8; width: 66px; flex: none; font-family: ui-monospace, monospace; }
+  .kv .v { color: #0f172a; flex: 1; word-break: break-all; font-family: ui-monospace, monospace;
+           line-height: 1.45; }
+  .kv .v.g { color: #16a34a; font-weight: 700; }
+  .sect { font-size: 9.5px; color: #94a3b8; padding: 8px 2px 4px; }
+  .code { background: #0f172a; border-radius: 9px; padding: 8px 9px; margin: 2px 0 6px;
+          font-family: ui-monospace, monospace; font-size: 9px; line-height: 1.6; color: #cbd5e1; }
+
+  .cfoot { display: flex; gap: 7px; padding: 9px 10px 10px; border-top: 1px solid #f1f4f8; }
+  .btn { flex: 1; height: 30px; border-radius: 9px; display: flex; align-items: center;
+         justify-content: center; font-size: 10.5px; font-weight: 600; }
+  .btn.p { background: #2563eb; color: #fff; }
+  .btn.s { background: #f2f5f9; color: #475569; }
+
+  .inputbar { padding: 10px 12px 16px; border-top: 1px solid #f1f4f8; display: flex; gap: 9px; }
+  .f { flex: 1; height: 38px; border-radius: 19px; background: #f4f7fb; color: #94a3b8;
+       font-size: 12.5px; display: flex; align-items: center; padding: 0 14px; }
+  .snd { width: 38px; height: 38px; border-radius: 50%; background: #2563eb; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="status"><span>21:26</span><span>5G ▮▮▮ 84%</span></div>
+    <div class="bar"><span class="back">‹</span><h1>AI 助手</h1></div>
+
+    <div class="chat">
+      <div class="me"><div class="b">连上 vpn，抓一下这个 app 的包</div></div>
+
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="bubble">已连香港 01（28ms），抓包运行中。刚抓到一条登录请求：</div>
+
+          <div class="card">
+            <div class="chead">
+              <span class="m">POST</span>
+              <div class="u">https://cn.bing.com/dict/fwproxy/receive?set…</div>
+              <span class="exp">⤢</span>
+            </div>
+            <div class="tabs">
+              <div class="tab on">概览</div><div class="tab">请求</div><div class="tab">响应</div><div class="tab">Cookies</div>
+            </div>
+            <div class="cbody">
+              <div class="kv"><span class="k">状态码</span><span class="v g">200 OK</span></div>
+              <div class="kv"><span class="k">协议</span><span class="v">HTTP/1.1</span></div>
+              <div class="kv"><span class="k">耗时</span><span class="v">158 ms</span></div>
+              <div class="kv"><span class="k">大小</span><span class="v">请求 2.0 KB · 响应 1.2 KB</span></div>
+              <div class="kv"><span class="k">远程地址</span><span class="v">202.89.233.100:443</span></div>
+              <div class="kv"><span class="k">应用</span><span class="v">Edge</span></div>
+              <div class="sect">请求头</div>
+              <div class="kv"><span class="k">Accept</span><span class="v">application/json</span></div>
+              <div class="kv"><span class="k">User-Agent</span><span class="v">Dalvik/2.1.0 (Linux; U; Android 16)</span></div>
+              <div class="sect">请求体</div>
+              <div class="code">{ "q": "hello", "from": "en", "to": "zh" }</div>
+            </div>
+            <div class="cfoot">
+              <div class="btn s">复制 cURL</div>
+              <div class="btn p">存为脚本</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="f">发消息…</div>
+      <div class="snd"></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;padding:14px}
+  .card{background:#fff;border:1px solid #EEF2F7;border-radius:16px;box-shadow:0 8px 22px rgba(15,23,42,.06);overflow:hidden}
+  .hd{display:flex;align-items:center;padding:11px 12px 8px}
+  .hd .t{font-size:12.5px;font-weight:700;flex:1}
+  .hd .n{font:9.5px ui-monospace,monospace;color:#94A3B8}
+  .div{height:1px;background:#F5F8FC}
+  .row{padding:9px 12px;border-bottom:1px solid #F7FAFD}
+  .row:last-child{border-bottom:none}
+  .l1{display:flex;align-items:center;gap:8px}
+  .addr{font:600 12px ui-monospace,monospace;color:#0F172A}
+  .badge{margin-left:auto;font-size:8.5px;color:#2563EB;background:#EAF1FE;border-radius:5px;padding:2px 6px}
+  .l2{margin-top:3px;display:flex;align-items:center;gap:8px}
+  .val{font:10px ui-monospace,monospace;color:#2563EB}
+  .mod{font:9.5px ui-monospace,monospace;color:#94A3B8}
+  .asm{margin-top:5px;background:#F7F9FC;border:1px solid #EFF3F9;border-radius:7px;padding:5px 7px;
+       font:10px/1.4 ui-monospace,monospace;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .asm .op{color:#2563EB;font-weight:700}
+  .asm .ea{color:#94A3B8}
+  .tip{font-size:9.5px;color:#94A3B8;padding:8px 12px;background:#FBFCFE;border-top:1px solid #F5F8FC}
+  .tag{display:inline-block;font-size:8px;color:#64748B;background:#F1F5F9;border-radius:4px;padding:1px 4px;margin-right:6px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="hd">
+      <div class="t">memScan · 1234</div>
+      <div class="n">3 hits</div>
+    </div>
+    <div class="div"></div>
+
+    <div class="row">
+      <div class="l1">
+        <div class="addr">0x7B8A2C10</div>
+        <div class="badge">i32</div>
+      </div>
+      <div class="l2">
+        <div class="val">= 1234</div>
+        <div class="mod">libil2cpp.so + 0x2C10</div>
+      </div>
+      <div class="asm"><span class="op">mov</span> w8, #0x4d2 <span class="ea">; 1234</span></div>
+    </div>
+
+    <div class="row">
+      <div class="l1">
+        <div class="addr">0x7B9C41A8</div>
+        <div class="badge">i32</div>
+      </div>
+      <div class="l2">
+        <div class="val">= 1234</div>
+        <div class="mod">[heap] + 0x1A8</div>
+      </div>
+      <div class="asm"><span class="op">ldr</span> w8, [x0, #0x18] <span class="ea">; *(x0+0x18)</span></div>
+    </div>
+
+    <div class="row">
+      <div class="l1">
+        <div class="addr">0x7BC0F5D4</div>
+        <div class="badge">i32</div>
+      </div>
+      <div class="l2">
+        <div class="val">= 1234</div>
+        <div class="mod">[stack] + 0x5D4</div>
+      </div>
+      <div class="asm"><span class="op">add</span> w8, w0, #0x4d2</div>
+    </div>
+
+    <div class="tip">每行第二段是该地址的指令；点击一行展开临近 8 条反汇编</div>
+  </div>
+</body>
+</html>

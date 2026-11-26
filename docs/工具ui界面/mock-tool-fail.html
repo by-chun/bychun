@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;padding:14px}
+  .card{background:#fff;border:1px solid #EEF2F7;border-radius:16px;box-shadow:0 8px 22px rgba(15,23,42,.06);overflow:hidden}
+  .hd{display:flex;align-items:flex-start;gap:8px;padding:11px 12px}
+  .hd .x{width:14px;height:14px;border-radius:50%;background:#EF4444;color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+  .hd .mid{flex:1;min-width:0}
+  .hd .t{font-size:12px;font-weight:600}
+  .hd .s{font:9.5px ui-monospace,monospace;color:#B6C2D3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hd .e{font-size:9px;color:#DC2626;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hd .chev{color:#CBD5E1;font-size:11px;margin-top:1px}
+  .div{height:1px;background:#F5F8FC}
+  .row{margin:0 6px 4px;background:#FAFBFD;border:1px solid #F0F4FA;border-radius:11px}
+  .rh{display:flex;align-items:center;gap:6px;padding:8px 9px}
+  .ok{width:12px;height:12px;border-radius:50%;background:#10B981;color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;flex:none}
+  .bad{width:12px;height:12px;border-radius:50%;background:#EF4444;color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;flex:none}
+  .nm{font-size:10.5px;font-weight:700;color:#334155;flex:none}
+  .arg{flex:1;font:10px ui-monospace,monospace;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cnt{font:9px ui-monospace,monospace;color:#94A3B8;background:#F1F5F9;border-radius:6px;padding:1px 5px}
+  .out{margin:0 6px 6px 6px;padding:9px;background:#0B1220;border-radius:9px;font:9.5px/1.55 ui-monospace,monospace;color:#CBD5E1}
+  .stop{margin:10px 0 0;background:#fff;border:1px solid #FECACA;border-radius:14px;padding:10px 12px;font-size:10.5px;line-height:1.6;color:#B91C1C}
+  .stop b{display:block;font-size:11px;margin-bottom:2px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="hd">
+      <div class="x">×</div>
+      <div class="mid">
+        <div class="t">12 次工具调用</div>
+        <div class="s">webSearch×4 · shell×8 · 失败 3</div>
+        <div class="e">失败：HTTP 403 Forbidden（目标站拦截）</div>
+      </div>
+      <div class="chev">▴</div>
+    </div>
+    <div class="div"></div>
+
+    <div class="row">
+      <div class="rh"><div class="ok">✓</div><div class="nm">webSearch</div><div class="arg">斗破苍穹 漫画 在线</div><div class="cnt">8 行</div></div>
+    </div>
+    <div class="row">
+      <div class="rh"><div class="ok">✓</div><div class="nm">fetchPage</div><div class="arg">https://example.com/comic/1</div><div class="cnt">42 行</div></div>
+    </div>
+
+    <div class="row">
+      <div class="rh"><div class="bad">×</div><div class="nm">httpRequest</div><div class="arg">HTTP 403: blocked by anti-bot</div><div class="cnt">1 行</div></div>
+    </div>
+    <div class="out">HTTP 403 Forbidden
+server: cloudflare
+cf-ray: 8f2c...-SIN</div>
+
+    <div class="row">
+      <div class="rh"><div class="bad">×</div><div class="nm">httpRequest</div><div class="arg">重复调用已跳过（本轮已执行过相同参数）</div><div class="cnt">1 行</div></div>
+    </div>
+    <div class="row">
+      <div class="rh"><div class="bad">×</div><div class="nm">shell</div><div class="arg">curl: (7) Failed to connect</div><div class="cnt">2 行</div></div>
+    </div>
+  </div>
+
+  <div class="stop">
+    <b>连续 3 次工具失败，已停止本轮</b>
+    最后错误：curl: (7) Failed to connect to example.com port 443
+  </div>
+</body>
+</html>

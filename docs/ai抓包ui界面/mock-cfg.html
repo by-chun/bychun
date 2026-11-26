@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  .bar .back { font-size: 20px; color: #2563eb; }
+  .bar h1 { font-size: 16px; font-weight: 800; color: #0f172a; }
+  .chat { flex: 1; padding: 4px 14px 0; overflow: hidden; }
+
+  .me { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .me .b { background: #2563eb; color: #fff; font-size: 13px; padding: 9px 13px;
+           border-radius: 15px 15px 4px 15px; max-width: 82%; }
+  .ai { display: flex; gap: 8px; margin-bottom: 12px; }
+  .av { width: 26px; height: 26px; border-radius: 50%; background: #eaf1fe; color: #2563eb;
+        font-size: 11px; font-weight: 700; display: flex; align-items: center;
+        justify-content: center; flex: none; }
+  .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .bubble { background: #f7f9fc; border-radius: 14px; padding: 10px 13px; font-size: 13px;
+            color: #334155; line-height: 1.55; max-width: 92%; }
+
+  .card { background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+          box-shadow: 0 10px 26px rgba(15,23,42,.07); overflow: hidden;
+          max-width: 306px; display: flex; flex-direction: column; }
+
+  .chead { display: flex; align-items: center; gap: 8px; padding: 11px 12px 9px; }
+  .chead .ico { width: 28px; height: 28px; border-radius: 9px; background: #eaf1fe;
+                color: #2563eb; display: flex; align-items: center; justify-content: center;
+                font-size: 14px; flex: none; }
+  .chead b { font-size: 12.5px; color: #0f172a; font-weight: 700; }
+  .chead .sub { font-size: 9.5px; color: #94a3b8; margin-top: 1px; }
+
+  .step { display: flex; align-items: center; gap: 9px; padding: 10px 12px;
+          border-top: 1px solid #f5f8fc; }
+  .st { width: 20px; height: 20px; border-radius: 50%; flex: none; font-size: 10px;
+        display: flex; align-items: center; justify-content: center; }
+  .st.done { background: #2563eb; color: #fff; }
+  .st.todo { background: #f1f4f8; color: #cbd5e1; }
+  .st.opt { background: rgba(245,158,11,.15); color: #d97706; }
+  .txt { flex: 1; min-width: 0; }
+  .txt b { display: block; font-size: 12px; color: #0f172a; font-weight: 600; }
+  .txt span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 1px; line-height: 1.45; }
+  .txt span em { color: #2563eb; font-style: normal; }
+  .act { flex: none; font-size: 10px; font-weight: 600; color: #2563eb;
+         background: #eaf1fe; padding: 5px 9px; border-radius: 8px; }
+  .act.gray { background: #f4f7fb; color: #94a3b8; }
+
+  .cfoot { display: flex; gap: 7px; padding: 10px; border-top: 1px solid #f1f4f8; }
+  .btn { flex: 1; height: 32px; border-radius: 9px; display: flex; align-items: center;
+         justify-content: center; font-size: 11px; font-weight: 600; }
+  .btn.p { background: #2563eb; color: #fff; }
+  .btn.s { background: #f1f4f8; color: #475569; }
+
+  .inputbar { padding: 10px 12px 16px; border-top: 1px solid #f1f4f8; display: flex; gap: 9px; }
+  .f { flex: 1; height: 38px; border-radius: 19px; background: #f4f7fb; color: #94a3b8;
+       font-size: 12.5px; display: flex; align-items: center; padding: 0 14px; }
+  .snd { width: 38px; height: 38px; border-radius: 50%; background: #2563eb; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="status"><span>22:09</span><span>5G ▮▮▮ 84%</span></div>
+    <div class="bar"><span class="back">‹</span><h1>AI 助手</h1></div>
+
+    <div class="chat">
+      <div class="me"><div class="b">让我配置一下抓包</div></div>
+
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="bubble">好，抓包要 3 步，已完成 1 项。装证书才能看到 HTTPS 明文。</div>
+
+          <div class="card">
+            <div class="chead">
+              <div class="ico">◉</div>
+              <div>
+                <b>抓包配置</b>
+                <div class="sub">1 / 3 已完成</div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="st done">✓</div>
+              <div class="txt"><b>VPN 授权</b><span>系统已允许，可随时关闭</span></div>
+              <div class="act gray">已完成</div>
+            </div>
+
+            <div class="step">
+              <div class="st todo">2</div>
+              <div class="txt"><b>CA 证书</b><span>装了才能看 <em>请求头 / 响应体</em>，装完重启一次</span></div>
+              <div class="act">一键安装</div>
+            </div>
+
+            <div class="step">
+              <div class="st opt">!</div>
+              <div class="txt"><b>Root</b><span>可选。不装也能抓，只是进不了 <em>/data</em> 全盘</span></div>
+              <div class="act">去授权</div>
+            </div>
+
+            <div class="cfoot">
+              <div class="btn s">只看域名</div>
+              <div class="btn p">开始抓包</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="f">发消息…</div>
+      <div class="snd"></div>
+    </div>
+  </div>
+</body>
+</html>

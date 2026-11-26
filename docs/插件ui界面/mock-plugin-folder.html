@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; gap: 24px; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden; position: relative;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 8px; }
+  .bar .ham { font-size: 18px; color: #64748b; }
+  .bar h1 { font-size: 16.5px; font-weight: 800; color: #0f172a; }
+  .bar .sp { flex: 1; }
+  .bar .add { width: 32px; height: 32px; border-radius: 10px; background: #2563eb; color: #fff;
+              display: flex; align-items: center; justify-content: center; font-size: 17px; }
+
+  .path { padding: 0 18px 10px; font-size: 10px; color: #94a3b8;
+          font-family: ui-monospace, monospace; }
+
+  .list { flex: 1; padding: 0 16px; overflow: hidden; }
+
+  .folder { display: flex; align-items: center; gap: 11px; padding: 13px 12px;
+            background: #fff; border: 1px solid #eef2f7; border-radius: 14px;
+            box-shadow: 0 6px 16px rgba(15,23,42,.04); margin-bottom: 8px; }
+  .fico { width: 34px; height: 34px; border-radius: 10px; background: #eff6ff;
+          display: flex; align-items: center; justify-content: center; font-size: 16px;
+          flex: none; }
+  .fmid { flex: 1; min-width: 0; }
+  .fmid b { display: block; font-size: 13px; color: #0f172a; font-weight: 600; }
+  .fmid span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 2px;
+               font-family: ui-monospace, monospace; overflow: hidden; white-space: nowrap;
+               text-overflow: ellipsis; }
+  .cnt { flex: none; font-size: 10px; color: #94a3b8; font-family: ui-monospace, monospace; }
+  .chev { flex: none; color: #cbd5e1; font-size: 15px; }
+
+  .file { display: flex; align-items: center; gap: 11px; padding: 11px 12px;
+          border-bottom: 1px solid #f7fafd; }
+  .ico { width: 32px; height: 32px; border-radius: 9px; flex: none;
+         display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .i-cap { background: #eff6ff; color: #2563eb; }
+  .i-dl { background: #f1f4f8; color: #64748b; }
+  .mid { flex: 1; min-width: 0; }
+  .mid b { display: block; font-size: 12.5px; color: #0f172a; font-weight: 600;
+           font-family: ui-monospace, monospace; }
+  .mid span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 2px; }
+
+  .hint { padding: 12px 20px; font-size: 9.5px; color: #b6c0cd; line-height: 1.7; }
+
+  /* 长按菜单 */
+  .mask { position: absolute; inset: 0; background: rgba(15,23,42,.32); }
+  .menu { position: absolute; left: 40px; right: 40px; top: 300px; background: #fff;
+          border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(15,23,42,.25); }
+  .m { padding: 13px 16px; font-size: 13px; color: #0f172a; border-bottom: 1px solid #f7fafd; }
+  .m:last-child { border-bottom: 0; }
+  .m.d { color: #dc2626; }
+  .mtitle { padding: 12px 16px 8px; font-size: 10.5px; color: #94a3b8;
+            border-bottom: 1px solid #f7fafd; }
+
+  .addmenu { position: absolute; right: 14px; top: 96px; background: #fff; border-radius: 14px;
+             box-shadow: 0 16px 40px rgba(15,23,42,.2); overflow: hidden; }
+  .am { padding: 12px 18px; font-size: 12.5px; color: #0f172a; border-bottom: 1px solid #f7fafd;
+        white-space: nowrap; }
+  .am:last-child { border-bottom: 0; }
+</style>
+</head>
+<body>
+
+<!-- 左：文件夹视图 -->
+<div class="phone">
+  <div class="status"><span>23:58</span><span>5G ▮▮▮ 84%</span></div>
+  <div class="bar"><span class="ham">☰</span><h1>插件</h1><span class="sp"></span><span class="add">＋</span></div>
+  <div class="path">/sdcard/G/plugins</div>
+
+  <div class="list">
+    <div class="folder">
+      <div class="fico">📁</div>
+      <div class="fmid"><b>抓包</b><span>login.sh</span></div>
+      <span class="cnt">1 项</span><span class="chev">›</span>
+    </div>
+    <div class="folder">
+      <div class="fico">📁</div>
+      <div class="fmid"><b>VPN</b><span>vpn-hk01.json</span></div>
+      <span class="cnt">1 项</span><span class="chev">›</span>
+    </div>
+    <div class="folder">
+      <div class="fico">📁</div>
+      <div class="fmid"><b>视频</b><span>某部剧.json、某部剧-第8集.sh</span></div>
+      <span class="cnt">2 项</span><span class="chev">›</span>
+    </div>
+
+    <div class="file">
+      <div class="ico i-cap">⇅</div>
+      <div class="mid"><b>temp-login.sh</b><span>抓包 · 未归类</span></div>
+      <span class="chev">›</span>
+    </div>
+    <div class="file">
+      <div class="ico i-dl">↓</div>
+      <div class="mid"><b>download.sh</b><span>下载 · 未归类</span></div>
+      <span class="chev">›</span>
+    </div>
+  </div>
+
+  <div class="hint">长按任意条目可移动 / 重命名 / 删除；也可以让 AI 帮你整理。</div>
+</div>
+
+<!-- 右：长按菜单 -->
+<div class="phone">
+  <div class="status"><span>23:58</span><span>5G ▮▮▮ 84%</span></div>
+  <div class="bar"><span class="ham">☰</span><h1>插件</h1><span class="sp"></span><span class="add">＋</span></div>
+  <div class="path">/sdcard/G/plugins</div>
+
+  <div class="list" style="opacity:.5">
+    <div class="folder">
+      <div class="fico">📁</div>
+      <div class="fmid"><b>抓包</b><span>login.sh</span></div>
+      <span class="cnt">1 项</span><span class="chev">›</span>
+    </div>
+    <div class="folder">
+      <div class="fico">📁</div>
+      <div class="fmid"><b>VPN</b><span>vpn-hk01.json</span></div>
+      <span class="cnt">1 项</span><span class="chev">›</span>
+    </div>
+    <div class="folder">
+      <div class="fico">📁</div>
+      <div class="fmid"><b>视频</b><span>某部剧.json…</span></div>
+      <span class="cnt">2 项</span><span class="chev">›</span>
+    </div>
+  </div>
+
+  <div class="mask"></div>
+
+  <div class="menu">
+    <div class="mtitle">login.sh</div>
+    <div class="m">运行</div>
+    <div class="m">编辑配置</div>
+    <div class="m">移动到…（抓包 / VPN / 视频 / 新建文件夹）</div>
+    <div class="m">重命名</div>
+    <div class="m d">删除</div>
+  </div>
+
+  <div class="addmenu">
+    <div class="am">新建插件</div>
+    <div class="am">新建文件夹</div>
+    <div class="am">从脚本导入</div>
+  </div>
+</div>
+
+</body>
+</html>

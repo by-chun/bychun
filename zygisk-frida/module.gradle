@@ -1,0 +1,17 @@
+ext {
+    // Magisk Module
+    magiskModuleId = "rowan"
+    moduleName = "Rowan"
+    moduleAuthor = "by.chun"
+    moduleDescription = ""
+    moduleVersion = "v5.2.0"
+    moduleVersionCode = 520
+
+    // Riru
+    moduleMinRiruApiVersion = 24
+    moduleMinRiruVersionName = "24.0.0"
+    moduleMaxRiruApiVersion = 26
+
+    // Frida
+    fridaVersion = "16.7.19"
+}

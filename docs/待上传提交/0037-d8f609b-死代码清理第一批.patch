@@ -1,0 +1,516 @@
+From d8f609bbb1abb1476c02f5c2c56665f429699ef1 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 19:47:12 +0800
+Subject: [PATCH] =?UTF-8?q?chore:=20=E6=B8=85=E7=90=86=E6=AD=BB=E4=BB=A3?=
+ =?UTF-8?q?=E7=A0=81=E7=AC=AC=E4=B8=80=E6=89=B9=EF=BC=88=E5=B7=A5=E5=85=B7?=
+ =?UTF-8?q?=E6=B3=A8=E5=86=8C/=E6=8A=80=E8=83=BD=E6=AE=8B=E7=95=99/?=
+ =?UTF-8?q?=E6=97=A0=E7=94=A8=E7=BB=84=E4=BB=B6/=E5=81=87=E5=8F=8D?=
+ =?UTF-8?q?=E9=A6=88=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 注册 setGitCredential、gitExec、assembleAsm、apkEntries、apkRead（与默认提示词一致），删除 readPdf 实现
+- 删技能全套：Skills 表、allSkills/upsertSkill/deleteSkill、_skills/_addSkill、/skills 命令与提示词段落
+- 删 agent/skills.dart、agent/subagents.dart、data/agent_repository.dart 三个无人引用文件
+- 删未使用的 IconBadge、ReadPdfTool
+- 修 memory/reverse 的「提示」假反馈，改为真实结果
+- 清理 shell/main/tools_web/chat_page 的无用 import
+- 注：app_db.g.dart 由 CI 的 build_runner 重新生成
+- 版本 6.10.0+700（仅本地）
+---
+ lib/agent/agent_engine.dart    | 11 +++---
+ lib/agent/skills.dart          | 71 ----------------------------------
+ lib/agent/subagents.dart       | 28 --------------
+ lib/agent/tools_web.dart       | 37 ------------------
+ lib/data/agent_repository.dart | 35 -----------------
+ lib/data/app_db.dart           | 21 +---------
+ lib/main.dart                  |  1 -
+ lib/pages/chat_page.dart       |  4 --
+ lib/pages/memory_page.dart     |  2 +-
+ lib/pages/reverse_page.dart    |  2 +-
+ lib/pages/settings_page.dart   | 30 +-------------
+ lib/shell.dart                 |  4 --
+ lib/theme/app_theme.dart       | 22 -----------
+ pubspec.yaml                   |  2 +-
+ 14 files changed, 10 insertions(+), 260 deletions(-)
+ delete mode 100644 lib/agent/skills.dart
+ delete mode 100644 lib/agent/subagents.dart
+ delete mode 100644 lib/data/agent_repository.dart
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index c88e6d3..d17bc37 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -264,7 +264,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+   /// 当前会话 id（null = 还没入库的新对话）。
+   int? get sessionId => _sid;
+ 
+-  String _skillsText = '';
+   String _subsText = '';
+   String _promptText = '';
+   String _personaText = '';
+@@ -320,6 +319,11 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     registry.register(RunJavaOverlayTool());
+     registry.register(WriteFileTool());
+     registry.register(ReadFileTool());
++    registry.register(SetGitCredentialTool());
++    registry.register(GitExecTool());
++    registry.register(AssembleTool());
++    registry.register(ApkEntriesTool());
++    registry.register(ApkReadTool());
+     _bootstrap();
+   }
+ 
+@@ -358,9 +362,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     final db = _globalDb;
+     if (db == null) return;
+     try {
+-      final sk = (await db.allSkills()).where((s) => s.enabled).toList();
+       final sa = (await db.allSubAgents()).where((a) => a.enabled).toList();
+-      _skillsText = sk.map((s) => '- ${s.name}: ${s.description}').join('\n');
+       _subsText = sa.map((a) => '- ${a.name}(${a.modelTier}): ${a.description}').join('\n');
+     } catch (_) {}
+     // 不再自动写入内置插件；需要时在插件页手动安装
+@@ -416,8 +418,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+       case '/tools':
+         _add(ChatMsg('assistant', '工具：\n${registry.describe()}'));
+         return;
+-      case '/skills':
+-        _add(ChatMsg('assistant', '技能：\n${_skillsText.isEmpty ? '（暂无）' : _skillsText}'));
+         return;
+       case '/subagents':
+         _add(ChatMsg('assistant', '子代理：\n${_subsText.isEmpty ? '（暂无）' : _subsText}'));
+@@ -526,7 +526,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+       {
+         'role': 'system',
+         'content': '你是 Android 逆向/Hook 工作台助手。\n可用工具：\n${registry.describe()}\n'
+-            '可用技能：\n${_skillsText.isEmpty ? '（无）' : _skillsText}\n'
+             '子代理：\n${_subsText.isEmpty ? '（无）' : _subsText}\n'
+             '记忆：\n${memory.summary()}\n'
+             '当前工作区：${workspace ?? '（未设置，可在文件页长按文件夹拖到对话框设置）'}\n'
+diff --git a/lib/agent/skills.dart b/lib/agent/skills.dart
+deleted file mode 100644
+index 063037e..0000000
+--- a/lib/agent/skills.dart
++++ /dev/null
+@@ -1,71 +0,0 @@
+-import 'dart:convert';
+-import 'dart:io';
+-import '../native/native_bridge.dart';
+-
+-class Skill {
+-  final String name;
+-  final String description;
+-  final String body;
+-  const Skill(this.name, this.description, this.body);
+-}
+-
+-/// 技能管理：从 filesDir/skills 下每个子目录的 SKILL.md 读取（frontmatter 可带 description）。
+-class SkillManager {
+-  final List<Skill> _skills = [];
+-
+-  List<Skill> get all => List.unmodifiable(_skills);
+-
+-  void add(Skill s) => _skills.add(s);
+-
+-  void remove(String name) => _skills.removeWhere((s) => s.name == name);
+-
+-  Future<void> load() async {
+-    _skills.clear();
+-    final dir = await NativeBridge.appDataDir();
+-    if (dir.isEmpty) return;
+-    final root = Directory('$dir/skills');
+-    if (!await root.exists()) return;
+-    for (final e in root.listSync()) {
+-      if (e is Directory) {
+-        final f = File('${e.path}/SKILL.md');
+-        if (await f.exists()) {
+-          final text = await f.readAsString();
+-          _skills.add(_parse(e.path.split('/').last, text));
+-        }
+-      }
+-    }
+-  }
+-
+-  Future<void> save(Skill s) async {
+-    final dir = await NativeBridge.appDataDir();
+-    if (dir.isEmpty) return;
+-    final f = File('$dir/skills/${s.name}/SKILL.md');
+-    await f.parent.create(recursive: true);
+-    final fm = '---\nname: ${s.name}\ndescription: ${s.description}\n---\n\n';
+-    await f.writeAsString('$fm${s.body}');
+-    await load();
+-  }
+-
+-  Skill _parse(String name, String text) {
+-    var desc = '';
+-    var body = text;
+-    if (text.startsWith('---')) {
+-      final end = text.indexOf('\n---', 3);
+-      if (end > 0) {
+-        final fm = text.substring(3, end);
+-        body = text.substring(end + 4).trim();
+-        for (final line in const LineSplitter().convert(fm)) {
+-          if (line.toLowerCase().startsWith('description:')) {
+-            desc = line.substring(12).trim();
+-          }
+-        }
+-      }
+-    }
+-    return Skill(name, desc, body);
+-  }
+-
+-  String catalog() {
+-    if (_skills.isEmpty) return '（暂无技能）';
+-    return _skills.map((s) => '- ${s.name}: ${s.description}').join('\n');
+-  }
+-}
+diff --git a/lib/agent/subagents.dart b/lib/agent/subagents.dart
+deleted file mode 100644
+index 735bc12..0000000
+--- a/lib/agent/subagents.dart
++++ /dev/null
+@@ -1,28 +0,0 @@
+-class SubAgent {
+-  final String name;
+-  final String description;
+-  final String modelTier; // light / standard / strong
+-  final List<String> allowedTools;
+-  const SubAgent({
+-    required this.name,
+-    required this.description,
+-    this.modelTier = 'standard',
+-    this.allowedTools = const [],
+-  });
+-}
+-
+-/// 子代理管理骨架。
+-class SubAgentManager {
+-  final List<SubAgent> _agents = [];
+-
+-  List<SubAgent> get all => List.unmodifiable(_agents);
+-
+-  void add(SubAgent a) => _agents.add(a);
+-
+-  void remove(String name) => _agents.removeWhere((a) => a.name == name);
+-
+-  String catalog() {
+-    if (_agents.isEmpty) return '（暂无子代理）';
+-    return _agents.map((a) => '- ${a.name} [${a.modelTier}]: ${a.description}').join('\n');
+-  }
+-}
+diff --git a/lib/agent/tools_web.dart b/lib/agent/tools_web.dart
+index d95a7bd..a7c544a 100644
+--- a/lib/agent/tools_web.dart
++++ b/lib/agent/tools_web.dart
+@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
+ import 'package:http/http.dart' as http;
+ 
+ import '../native/native_bridge.dart';
+-import '../pages/video_page.dart';
+ import 'tool.dart';
+ 
+ String _stripHtml(String html) {
+@@ -360,39 +359,3 @@ class CaptureClearTool extends AgentTool {
+   }
+ }
+ 
+-/// 读 PDF（容器里 pdftotext；AI 需自行 apk add poppler-utils）。
+-class ReadPdfTool extends AgentTool {
+-  @override
+-  String get name => 'readPdf';
+-
+-  @override
+-  String get description =>
+-      '读 PDF 文本：给本地路径（容器内）或 URL。依赖容器里的 pdftotext（apk add poppler-utils），没装会提示你装。';
+-
+-  @override
+-  Map<String, String> get parameters => {'path': '本地路径或 URL', 'pages': '可选：页范围，如 1-5'};
+-
+-  @override
+-  Future<ToolResult> execute(Map<String, String> args) async {
+-    var path = (args['path'] ?? '').trim();
+-    if (path.isEmpty) return const ToolResult(false, 'path 不能为空');
+-    if (path.startsWith('http')) {
+-      final dl = await NativeBridge.prootExec(
+-          'mkdir -p /tmp/pdf && curl -sL "${path.replaceAll('"', '')}" -o /tmp/pdf/in.pdf && echo OK');
+-      if (!'${dl.stdout}${dl.stderr}'.contains('OK')) {
+-        return const ToolResult(false, '下载失败（容器里可能有 curl 没装：apk add curl）');
+-      }
+-      path = '/tmp/pdf/in.pdf';
+-    }
+-    final pages = (args['pages'] ?? '').trim();
+-    final range = pages.isEmpty ? '' : ' -f ${pages.split('-').first} -l ${pages.split('-').last}';
+-    final r = await NativeBridge.prootExec(
+-        'command -v pdftotext >/dev/null 2>&1 || echo NEED_INSTALL; pdftotext$range "$path" - 2>&1');
+-    final out = '${r.stdout}${r.stderr}'.trim();
+-    if (out.contains('NEED_INSTALL')) {
+-      return const ToolResult(false, '容器里没有 pdftotext：先执行 apk add poppler-utils');
+-    }
+-    if (out.isEmpty) return const ToolResult(false, 'PDF 没有提取到文本（可能是扫描件，需要 OCR）');
+-    return ToolResult(r.ok, out.length > 30000 ? '${out.substring(0, 30000)}\n…（已截断）' : out);
+-  }
+-}
+diff --git a/lib/data/agent_repository.dart b/lib/data/agent_repository.dart
+deleted file mode 100644
+index ef921c8..0000000
+--- a/lib/data/agent_repository.dart
++++ /dev/null
+@@ -1,35 +0,0 @@
+-import 'package:drift/drift.dart';
+-import 'app_db.dart';
+-
+-/// Drift 数据仓库：会话 / 消息 / 技能 / 子代理。
+-class AgentRepository {
+-  final AppDb db;
+-  AgentRepository(this.db);
+-
+-  Future<int> newSession(String title) => db.createSession(title);
+-
+-  Stream<List<Session>> sessions() => db.watchSessions();
+-
+-  Future<void> saveMessage(int sessionId, String role, String content) =>
+-      db.addMessage(sessionId, role, content);
+-
+-  Future<List<Message>> messagesOf(int sessionId) => db.messagesOf(sessionId);
+-
+-  Future<List<Skill>> skills() => db.allSkills();
+-
+-  Future<void> saveSkill(String name, String description, String body) =>
+-      db.upsertSkill(SkillsCompanion.insert(
+-        name: name,
+-        description: Value(description),
+-        body: body,
+-      ));
+-
+-  Future<List<SubAgent>> subAgents() => db.allSubAgents();
+-
+-  Future<void> saveSubAgent(String name, String description, String tier) =>
+-      db.upsertSubAgent(SubAgentsCompanion.insert(
+-        name: name,
+-        description: Value(description),
+-        modelTier: Value(tier),
+-      ));
+-}
+diff --git a/lib/data/app_db.dart b/lib/data/app_db.dart
+index 3039254..bbd374f 100644
+--- a/lib/data/app_db.dart
++++ b/lib/data/app_db.dart
+@@ -18,16 +18,6 @@ class Messages extends Table {
+   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+ }
+ 
+-class Skills extends Table {
+-  TextColumn get name => text()();
+-  TextColumn get description => text().withDefault(const Constant(''))();
+-  TextColumn get body => text()();
+-  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+-
+-  @override
+-  Set<Column> get primaryKey => {name};
+-}
+-
+ class SubAgents extends Table {
+   TextColumn get name => text()();
+   TextColumn get description => text().withDefault(const Constant(''))();
+@@ -45,7 +35,7 @@ String tierLabel(String tier) => switch (tier) {
+       _ => '标准',
+     };
+ 
+-@DriftDatabase(tables: [Sessions, Messages, Skills, SubAgents])
++@DriftDatabase(tables: [Sessions, Messages, SubAgents])
+ class AppDb extends _$AppDb {
+   AppDb() : super(driftDatabase(name: 'g'));
+ 
+@@ -57,7 +47,6 @@ class AppDb extends _$AppDb {
+         onCreate: (m) => m.createAll(),
+         onUpgrade: (m, from, to) async {
+           if (from < 2) {
+-            await m.addColumn(skills, skills.enabled);
+             await m.addColumn(subAgents, subAgents.enabled);
+           }
+         },
+@@ -85,19 +74,11 @@ class AppDb extends _$AppDb {
+     return rows.isNotEmpty;
+   }
+ 
+-  Future<List<Skill>> allSkills() => select(skills).get();
+-
+-  Future<void> upsertSkill(SkillsCompanion s) =>
+-      into(skills).insertOnConflictUpdate(s);
+-
+   Future<List<SubAgent>> allSubAgents() => select(subAgents).get();
+ 
+   Future<void> upsertSubAgent(SubAgentsCompanion s) =>
+       into(subAgents).insertOnConflictUpdate(s);
+ 
+-  Future<void> deleteSkill(String name) =>
+-      (delete(skills)..where((t) => t.name.equals(name))).go();
+-
+   Future<void> deleteSession(int id) async {
+     await (delete(messages)..where((t) => t.sessionId.equals(id))).go();
+     await (delete(sessions)..where((t) => t.id.equals(id))).go();
+diff --git a/lib/main.dart b/lib/main.dart
+index 60b4bfa..a4d7439 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -7,7 +7,6 @@ import 'theme/app_theme.dart';
+ import 'state/theme_controller.dart';
+ import 'shell.dart';
+ import 'agent/music_handler.dart';
+-import 'pages/video_page.dart';
+ import 'agent/tools_overlay.dart';
+ import 'native/native_bridge.dart';
+ import 'state/active_session.dart';
+diff --git a/lib/pages/chat_page.dart b/lib/pages/chat_page.dart
+index f34ea8d..cf4e898 100644
+--- a/lib/pages/chat_page.dart
++++ b/lib/pages/chat_page.dart
+@@ -31,10 +31,6 @@ import 'overlay_page.dart';
+ import 'scripts_page.dart';
+ import 'sessions_page.dart';
+ import 'memories_page.dart';
+-import 'mcp_page.dart';
+-import 'git_page.dart';
+-import 'compact_page.dart';
+-import 'personas_page.dart';
+ 
+ class ChatPage extends ConsumerStatefulWidget {
+   final int? sessionId;
+diff --git a/lib/pages/memory_page.dart b/lib/pages/memory_page.dart
+index 50f8bc0..e6819be 100644
+--- a/lib/pages/memory_page.dart
++++ b/lib/pages/memory_page.dart
+@@ -14,7 +14,7 @@ class _MemoryPageState extends State<MemoryPage> {
+   Future<void> _open() async {
+     final ok = await NativeBridge.showOverlay();
+     if (!mounted) return;
+-    showToast(context, '提示', error: false);
++    showToast(context, ok ? '已打开内存悬浮窗' : '打开失败：先授予悬浮窗权限', error: !ok);
+   }
+ 
+   @override
+diff --git a/lib/pages/reverse_page.dart b/lib/pages/reverse_page.dart
+index 86583bd..c9c38ba 100644
+--- a/lib/pages/reverse_page.dart
++++ b/lib/pages/reverse_page.dart
+@@ -207,7 +207,7 @@ class _ApkFilesPageState extends State<_ApkFilesPage> {
+                 timeout: 120,
+               );
+               if (!context.mounted) return;
+-              showToast(context, '提示', error: false);
++              showToast(context, r.ok ? '已解包到 Download/g_unpack/$name' : '解包失败：${r.stderr}', error: !r.ok);
+             },
+           ),
+         ],
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index fdb24de..bef380d 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -603,7 +603,6 @@ class SkillsSubPage extends ConsumerStatefulWidget {
+ }
+ 
+ class _SkillsSubPageState extends ConsumerState<SkillsSubPage> {
+-  List<Skill> _skills = [];
+   List<SubAgent> _subs = [];
+ 
+   AppDb get _db => ref.read(appDbProvider);
+@@ -615,35 +614,8 @@ class _SkillsSubPageState extends ConsumerState<SkillsSubPage> {
+   }
+ 
+   Future<void> _load() async {
+-    final s = await _db.allSkills();
+     final a = await _db.allSubAgents();
+-    if (mounted) setState(() { _skills = s; _subs = a; });
+-  }
+-
+-  Future<void> _addSkill() async {
+-    final name = TextEditingController();
+-    final desc = TextEditingController();
+-    final body = TextEditingController();
+-    final ok = await showGlassDialog<bool>(
+-      context: context,
+-      title: '新建技能',
+-      confirmText: '保存',
+-      content: Column(mainAxisSize: MainAxisSize.min, children: [
+-        TextField(controller: name, decoration: const InputDecoration(labelText: '名称')),
+-        const SizedBox(height: 8),
+-        TextField(controller: desc, decoration: const InputDecoration(labelText: '描述')),
+-        const SizedBox(height: 8),
+-        TextField(controller: body, maxLines: 4, decoration: const InputDecoration(labelText: '内容')),
+-      ]),
+-    );
+-    if (ok == true && name.text.trim().isNotEmpty) {
+-      await _db.upsertSkill(SkillsCompanion.insert(
+-        name: name.text.trim(),
+-        description: Value(desc.text.trim()),
+-        body: body.text,
+-      ));
+-      await _load();
+-    }
++    if (mounted) setState(() => _subs = a);
+   }
+ 
+   Future<void> _addSub() async {
+diff --git a/lib/shell.dart b/lib/shell.dart
+index 40987b8..6f614ab 100644
+--- a/lib/shell.dart
++++ b/lib/shell.dart
+@@ -8,10 +8,6 @@ import 'agent/quick_store.dart';
+ import 'state/drawer_ctrl.dart';
+ import 'widgets/tree_drawer.dart';
+ import 'pages/chat_page.dart';
+-import 'pages/files_page.dart';
+-import 'pages/apps_page.dart';
+-import 'pages/plugins_page.dart';
+-import 'pages/settings_page.dart';
+ 
+ class Shell extends ConsumerStatefulWidget {
+   const Shell({super.key});
+diff --git a/lib/theme/app_theme.dart b/lib/theme/app_theme.dart
+index 72f9165..2e910c5 100644
+--- a/lib/theme/app_theme.dart
++++ b/lib/theme/app_theme.dart
+@@ -142,25 +142,3 @@ class _FadeSlideInState extends State<FadeSlideIn> {
+   }
+ }
+ 
+-/// 左侧带圆角浅蓝底的实心图标。
+-class IconBadge extends StatelessWidget {
+-  final IconData icon;
+-  final double size;
+-  final Color color;
+-  const IconBadge(this.icon, {super.key, this.size = 34, this.color = AppColors.brand});
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    return Container(
+-      width: size,
+-      height: size,
+-      decoration: BoxDecoration(
+-        gradient: LinearGradient(
+-          colors: [color.withValues(alpha: 0.16), const Color(0xFF38BDF8).withValues(alpha: 0.16)],
+-        ),
+-        borderRadius: BorderRadius.circular(size * 0.3),
+-      ),
+-      child: Icon(icon, size: size * 0.56, color: color),
+-    );
+-  }
+-}
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 05d94db..12e00d7 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.9.7+697
++version: 6.10.0+700
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  .bar .back { font-size: 20px; color: #2563eb; }
+  .bar h1 { font-size: 16px; font-weight: 800; color: #0f172a; }
+  .chat { flex: 1; padding: 4px 14px 0; overflow: hidden; }
+
+  .me { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .me .b { background: #2563eb; color: #fff; font-size: 13px; padding: 9px 13px;
+           border-radius: 15px 15px 4px 15px; max-width: 82%; }
+  .ai { display: flex; gap: 8px; margin-bottom: 12px; }
+  .av { width: 26px; height: 26px; border-radius: 50%; background: #eaf1fe; color: #2563eb;
+        font-size: 11px; font-weight: 700; display: flex; align-items: center;
+        justify-content: center; flex: none; }
+  .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .bubble { background: #f7f9fc; border-radius: 14px; padding: 10px 13px; font-size: 13px;
+            color: #334155; line-height: 1.55; max-width: 92%; }
+
+  .card { background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+          box-shadow: 0 10px 26px rgba(15,23,42,.07); overflow: hidden; max-width: 300px; }
+
+  /* 视频画面 */
+  .video { position: relative; width: 100%; aspect-ratio: 16/9;
+           background: linear-gradient(135deg,#1e293b,#0f172a 70%);
+           display: flex; align-items: center; justify-content: center; }
+  .video:after { content: ""; position: absolute; inset: 0;
+                 background: radial-gradient(circle at 28% 22%, rgba(37,99,235,.32), transparent 62%); }
+  .play { width: 52px; height: 52px; border-radius: 50%; background: rgba(37,99,235,.95);
+          display: flex; align-items: center; justify-content: center; z-index: 2;
+          box-shadow: 0 8px 22px rgba(37,99,235,.45); }
+  .play:after { content: ""; margin-left: 3px; border-left: 15px solid #fff;
+                border-top: 9px solid transparent; border-bottom: 9px solid transparent; }
+  .dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.55);
+         color: #fff; font-size: 9.5px; padding: 2px 6px; border-radius: 5px; z-index: 2; }
+  .src { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.5);
+         color: #e2e8f0; font-size: 8.5px; padding: 2px 6px; border-radius: 5px; z-index: 2; }
+
+  .meta { padding: 9px 11px 6px; }
+  .meta b { display: block; font-size: 12.5px; color: #0f172a; font-weight: 700;
+            line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden; }
+  .meta span { display: block; font-size: 9.5px; color: #94a3b8; margin-top: 3px; }
+
+  .track { height: 3px; background: #eef2f7; border-radius: 2px; margin: 4px 11px 0; }
+  .track i { display: block; height: 100%; width: 34%; background: #2563eb; border-radius: 2px; }
+  .times { display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8;
+           padding: 4px 11px 8px; }
+
+  .acts { display: flex; gap: 7px; padding: 0 10px 10px; }
+  .btn { flex: 1; height: 30px; border-radius: 9px; display: flex; align-items: center;
+         justify-content: center; font-size: 10.5px; font-weight: 600; }
+  .btn.p { background: #2563eb; color: #fff; }
+  .btn.s { background: #f1f4f8; color: #475569; }
+
+  .inputbar { padding: 10px 12px 16px; border-top: 1px solid #f1f4f8; display: flex; gap: 9px; }
+  .f { flex: 1; height: 38px; border-radius: 19px; background: #f4f7fb; color: #94a3b8;
+       font-size: 12.5px; display: flex; align-items: center; padding: 0 14px; }
+  .snd { width: 38px; height: 38px; border-radius: 50%; background: #2563eb; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="status"><span>22:58</span><span>5G ▮▮▮ 84%</span></div>
+    <div class="bar"><span class="back">‹</span><h1>AI 助手</h1></div>
+
+    <div class="chat">
+      <div class="me"><div class="b">帮我找个 4K 的航拍视频，直接放</div></div>
+
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="bubble">找到一个 4K 直链，点播放就在这儿放：</div>
+
+          <div class="card">
+            <div class="video">
+              <span class="src">YouTube · 2160p</span>
+              <div class="play"></div>
+              <span class="dur">12:38</span>
+            </div>
+
+            <div class="meta">
+              <b>Coastal Drone 4K — Cinematic Relaxation</b>
+              <span>mp4 · 3840×2160 · 48MB / 1.2GB</span>
+            </div>
+
+            <div class="track"><i></i></div>
+            <div class="times"><span>04:21</span><span>12:38</span></div>
+
+            <div class="acts">
+              <div class="btn s">下载</div>
+              <div class="btn s">存脚本</div>
+              <div class="btn p">播放</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="me"><div class="b">下载下来，存成脚本以后直接用</div></div>
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="bubble">已存 <b>/sdcard/G/scripts/yt-coastal.sh</b>，里面是 yt-dlp 命令，下次拖给我就重跑。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="f">发消息…</div>
+      <div class="snd"></div>
+    </div>
+  </div>
+</body>
+</html>

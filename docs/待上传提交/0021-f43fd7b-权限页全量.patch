@@ -1,0 +1,264 @@
+From f43fd7bd2ea7b489cb12f091fe094274502b8dc2 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 16:24:47 +0800
+Subject: [PATCH] =?UTF-8?q?feat(perm):=20=E6=9D=83=E9=99=90=E9=A1=B5?=
+ =?UTF-8?q?=E5=88=97=E5=87=BA=20APK=20=E5=85=A8=E9=83=A8=E6=89=80=E9=9C=80?=
+ =?UTF-8?q?=E6=9D=83=E9=99=90?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+原生：
+- permStatus 扩展：installPackages / battery / usageStats / mediaImages / mediaVideo / mediaAudio / shizuku
+- 新增 openSettings(kind)：unknownSources / battery / usage / overlay / appDetails / vpn
+- 新增 requestMedia()：按版本请求 READ_MEDIA_* 或 READ_EXTERNAL_STORAGE
+
+界面：权限页分三组
+- 常用：所有文件访问 / 通知 / 悬浮窗 / 安装应用
+- 应用与媒体：电池白名单 / 使用情况访问 / 图片 / 视频 / 音频
+- 系统能力：Root / Shizuku / VPN
+- 底部说明：网络/前台服务/开机自启/唤醒锁安装即授予
+- 版本 6.6.3+663（仅本地提交）
+---
+ .../main/kotlin/com/chun/by/MainActivity.kt   | 82 ++++++++++++++++++-
+ lib/native/native_bridge.dart                 | 23 ++++++
+ lib/pages/settings_page.dart                  | 52 ++++++++++--
+ pubspec.yaml                                  |  2 +-
+ 4 files changed, 150 insertions(+), 9 deletions(-)
+
+diff --git a/android/app/src/main/kotlin/com/chun/by/MainActivity.kt b/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
+index 0ad44ac..dff8797 100644
+--- a/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
++++ b/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
+@@ -428,14 +428,85 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
+                         startActivity(i)
+                         result.success(true)
+                     }
++                    "openSettings" -> {
++                        val kind = call.argument<String>("kind") ?: ""
++                        try {
++                            if (kind == "vpn") {
++                                val prep = android.net.VpnService.prepare(this)
++                                if (prep != null) startActivityForResult(prep, 1101)
++                                result.success(true)
++                            } else {
++                                val i = when (kind) {
++                                    "unknownSources" -> Intent(
++                                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
++                                        android.net.Uri.parse("package:$packageName"),
++                                    )
++                                    "battery" -> Intent(
++                                        android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
++                                        android.net.Uri.parse("package:$packageName"),
++                                    )
++                                    "usage" -> Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
++                                    "overlay" -> Intent(
++                                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
++                                        android.net.Uri.parse("package:$packageName"),
++                                    )
++                                    "appDetails" -> Intent(
++                                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
++                                        android.net.Uri.parse("package:$packageName"),
++                                    )
++                                    else -> null
++                                }
++                                if (i != null) {
++                                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
++                                    startActivity(i)
++                                }
++                                result.success(i != null)
++                            }
++                        } catch (e: Exception) {
++                            result.success(false)
++                        }
++                    }
++                    "requestMedia" -> {
++                        try {
++                            if (Build.VERSION.SDK_INT >= 33) {
++                                requestPermissions(
++                                    arrayOf(
++                                        "android.permission.READ_MEDIA_IMAGES",
++                                        "android.permission.READ_MEDIA_VIDEO",
++                                        "android.permission.READ_MEDIA_AUDIO",
++                                    ), 1102,
++                                )
++                            } else {
++                                requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 1102)
++                            }
++                            result.success(true)
++                        } catch (e: Exception) {
++                            result.success(false)
++                        }
++                    }
+                     "permStatus" -> executor.execute {
++                        fun granted(p: String) =
++                            checkSelfPermission(p) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                         val overlay = android.provider.Settings.canDrawOverlays(this)
+-                        val storage = checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
++                        val storage = granted(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                         val allFiles = Build.VERSION.SDK_INT < 30 || android.os.Environment.isExternalStorageManager()
+                         val notif = if (Build.VERSION.SDK_INT >= 33)
+-                            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
++                            granted(android.Manifest.permission.POST_NOTIFICATIONS)
+                         else true
++                        val installPkgs = packageManager.canRequestPackageInstalls()
++                        val battery = (getSystemService(android.os.PowerManager::class.java))?.isIgnoringBatteryOptimizations(packageName) ?: false
++                        val usageStats = try {
++                            val am = getSystemService(android.app.AppOpsManager::class.java)
++                            am.unsafeCheckOpNoThrow(android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), packageName) == android.app.AppOpsManager.MODE_ALLOWED
++                        } catch (e: Exception) { false }
++                        val mediaImages = if (Build.VERSION.SDK_INT >= 33)
++                            granted("android.permission.READ_MEDIA_IMAGES") else storage
++                        val mediaVideo = if (Build.VERSION.SDK_INT >= 33)
++                            granted("android.permission.READ_MEDIA_VIDEO") else storage
++                        val mediaAudio = if (Build.VERSION.SDK_INT >= 33)
++                            granted("android.permission.READ_MEDIA_AUDIO") else storage
+                         val root = ((runSu("id")["stdout"] as? String) ?: "").contains("uid=0")
++                        val shizuku = try { ShizukuBridge.available() } catch (e: Exception) { false }
+                         runOnUiThread {
+                             result.success(mapOf(
+                                 "overlay" to overlay,
+@@ -443,6 +514,13 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
+                                 "allFiles" to allFiles,
+                                 "notification" to notif,
+                                 "root" to root,
++                                "installPackages" to installPkgs,
++                                "battery" to battery,
++                                "usageStats" to usageStats,
++                                "mediaImages" to mediaImages,
++                                "mediaVideo" to mediaVideo,
++                                "mediaAudio" to mediaAudio,
++                                "shizuku" to shizuku,
+                             ))
+                         }
+                     }
+diff --git a/lib/native/native_bridge.dart b/lib/native/native_bridge.dart
+index 3a451d5..04b2cf8 100644
+--- a/lib/native/native_bridge.dart
++++ b/lib/native/native_bridge.dart
+@@ -479,10 +479,33 @@ class NativeBridge {
+         'allFiles': r?['allFiles'] == true,
+         'notification': r?['notification'] == true,
+         'root': r?['root'] == true,
++        'installPackages': r?['installPackages'] == true,
++        'battery': r?['battery'] == true,
++        'usageStats': r?['usageStats'] == true,
++        'mediaImages': r?['mediaImages'] == true,
++        'mediaVideo': r?['mediaVideo'] == true,
++        'mediaAudio': r?['mediaAudio'] == true,
++        'shizuku': r?['shizuku'] == true,
+       };
+     } catch (_) { return {}; }
+   }
+ 
++  /// 打开系统权限设置：unknownSources / battery / usage / overlay / appDetails / vpn
++  static Future<bool> openSettings(String kind) async {
++    try {
++      final r = await _ch.invokeMethod<bool>('openSettings', {'kind': kind});
++      return r == true;
++    } catch (_) { return false; }
++  }
++
++  /// 请求图片/视频/音频读取权限。
++  static Future<bool> requestMedia() async {
++    try {
++      final r = await _ch.invokeMethod<bool>('requestMedia');
++      return r == true;
++    } catch (_) { return false; }
++  }
++
+   /// 把内置的 Zygisk Frida 模块 zip 交给 Magisk 安装（需 root + 内置 assets/g-frida.zip）。
+   static Future<Map<String, dynamic>> installFridaModule({String manager = 'auto'}) async {
+     try {
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index d968202..637b89d 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -1153,7 +1153,7 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+       body: ListView(
+         padding: const EdgeInsets.all(16),
+         children: [
+-          const Text('系统权限', style: TextStyle(fontSize: 11, color: AppColors.muted)),
++          const Text('常用', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+           _permRow('所有文件访问', '读写 /sdcard、读 APK', _perm['allFiles'] == true, () async {
+             await NativeBridge.requestStorage();
+             await Future.delayed(const Duration(milliseconds: 600));
+@@ -1164,17 +1164,57 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+           }),
+-          _permRow('悬浮窗', '日志窗、小窗终端', _perm['overlay'] == true, NativeBridge.openOverlaySettings),
+-          _permRow('Shizuku', '免 root 的 shell 能力', false, () async {
+-            showToast(context, 'Shizuku 需安装 Shizuku App 并授权', error: true);
++          _permRow('悬浮窗', '日志窗、小窗终端', _perm['overlay'] == true, () async {
++            await NativeBridge.openSettings('overlay');
++            await Future.delayed(const Duration(milliseconds: 600));
++            _loadPerm();
++          }),
++          _permRow('安装应用', '装 APK 需要', _perm['installPackages'] == true, () async {
++            await NativeBridge.openSettings('unknownSources');
++          }),
++
++          const SizedBox(height: 10),
++          const Text('应用与媒体', style: TextStyle(fontSize: 11, color: AppColors.muted)),
++          _permRow('电池优化白名单', '后台不被杀', _perm['battery'] == true, () async {
++            await NativeBridge.openSettings('battery');
++          }),
++          _permRow('使用情况访问', '看前台应用、流量归属', _perm['usageStats'] == true, () async {
++            await NativeBridge.openSettings('usage');
++          }),
++          _permRow('图片读取', '选头像、看图', _perm['mediaImages'] == true, () async {
++            await NativeBridge.requestMedia();
++            await Future.delayed(const Duration(milliseconds: 600));
++            _loadPerm();
++          }),
++          _permRow('视频读取', '视频页、选文件', _perm['mediaVideo'] == true, () async {
++            await NativeBridge.requestMedia();
++            await Future.delayed(const Duration(milliseconds: 600));
++            _loadPerm();
++          }),
++          _permRow('音频读取', '音乐页、选文件', _perm['mediaAudio'] == true, () async {
++            await NativeBridge.requestMedia();
++            await Future.delayed(const Duration(milliseconds: 600));
++            _loadPerm();
+           }),
++
++          const SizedBox(height: 10),
++          const Text('系统能力', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+           _permRow('Root', '高危操作需要', _perm['root'] == true, () async {
+             await _loadPerm();
+             if (mounted) showToast(context, _perm['root'] == true ? 'Root 已授权' : '未获取到 root，请在超级用户里允许 G');
+           }),
+-          _permRow('VPN', '开抓时才请求', false, () async {
+-            showToast(context, '抓包时由 AI 发起 VPN 授权');
++          _permRow('Shizuku', '免 root 的 shell 能力', _perm['shizuku'] == true, () async {
++            await _loadPerm();
++            if (mounted) showToast(context, _perm['shizuku'] == true ? 'Shizuku 已连接' : '需安装 Shizuku App 并授权', error: _perm['shizuku'] != true);
++          }),
++          _permRow('VPN', '抓包时才会请求', false, () async {
++            await NativeBridge.openSettings('vpn');
+           }),
++          const Padding(
++            padding: EdgeInsets.only(top: 4),
++            child: Text('网络、前台服务、开机自启、唤醒锁安装时自动授予，不需要手动开。',
++                style: TextStyle(fontSize: 10.5, color: AppColors.muted, height: 1.6)),
++          ),
+           const SizedBox(height: 14),
+           Row(children: [
+             const Expanded(child: Text('AI 工具授权', style: TextStyle(fontSize: 11, color: AppColors.muted))),
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 8d2ef1c..079d6c4 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.6.2+662
++version: 6.6.3+663
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

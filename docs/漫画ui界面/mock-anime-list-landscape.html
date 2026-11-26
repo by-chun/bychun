@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:820px;height:380px;background:#0B1220;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#E2E8F0;display:flex;flex-direction:column}
+  .top{display:flex;align-items:center;gap:6px;padding:8px 12px 4px}
+  .x{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.08);color:#CBD5E1;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .t{flex:1;font-size:12px;font-weight:600}
+  .chip{font-size:10px;color:#94A3B8;background:rgba(255,255,255,.08);border-radius:7px;padding:4px 8px;margin-left:4px}
+  .chip.on{background:#2563EB;color:#fff}
+  .body{flex:1;display:flex;gap:12px;padding:2px 14px 10px;min-height:0}
+  .player{flex:1.4;background:linear-gradient(160deg,#1E293B,#0F172A);border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative}
+  .play{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .pbar{position:absolute;left:12px;right:12px;bottom:9px}
+  .track{height:3px;background:rgba(255,255,255,.16);border-radius:2px}
+  .track i{display:block;width:38%;height:3px;background:#2563EB;border-radius:2px}
+  .panel{flex:1;background:#fff;color:#0F172A;border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .hd{display:flex;align-items:center;padding:8px 12px 5px}
+  .hd .t{font-size:11.5px;font-weight:800;flex:1}
+  .hd .n{font:8.5px ui-monospace,monospace;color:#94A3B8}
+  .search{display:flex;align-items:center;gap:6px;margin:0 12px 5px;height:26px;background:#F7F9FC;border:1px solid #E8EEF6;border-radius:8px;padding:0 8px;font-size:9px;color:#9AA4B2}
+  .search .jump{margin-left:auto;color:#2563EB;font-weight:600}
+  .list{flex:1;overflow-y:auto}
+  .list::-webkit-scrollbar{width:5px}
+  .list::-webkit-scrollbar-thumb{background:#E2E8F0;border-radius:3px}
+  .ep{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid #F5F8FC}
+  .num{width:32px;height:20px;border-radius:6px;background:#F4F7FB;color:#64748B;font:8.5px ui-monospace,monospace;display:flex;align-items:center;justify-content:center;flex:none}
+  .main{flex:1;min-width:0}
+  .nm{font-size:10.5px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font:8px ui-monospace,monospace;color:#B6C0CD;margin-top:1px}
+  .ep.on{background:#F3F8FF}
+  .ep.on .num{background:#2563EB;color:#fff}
+  .ep.on .nm{color:#1D4ED8;font-weight:700}
+  .ep.on .sub{color:#2563EB}
+  .ft{display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid #F1F5F9}
+  .ft .l{flex:1;font-size:9px;color:#334155}
+  .sw{width:32px;height:19px;border-radius:11px;background:#2563EB;position:relative;flex:none}
+  .sw i{position:absolute;top:3px;left:16px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.2)}
+  .btn{height:26px;padding:0 10px;border-radius:8px;background:#2563EB;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="x">✕</div>
+    <div class="t">第 7 集 雨夜追踪</div>
+    <div class="chip">自动</div><div class="chip">竖</div><div class="chip on">横</div>
+  </div>
+  <div class="body">
+    <div class="player"><div class="play">▶</div><div class="pbar"><div class="track"><i></i></div></div></div>
+    <div class="panel">
+      <div class="hd"><div class="t">选集</div><div class="n">共 12 集</div></div>
+      <div class="search"><span>搜索集数 / 标题</span><span class="jump">跳集</span></div>
+      <div class="list">
+        <div class="ep"><div class="num">EP05</div><div class="main"><div class="nm">第 5 集 门后的影子</div><div class="sub">23:40 · 已看完</div></div></div>
+        <div class="ep"><div class="num">EP06</div><div class="main"><div class="nm">第 6 集 短信</div><div class="sub">22:10 · 已看完</div></div></div>
+        <div class="ep on"><div class="num">EP07</div><div class="main"><div class="nm">第 7 集 雨夜追踪</div><div class="sub">23:40 · 看到 08:12</div></div></div>
+        <div class="ep"><div class="num">EP08</div><div class="main"><div class="nm">第 8 集 倒计时</div><div class="sub">24:02 · 未看</div></div></div>
+        <div class="ep"><div class="num">EP09</div><div class="main"><div class="nm">第 9 集 那双鞋</div><div class="sub">23:18 · 未看</div></div></div>
+      </div>
+      <div class="ft"><div class="l">自动连播 · 下一集</div><div class="sw"><i></i></div><div class="btn">下一集</div></div>
+    </div>
+  </div>
+</body>
+</html>

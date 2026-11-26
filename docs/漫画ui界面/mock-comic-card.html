@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;padding:12px}
+  .card{background:#fff;border:1px solid #EEF2F7;border-radius:16px;box-shadow:0 8px 22px rgba(15,23,42,.06);overflow:hidden}
+  .hd{display:flex;align-items:center;gap:8px;padding:11px 12px 9px}
+  .hd .t{font-size:12.5px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .icon{width:24px;height:24px;border-radius:7px;background:#F4F7FB;color:#64748B;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .div{height:1px;background:#F5F8FC}
+  .stage{background:#111827;padding:10px;display:flex;align-items:center;justify-content:center}
+  .page{width:250px;height:330px;background:#fff;border-radius:4px;padding:7px;display:grid;grid-template-columns:1fr;grid-template-rows:1.1fr .9fr .8fr;gap:6px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .p{background:#F1F5F9;border:2px solid #0F172A;position:relative;overflow:hidden}
+  .p::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,#E2E8F0 0 2px,transparent 2px 6px);opacity:.5}
+  .p.dark{background:#CBD5E1}
+  .p .face{position:absolute;left:50%;top:50%;width:44px;height:44px;border-radius:50%;background:#94A3B8;transform:translate(-50%,-50%)}
+  .bubble{position:absolute;top:8px;left:8px;background:#fff;border:1.5px solid #0F172A;border-radius:10px;padding:3px 7px;font-size:8px;color:#334155;z-index:2}
+  .bubble:after{content:'';position:absolute;left:14px;bottom:-5px;width:8px;height:8px;background:#fff;border-right:1.5px solid #0F172A;border-bottom:1.5px solid #0F172A;transform:rotate(45deg)}
+  .pg{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#FBFCFE;border-top:1px solid #F5F8FC}
+  .btn{width:30px;height:28px;border-radius:8px;background:#fff;border:1px solid #E7EDF5;color:#475569;display:flex;align-items:center;justify-content:center;font-size:11px}
+  .btn.pri{background:#2563EB;border-color:#2563EB;color:#fff}
+  .info{flex:1;text-align:center;font:10px ui-monospace,monospace;color:#64748B}
+  .info b{color:#2563EB}
+  .tip{display:block;font:8.5px -apple-system;color:#B6C0CD;margin-top:2px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="hd">
+      <div class="t">漫画 · 第 12 话 雨夜追踪</div>
+      <div class="icon">⤢</div>
+    </div>
+    <div class="div"></div>
+    <div class="stage">
+      <div class="page">
+        <div class="p"><div class="bubble">别回头。</div><div class="face"></div></div>
+        <div class="p dark"><div class="face" style="background:#64748B"></div></div>
+        <div class="p"><div class="bubble">谁在那里？</div></div>
+      </div>
+    </div>
+    <div class="pg">
+      <div class="btn">‹</div>
+      <div class="info">第 <b>12</b> / 180 页<span class="tip">左右滑动翻页 · 双击放大</span></div>
+      <div class="btn">›</div>
+      <div class="btn">⤢</div>
+    </div>
+  </div>
+</body>
+</html>

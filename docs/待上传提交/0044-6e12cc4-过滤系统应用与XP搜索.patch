@@ -1,0 +1,119 @@
+From 6e12cc4dae36fca000a293c65c30809a2ff6f97d Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 20:15:12 +0800
+Subject: [PATCH] =?UTF-8?q?fix(apps):=20=E5=BA=94=E7=94=A8=E5=88=97?=
+ =?UTF-8?q?=E8=A1=A8=E8=BF=87=E6=BB=A4=E7=B3=BB=E7=BB=9F=E5=BA=94=E7=94=A8?=
+ =?UTF-8?q?=EF=BC=9BXP=20=E5=8B=BE=E9=80=89=E5=8A=A0=E6=90=9C=E7=B4=A2?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 抽屉应用树不再显示系统应用
+- 插件内联的 XP 目标列表加搜索框（应用名/包名），同样只列用户应用
+- 版本 6.10.7+707（仅本地）
+---
+ lib/pages/plugins_page.dart  | 28 ++++++++++++++++++++++++++--
+ lib/widgets/tree_drawer.dart |  5 +++--
+ pubspec.yaml                 |  2 +-
+ 3 files changed, 30 insertions(+), 5 deletions(-)
+
+diff --git a/lib/pages/plugins_page.dart b/lib/pages/plugins_page.dart
+index a3c23fe..9ba2b33 100644
+--- a/lib/pages/plugins_page.dart
++++ b/lib/pages/plugins_page.dart
+@@ -30,6 +30,7 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+   bool _xposed = false;
+   List<String> _xpTargets = const [];
+   bool _xpPicking = false;
++  String _xpQ = '';
+   final Set<String> _xpSel = {};
+   List<Map<String, dynamic>>? _apps;
+ 
+@@ -124,6 +125,7 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+       _apps = apps;
+       _xpPicking = true;
+       _editing = false;
++      _xpQ = '';
+       _xpSel
+         ..clear()
+         ..addAll(_xpTargets);
+@@ -206,7 +208,15 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+       );
+ 
+   Widget get _xpList {
+-    final apps = _apps ?? const <Map<String, dynamic>>[];
++    final all = _apps ?? const <Map<String, dynamic>>[];
++    final q = _xpQ.toLowerCase();
++    final apps = all.where((a) {
++      if (a['system'] == true) return false;
++      if (q.isEmpty) return true;
++      final l = (a['label'] ?? '').toString().toLowerCase();
++      final p = (a['package'] ?? '').toString().toLowerCase();
++      return l.contains(q) || p.contains(q);
++    }).toList();
+     return Container(
+       decoration: BoxDecoration(
+         color: const Color(0xFFF7F9FC),
+@@ -215,7 +225,7 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+       ),
+       child: Column(children: [
+         Padding(
+-          padding: const EdgeInsets.fromLTRB(10, 8, 8, 4),
++          padding: const EdgeInsets.fromLTRB(10, 8, 8, 2),
+           child: Row(children: [
+             const Text('勾选目标应用', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+             const Spacer(),
+@@ -225,6 +235,20 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
+             ),
+           ]),
+         ),
++        Padding(
++          padding: const EdgeInsets.symmetric(horizontal: 8),
++          child: TextField(
++            onChanged: (v) => setState(() => _xpQ = v),
++            style: const TextStyle(fontSize: 11.5),
++            decoration: const InputDecoration(
++              isDense: true,
++              prefixIcon: Icon(Icons.search_rounded, size: 16),
++              hintText: '搜索应用名 / 包名',
++              hintStyle: TextStyle(fontSize: 11.5),
++            ),
++          ),
++        ),
++        const SizedBox(height: 4),
+         Expanded(
+           child: ListView.builder(
+             itemCount: apps.length,
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index 03ccb1d..fce5237 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -477,9 +477,10 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+       ];
+     }
+     final q = _q.toLowerCase();
++    final userApps = apps.where((a) => a['system'] != true).toList();
+     final list = q.isEmpty
+-        ? apps
+-        : apps.where((a) {
++        ? userApps
++        : userApps.where((a) {
+             final l = (a['label'] ?? '').toString().toLowerCase();
+             final p = (a['package'] ?? '').toString().toLowerCase();
+             return l.contains(q) || p.contains(q);
+diff --git a/pubspec.yaml b/pubspec.yaml
+index a652149..1de16cf 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.10.6+706
++version: 6.10.7+707
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

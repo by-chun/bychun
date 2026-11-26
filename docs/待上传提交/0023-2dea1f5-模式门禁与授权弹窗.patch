@@ -1,0 +1,456 @@
+From 2dea1f5f780bbee9d75556bbbca1878b65e924dc Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:02:36 +0800
+Subject: [PATCH] =?UTF-8?q?feat:=20=E6=A8=A1=E5=BC=8F=E9=97=A8=E7=A6=81?=
+ =?UTF-8?q?=E7=94=9F=E6=95=88=20+=20=E6=8E=88=E6=9D=83=E5=BC=B9=E7=AA=97?=
+ =?UTF-8?q?=E6=94=B9=E7=89=88=20+=20=E5=88=87=E6=A8=A1=E5=9E=8B=E5=B8=A6?=
+ =?UTF-8?q?=E4=BD=99=E9=A2=9D?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+模式真正生效（permission.check 增加 mode 参数）：
+- 执行 build：所有工具先问
+- 规划 plan：只读工具直接放行，写操作直接拒（附提示让切模式）
+- 自动 auto：只在高危工具时问
+- chat_page 的模式按钮同步到 engine.mode
+
+授权弹窗改版（PermissionPanel）：
+- 普通：允许执行？+ 模式标签 + 命令深色代码块 + 拒绝/允许/始终允许
+- 高危：红色警示 + 每次确认标签 + 无法撤销提示 + 拒绝/允许一次（红）
+
+切模型弹窗：标题右侧显示当前供应商余额（BalanceFetcher，异步不阻塞）
+版本 6.7.3+673（仅本地，不推送）
+---
+ lib/agent/agent_engine.dart     |  11 +-
+ lib/agent/permission.dart       |  39 ++++++-
+ lib/pages/chat_page.dart        |  46 +++++++-
+ lib/pages/permission_panel.dart | 179 ++++++++++++++++++++++----------
+ pubspec.yaml                    |   2 +-
+ 5 files changed, 213 insertions(+), 64 deletions(-)
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index dc0372b..d3ef5b3 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -247,6 +247,9 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+   AppDb? _db;
+   int? _sid;
+ 
++  /// 执行模式：build（每次问）/ plan（只读）/ auto（只问高危）。
++  String mode = 'build';
++
+   /// 当前会话 id（null = 还没入库的新对话）。
+   int? get sessionId => _sid;
+ 
+@@ -631,9 +634,13 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+         if (tool == null) {
+           r = ToolResult(false, '未知工具 ${tc.name}');
+         } else {
+-          final decision = policy.check(tool.name, tc.args);
++          final decision = policy.check(tool.name, tc.args, mode: mode);
+           if (decision == 'deny') {
+-            r = ToolResult(false, '被权限规则拒绝：${tool.name}（可在 设置→工具授权 调整）');
++            r = ToolResult(
++                false,
++                mode == 'plan'
++                    ? '规划模式只读：${tool.name} 会改东西，已拦下。要动手请把模式切到「执行」或「自动」'
++                    : '被权限规则拒绝：${tool.name}（可在 设置 → 权限 里调整）');
+           } else if (decision == 'confirm') {
+             final pending = PendingPermission(tool.name, tc.args);
+             pendingPermission = pending;
+diff --git a/lib/agent/permission.dart b/lib/agent/permission.dart
+index 05adcaa..e013d59 100644
+--- a/lib/agent/permission.dart
++++ b/lib/agent/permission.dart
+@@ -39,18 +39,49 @@ class PermissionPolicy {
+ 
+   static bool isHighRisk(String tool) => highRisk.contains(tool) || tool.startsWith('root');
+ 
+-  /// 返回 allow / deny / confirm。未记录的默认 confirm（每次先问，但不进规则列表）。
+-  String check(String tool, Map<String, String> args) {
++  /// 只读工具：规划模式下只允许这些。
++  static const Set<String> readOnlyTools = {
++    'readFile',
++    'listFiles',
++    'listApps',
++    'listContainers',
++    'listPlugins',
++    'captureList',
++    'captureLog',
++    'mcpList',
++    'webSearch',
++    'fetchPage',
++    'readConfig',
++    'memoryRead',
++    'memScan',
++    'memHits',
++    'memBreakpointList',
++    'listSkills',
++    'listSubAgents',
++  };
++
++  /// 返回 allow / deny / confirm。
++  ///
++  /// mode:
++  /// - build（执行）：所有工具都先问
++  /// - plan（规划）：只读工具直接放行，写操作直接拒结
++  /// - auto（自动）：除高危外都不问
++  String check(String tool, Map<String, String> args, {String mode = 'build'}) {
+     final cmd = args['cmd'] ?? '';
+     if (_hit(deny, tool, cmd)) return 'deny';
+-    // 高危操作不管有没有「始终允许」记录，一律重新问
++    if (mode == 'plan') {
++      return readOnlyTools.contains(tool) ? 'allow' : 'deny';
++    }
++    // 高危操作不管什么模式、有没有「始终允许」记录，一律重新问
+     if (isHighRisk(tool)) return 'confirm';
++    if (mode == 'auto') return 'allow';
+     if (_hit(confirm, tool, cmd)) return 'confirm';
+     if (_hit(allow, tool, cmd)) return 'allow';
+     return 'confirm';
+   }
+ 
+-  bool allowTool(String tool, Map<String, String> args) => check(tool, args) == 'allow';
++  bool allowTool(String tool, Map<String, String> args, {String mode = 'build'}) =>
++      check(tool, args, mode: mode) == 'allow';
+ 
+   // ---------- 持久化 ----------
+   static Future<File?> _file() async {
+diff --git a/lib/pages/chat_page.dart b/lib/pages/chat_page.dart
+index c6e3931..faedb34 100644
+--- a/lib/pages/chat_page.dart
++++ b/lib/pages/chat_page.dart
+@@ -310,6 +310,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+   @override
+   Widget build(BuildContext context) {
+     final engine = ref.read(agentEngineProvider);
++    engine.mode = _mode.toLowerCase();
+     // 会话页选中时，主页直接切换到该会话（不再另开页面）。
+     ref.listen<int?>(activeSessionProvider, (prev, next) {
+       if (next != null && next != prev) {
+@@ -467,6 +468,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+                 return PermissionPanel(
+                   tool: p.tool,
+                   args: p.args,
++                  mode: engine.mode,
+                   onChoice: (c) => engine.resolvePermission(c),
+                 );
+               },
+@@ -833,18 +835,53 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+   Future<void> _pickModel() async {
+     final cfg = await ProviderStore.load();
+     final models = cfg?.models ?? const <String>[];
++    if (!mounted) return;
++
++    // 余额异步加载，不阻塞弹窗
++    final balText = ValueNotifier<String?>(null);
++    if (cfg != null) {
++      final (list, active) = await ProviderStore.loadAllWithActive();
++      ProviderConfig? match;
++      for (final p in list) {
++        if (p.baseUrl == cfg.baseUrl) match = p;
++      }
++      if (match == null && list.isNotEmpty) match = list.firstWhere((p) => p.name == active, orElse: () => list.first);
++      if (match != null) {
++        BalanceFetcher.fetch(match).then((v) => balText.value = v);
++      }
++    }
++
+     if (!mounted) return;
+     showModalBottomSheet(
+       context: context,
+       backgroundColor: Colors.white,
+       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+       builder: (ctx) => Padding(
+-        padding: const EdgeInsets.all(18),
++        padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+         child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: [
+-            const Text('切换模型', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
++            Row(children: [
++              const Text('切换模型', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
++              const Spacer(),
++              ValueListenableBuilder<String?>(
++                valueListenable: balText,
++                builder: (_, v, __) => Row(mainAxisSize: MainAxisSize.min, children: [
++                  Icon(Icons.account_balance_wallet_outlined,
++                      size: 13, color: v == null ? AppColors.muted : AppColors.brand),
++                  const SizedBox(width: 4),
++                  Text(
++                    v ?? '—',
++                    style: TextStyle(
++                      fontSize: 12,
++                      fontWeight: FontWeight.w700,
++                      color: v == null ? AppColors.muted : AppColors.brand,
++                    ),
++                  ),
++                ]),
++              ),
++            ]),
+             const SizedBox(height: 8),
+             if (models.isEmpty)
+               const Padding(
+@@ -1078,7 +1115,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+         ]),
+       ),
+     );
+-    if (m != null) setState(() => _mode = m);
++    if (m != null) {
++      setState(() => _mode = m);
++      ref.read(agentEngineProvider).mode = m.toLowerCase();
++    }
+   }
+ 
+   Widget _bubble(ChatMsg m) {
+diff --git a/lib/pages/permission_panel.dart b/lib/pages/permission_panel.dart
+index ac8d5a2..b5988be 100644
+--- a/lib/pages/permission_panel.dart
++++ b/lib/pages/permission_panel.dart
+@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
+ import '../theme/app_theme.dart';
+ import '../agent/permission.dart';
+ 
+-/// AI 请求使用工具时的内联授权卡片（对齐 AiCode 的 ToolPermissionPanel）。
++/// AI 请求使用工具时的内联授权卡片。
+ class PermissionPanel extends StatefulWidget {
+   final String tool;
+   final Map<String, String> args;
+   final void Function(String choice) onChoice; // once / always / deny
+-  final bool dimmed; // 列表滚动时淡化
++  final bool dimmed;
++  final String mode; // build / plan / auto
+   const PermissionPanel({
+     super.key,
+     required this.tool,
+     required this.args,
+     required this.onChoice,
+     this.dimmed = false,
++    this.mode = 'build',
+   });
+ 
+   @override
+@@ -23,20 +25,28 @@ class PermissionPanel extends StatefulWidget {
+ class _PermissionPanelState extends State<PermissionPanel> {
+   bool _expanded = true;
+ 
++  bool get _hr => PermissionPolicy.isHighRisk(widget.tool);
++
+   @override
+   Widget build(BuildContext context) {
+-    final detail = widget.args.entries.map((e) => '${e.key}: ${e.value}').join('\n');
++    final cmd = widget.args['cmd'] ?? '';
++    final rest = widget.args.entries
++        .where((e) => e.key != 'cmd')
++        .map((e) => '${e.key}: ${e.value}')
++        .join('\n');
++    final modeLabel = widget.mode == 'auto' ? '自动模式' : '执行模式';
++
+     return AnimatedOpacity(
+       opacity: widget.dimmed ? 0.4 : 1,
+       duration: const Duration(milliseconds: 200),
+       child: Container(
+         margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+-        padding: const EdgeInsets.all(12),
++        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+         decoration: BoxDecoration(
+           color: Colors.white,
+           borderRadius: BorderRadius.circular(16),
+-          border: Border.all(color: const Color(0xFFE6EAF0)),
+-          boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 16, offset: Offset(0, 6))],
++          border: Border.all(color: _hr ? const Color(0xFFFECACA) : const Color(0xFFE6EAF0)),
++          boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 18, offset: Offset(0, 6))],
+         ),
+         child: Column(
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+@@ -44,63 +54,124 @@ class _PermissionPanelState extends State<PermissionPanel> {
+             InkWell(
+               onTap: () => setState(() => _expanded = !_expanded),
+               borderRadius: BorderRadius.circular(10),
+-              child: Row(children: [
+-                Container(
+-                  width: 28,
+-                  height: 28,
+-                  decoration: BoxDecoration(
+-                    color: AppColors.brand.withValues(alpha: 0.12),
+-                    shape: BoxShape.circle,
++              child: Row(
++                children: [
++                  Icon(
++                    _hr ? Icons.warning_amber_rounded : Icons.shield_outlined,
++                    size: 17,
++                    color: _hr ? const Color(0xFFDC2626) : AppColors.brand,
+                   ),
+-                  child: const Icon(Icons.shield_outlined, size: 15, color: AppColors.brand),
+-                ),
+-                const SizedBox(width: 8),
+-                Expanded(
+-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+-                    const Text('AI 请求使用工具',
+-                        style: TextStyle(fontSize: 10.5, color: AppColors.muted)),
+-                    Text(widget.tool,
+-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
+-                  ]),
+-                ),
+-                Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+-                    size: 18, color: const Color(0xFFCBD5E1)),
+-              ]),
++                  const SizedBox(width: 8),
++                  Expanded(
++                    child: Text(
++                      _hr ? '高危操作' : '允许执行？',
++                      style: TextStyle(
++                        fontSize: 13.5,
++                        fontWeight: FontWeight.w800,
++                        color: _hr ? const Color(0xFFB91C1C) : AppColors.text,
++                      ),
++                    ),
++                  ),
++                  Container(
++                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
++                    decoration: BoxDecoration(
++                      color: _hr ? const Color(0xFFFEF2F2) : const Color(0xFFEAF1FE),
++                      borderRadius: BorderRadius.circular(6),
++                    ),
++                    child: Text(
++                      _hr ? '每次确认' : modeLabel,
++                      style: TextStyle(
++                        fontSize: 9,
++                        fontWeight: FontWeight.w600,
++                        color: _hr ? const Color(0xFFDC2626) : AppColors.brand,
++                      ),
++                    ),
++                  ),
++                  const SizedBox(width: 4),
++                  Icon(_expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
++                      size: 18, color: const Color(0xFFCBD5E1)),
++                ],
++              ),
+             ),
+-            if (_expanded && detail.isNotEmpty) ...[
++            if (_expanded) ...[
+               const SizedBox(height: 8),
+-              Container(
+-                padding: const EdgeInsets.all(8),
+-                decoration: BoxDecoration(
+-                  color: const Color(0xFFF7F9FC),
+-                  borderRadius: BorderRadius.circular(10),
++              Padding(
++                padding: const EdgeInsets.only(left: 25),
++                child: Text('工具  ${widget.tool}',
++                    style: const TextStyle(
++                        fontSize: 10.5, fontFamily: 'monospace', color: AppColors.muted)),
++              ),
++              if (cmd.isNotEmpty) ...[
++                const SizedBox(height: 8),
++                Container(
++                  padding: const EdgeInsets.all(10),
++                  decoration: BoxDecoration(
++                    color: const Color(0xFF0B1220),
++                    borderRadius: BorderRadius.circular(10),
++                  ),
++                  child: Text(
++                    cmd,
++                    maxLines: 8,
++                    overflow: TextOverflow.ellipsis,
++                    style: const TextStyle(
++                        fontFamily: 'monospace', fontSize: 10.5, color: Color(0xFF7DD3FC), height: 1.6),
++                  ),
+                 ),
+-                child: Text(detail,
++              ],
++              if (rest.isNotEmpty) ...[
++                const SizedBox(height: 8),
++                Container(
++                  padding: const EdgeInsets.all(9),
++                  decoration: BoxDecoration(
++                    color: const Color(0xFFF7F9FC),
++                    borderRadius: BorderRadius.circular(10),
++                  ),
++                  child: Text(
++                    rest,
+                     maxLines: 6,
+                     overflow: TextOverflow.ellipsis,
+-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 10.5, color: Color(0xFF475569), height: 1.5)),
+-              ),
+-            ],
+-            const SizedBox(height: 10),
+-            Row(children: [
+-              Expanded(
+-                child: _btn('拒绝', const Color(0xFFF1F4F8), AppColors.red, () => widget.onChoice('deny')),
+-              ),
+-              const SizedBox(width: 8),
+-              Expanded(
+-                child: _btn('允许一次', const Color(0xFFF1F4F8), const Color(0xFF475569), () => widget.onChoice('once')),
+-              ),
+-              if (!PermissionPolicy.isHighRisk(widget.tool)) ...[
++                    style: const TextStyle(
++                        fontFamily: 'monospace', fontSize: 10.5, color: Color(0xFF475569), height: 1.5),
++                  ),
++                ),
++              ],
++              if (_hr) ...[
++                const SizedBox(height: 8),
++                Container(
++                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
++                  decoration: BoxDecoration(
++                    color: const Color(0xFFFEF2F2),
++                    borderRadius: BorderRadius.circular(9),
++                  ),
++                  child: const Text(
++                    '这一步无法撤销，请确认命令内容后再允许。',
++                    style: TextStyle(fontSize: 10, color: Color(0xFFB91C1C), height: 1.5),
++                  ),
++                ),
++              ],
++              const SizedBox(height: 10),
++              Row(children: [
++                Expanded(
++                  child: _btn('拒绝', const Color(0xFFF1F4F8), const Color(0xFF475569),
++                      () => widget.onChoice('deny')),
++                ),
+                 const SizedBox(width: 8),
+                 Expanded(
+-                  child: _btn('始终允许', AppColors.brand, Colors.white, () => widget.onChoice('always')),
++                  child: _btn(
++                    _hr ? '允许一次' : '允许',
++                    _hr ? const Color(0xFFDC2626) : AppColors.brand,
++                    Colors.white,
++                    () => widget.onChoice('once'),
++                  ),
+                 ),
+-              ],
+-            ]),
+-            if (PermissionPolicy.isHighRisk(widget.tool)) ...[
+-              const SizedBox(height: 8),
+-              const Text('高危操作：每次都需确认，不提供「始终允许」',
+-                  style: TextStyle(fontSize: 10, color: AppColors.muted)),
++                if (!_hr) ...[
++                  const SizedBox(width: 8),
++                  Expanded(
++                    child: _btn('始终允许', const Color(0xFFEAF1FE), AppColors.brand,
++                        () => widget.onChoice('always')),
++                  ),
++                ],
++              ]),
+             ],
+           ],
+         ),
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 4a9407b..01fa781 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.7.2+672
++version: 6.7.3+673
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

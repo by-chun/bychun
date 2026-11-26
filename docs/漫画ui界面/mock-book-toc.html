@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#EDEFF3;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;display:flex;flex-direction:column;justify-content:flex-end}
+  .reader{position:absolute;inset:0 0 320px 0;padding:24px 22px;font-size:12px;line-height:1.9;color:#94A3B8;overflow:hidden}
+  .reader p{margin-bottom:10px;text-indent:2em}
+  .mask{position:absolute;inset:0;background:rgba(15,23,42,.28)}
+  .sheet{position:relative;height:520px;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(15,23,42,.18);display:flex;flex-direction:column}
+  .grab{width:38px;height:4px;border-radius:2px;background:#E2E8F0;margin:9px auto 4px}
+  .hd{display:flex;align-items:center;padding:6px 16px 10px}
+  .hd .t{font-size:14px;font-weight:800;flex:1}
+  .hd .n{font:10px ui-monospace,monospace;color:#94A3B8}
+  .list{flex:1;overflow-y:auto}
+  .list::-webkit-scrollbar{width:5px}
+  .list::-webkit-scrollbar-thumb{background:#E2E8F0;border-radius:3px}
+  .ch{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #F6F8FB}
+  .ch .i{width:22px;height:22px;border-radius:7px;background:#F4F7FB;color:#94A3B8;font:9px ui-monospace,monospace;display:flex;align-items:center;justify-content:center;flex:none}
+  .ch .nm{flex:1;font-size:12px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ch .sub{font:9px ui-monospace,monospace;color:#B6C0CD}
+  .ch.on{background:#F3F8FF}
+  .ch.on .i{background:#2563EB;color:#fff}
+  .ch.on .nm{color:#1D4ED8;font-weight:700}
+  .ch.on .sub{color:#2563EB}
+  .search{display:flex;align-items:center;gap:8px;margin:0 16px 10px;height:32px;background:#F7F9FC;border:1px solid #E8EEF6;border-radius:10px;padding:0 10px;font-size:10.5px;color:#9AA4B2}
+  .search .jump{margin-left:auto;color:#2563EB;font-weight:600}
+  .ft{display:flex;align-items:center;gap:10px;padding:10px 16px 18px;border-top:1px solid #F1F5F9}
+  .btn{flex:1;height:36px;border-radius:10px;background:#F4F7FB;color:#475569;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .btn.pri{background:#2563EB;color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+  <div class="reader">
+    <p>雨下得很大，巷子里的灯光被水汽揉成一团模糊的橙色。他站在屋檐下，听着雨水敲打铁皮的声音。</p>
+    <p>手机屏幕亮了一下，是一条没有署名的消息。只有一行字：别回头。</p>
+    <p>他先是愣住，随后本能地想转身，又硬生生停住。</p>
+    <p>身后除了雨声，什么都没有。</p>
+  </div>
+  <div class="mask"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="hd"><div class="t">目录</div><div class="n">共 128 章</div></div>
+    <div class="search"><span>搜索章节</span><span class="jump">跳章</span></div>
+    <div class="list">
+      <div class="ch"><div class="i">1</div><div class="nm">第 1 章 雨夜</div><div class="sub">已读</div></div>
+      <div class="ch"><div class="i">2</div><div class="nm">第 2 章 别回头</div><div class="sub">已读</div></div>
+      <div class="ch on"><div class="i">3</div><div class="nm">第 3 章 便利店的灯</div><div class="sub">读到 3/12 页</div></div>
+      <div class="ch"><div class="i">4</div><div class="nm">第 4 章 那双鞋</div><div class="sub">未读</div></div>
+      <div class="ch"><div class="i">5</div><div class="nm">第 5 章 影子慢了半拍</div><div class="sub">未读</div></div>
+      <div class="ch"><div class="i">6</div><div class="nm">第 6 章 门后</div><div class="sub">未读</div></div>
+      <div class="ch"><div class="i">7</div><div class="nm">第 7 章 短信</div><div class="sub">未读</div></div>
+      <div class="ch"><div class="i">8</div><div class="nm">第 8 章 倒计时</div><div class="sub">未读</div></div>
+    </div>
+    <div class="ft">
+      <div class="btn">上一章</div>
+      <div class="btn pri">下一章</div>
+    </div>
+  </div>
+</body>
+</html>

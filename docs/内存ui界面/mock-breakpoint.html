@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;padding:12px}
+  .card{background:#fff;border:1px solid #EEF2F7;border-radius:16px;box-shadow:0 8px 22px rgba(15,23,42,.06);margin-bottom:11px;overflow:hidden}
+  .hd{display:flex;align-items:center;padding:10px 12px 8px}
+  .hd .t{font-size:12.5px;font-weight:700;flex:1}
+  .hd .n{font:9.5px ui-monospace,monospace;color:#94A3B8}
+  .div{height:1px;background:#F5F8FC}
+  .body{padding:10px 12px 12px}
+  .lab{font-size:10px;color:#94A3B8;margin:2px 0 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+  .chip{display:flex;align-items:baseline;gap:4px;background:#F4F7FB;border:1px solid #EDF2F8;border-radius:9px;padding:5px 8px}
+  .chip b{font:700 11px ui-monospace,monospace;color:#475569}
+  .chip i{font-style:normal;font-size:8.5px;color:#94A3B8}
+  .chip.on{background:#2563EB;border-color:#2563EB}
+  .chip.on b,.chip.on i{color:#fff}
+  .field{height:34px;background:#F7F9FC;border:1px solid #E2E8F0;border-radius:10px;display:flex;align-items:center;padding:0 11px;font:11.5px ui-monospace,monospace;margin-bottom:9px}
+  .rowline{display:flex;align-items:center;gap:10px;margin-top:2px}
+  .rowline .l{font-size:11px;color:#334155;flex:1}
+  .sw{width:40px;height:23px;border-radius:13px;background:#2563EB;position:relative;flex:none}
+  .sw i{position:absolute;top:3px;left:20px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.2)}
+  .btn{margin-top:10px;height:36px;border-radius:11px;background:#2563EB;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+  .bp{padding:10px 12px;border-bottom:1px solid #F7FAFD;cursor:pointer}
+  .bp:last-child{border-bottom:none}
+  .bp.open{background:#FBFDFF}
+  .bpl1{display:flex;align-items:center;gap:8px}
+  .addr{font:600 11.5px ui-monospace,monospace}
+  .tag{font:700 8.5px ui-monospace,monospace;color:#2563EB;background:#EAF1FE;border-radius:5px;padding:2px 6px}
+  .tag.rw{color:#7C3AED;background:#F3E8FF}
+  .hits{font-size:9px;color:#94A3B8;margin-left:auto}
+  .chev{width:16px;height:16px;border-radius:50%;background:#F4F7FB;color:#94A3B8;font-size:9px;display:flex;align-items:center;justify-content:center}
+  .bp.open .chev{transform:rotate(90deg)}
+  .sub{font:9px ui-monospace,monospace;color:#94A3B8;margin-top:3px}
+
+  .detail{margin-top:8px;background:#F7F9FC;border:1px solid #EFF3F9;border-radius:10px;overflow:hidden}
+  .hit{padding:7px 9px;border-bottom:1px solid #EDF2F8}
+  .hit:last-of-type{border-bottom:none}
+  .hit .h1{display:flex;align-items:center;gap:6px}
+  .hit .th{font:9px ui-monospace,monospace;color:#64748B}
+  .hit .tm{font:8.5px ui-monospace,monospace;color:#B6C0CD;margin-left:auto}
+  .hit .chg{font:10px ui-monospace,monospace;color:#DC2626;margin-top:3px}
+  .hit .ins{font:9px ui-monospace,monospace;color:#94A3B8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acts{display:flex;gap:6px;padding:7px 9px;background:#FBFCFE;border-top:1px solid #EFF3F9}
+  .act{font-size:9.5px;color:#475569;background:#fff;border:1px solid #E7EDF5;border-radius:7px;padding:4px 8px}
+  .act.pri{color:#2563EB;border-color:#DCE8FD;background:#F5F9FF}
+  .act.bad{color:#DC2626;border-color:#FBE3E3;background:#FFF7F7}
+  .ft{font-size:9.5px;color:#94A3B8;padding:7px 12px;background:#FBFCFE;border-top:1px solid #F5F8FC}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="hd"><div class="t">添加断点</div><div class="n">pid 12345</div></div>
+    <div class="div"></div>
+    <div class="body">
+      <div class="lab">地址</div>
+      <div class="field">0x7B8A2C10</div>
+      <div class="lab">类型</div>
+      <div class="chips">
+        <div class="chip"><b>B</b><i>Byte</i></div>
+        <div class="chip"><b>W</b><i>Word</i></div>
+        <div class="chip on"><b>D</b><i>Dword</i></div>
+        <div class="chip"><b>Q</b><i>Qword</i></div>
+        <div class="chip"><b>F</b><i>Float</i></div>
+        <div class="chip"><b>E</b><i>Double</i></div>
+      </div>
+      <div class="lab">监听方式</div>
+      <div class="chips">
+        <div class="chip"><b>R</b><i>读</i></div>
+        <div class="chip on"><b>W</b><i>写</i></div>
+        <div class="chip"><b>RW</b><i>读写</i></div>
+      </div>
+      <div class="rowline">
+        <div class="l">命中时暂停进程</div>
+        <div class="sw"><i></i></div>
+      </div>
+      <div class="btn">添加断点</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><div class="t">断点</div><div class="n">3 个</div></div>
+    <div class="div"></div>
+
+    <div class="bp open">
+      <div class="bpl1">
+        <div class="addr">0x7B8A2C10</div>
+        <div class="tag">W</div>
+        <div class="hits">命中 12</div>
+        <div class="chev">›</div>
+      </div>
+      <div class="sub">libil2cpp.so + 0x2C10 · D</div>
+      <div class="detail">
+        <div class="hit">
+          <div class="h1"><div class="th">thread 4123</div><div class="tm">14:32:08</div></div>
+          <div class="chg">1234 → 5678</div>
+          <div class="ins">str w8, [x19, #0x30]</div>
+        </div>
+        <div class="hit">
+          <div class="h1"><div class="th">thread 4188</div><div class="tm">14:31:52</div></div>
+          <div class="chg">5678 → 9999</div>
+          <div class="ins">str w8, [x19, #0x30]</div>
+        </div>
+        <div class="acts">
+          <div class="act pri">继续运行</div>
+          <div class="act">停用</div>
+          <div class="act bad">删除</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bp">
+      <div class="bpl1">
+        <div class="addr">0x7B9C41A8</div>
+        <div class="tag">R</div>
+        <div class="hits">命中 3</div>
+        <div class="chev">›</div>
+      </div>
+      <div class="sub">[heap] + 0x1A8 · Q</div>
+    </div>
+
+    <div class="bp">
+      <div class="bpl1">
+        <div class="addr">0x7BC0F5D4</div>
+        <div class="tag rw">RW</div>
+        <div class="hits">命中 0</div>
+        <div class="chev">›</div>
+      </div>
+      <div class="sub">[stack] + 0x5D4 · F</div>
+    </div>
+
+    <div class="ft">点一行展开命中记录；停用/删除在展开区里</div>
+  </div>
+</body>
+</html>

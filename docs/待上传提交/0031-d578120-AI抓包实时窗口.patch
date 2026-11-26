@@ -1,0 +1,332 @@
+From d5781207f4705cbbf8866b9165844fda5cdf3f5c Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:42:20 +0800
+Subject: [PATCH] =?UTF-8?q?feat(capture):=20AI=20=E6=8A=93=E5=8C=85?=
+ =?UTF-8?q?=E6=97=B6=E5=9C=A8=E5=AF=B9=E8=AF=9D=E9=87=8C=E7=BB=99=E5=AE=9E?=
+ =?UTF-8?q?=E6=97=B6=E7=AA=97=E5=8F=A3?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 新增 CaptureCard：绿点「抓包中」+ 条数、时间/域名/IP 列表（1.5s 轮询 vpnLog）、停止/清空/展开列表
+- engine 增加 captureActive，capture_start 成功置真、capture_stop 置假；引擎提供 stopCapture
+- 展开列表走底部弹层显示全部记录
+- 版本 6.9.2+692（仅本地）
+---
+ lib/agent/agent_engine.dart   |  13 ++
+ lib/pages/chat_page.dart      |   8 +-
+ lib/widgets/capture_card.dart | 224 ++++++++++++++++++++++++++++++++++
+ pubspec.yaml                  |   2 +-
+ 4 files changed, 245 insertions(+), 2 deletions(-)
+ create mode 100644 lib/widgets/capture_card.dart
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index d3ef5b3..7586243 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -131,6 +131,15 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+   bool streaming = false;
+   String streamingText = '';
+ 
++  /// 抓包是否进行中：为 true 时对话里常驻抓包窗口。
++  bool captureActive = false;
++
++  Future<void> stopCapture() async {
++    await NativeBridge.vpnStop();
++    captureActive = false;
++    notifyListeners();
++  }
++
+   // 打字机：网络 chunk 先入队，再按节拍往外吐，避免整块蹦出
+   String _pendingText = '';
+   Timer? _typeTimer;
+@@ -667,6 +676,10 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+           }
+         }
+         _add(ChatMsg('tool', r.content, toolName: tc.name, ok: r.ok));
++        if (tc.name == 'capture_start' || tc.name == 'capture_stop') {
++          captureActive = tc.name == 'capture_start' && r.ok;
++          notifyListeners();
++        }
+         if (r.view != null) {
+           _add(ChatMsg(
+             'view',
+diff --git a/lib/pages/chat_page.dart b/lib/pages/chat_page.dart
+index 339137c..72b715b 100644
+--- a/lib/pages/chat_page.dart
++++ b/lib/pages/chat_page.dart
+@@ -21,6 +21,7 @@ import '../agent/quick_store.dart';
+ import '../native/native_bridge.dart';
+ import 'chat_message.dart';
+ import '../widgets/view_cards.dart';
++import '../widgets/capture_card.dart';
+ import '../widgets/app_icon.dart';
+ import 'permission_panel.dart';
+ import 'reverse_page.dart';
+@@ -140,7 +141,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+       UserItem u => UserBubble(text: u.msg.text),
+       AssistantItem a => AssistantBubble(text: a.msg.text, typing: a.typing, elapsedMs: a.msg.elapsedMs),
+       ToolGroupItem g => ToolGroupTile(tools: g.tools),
+-      ViewItem v => ViewCard(
++      ViewItem v => v.msg.view == 'capture'
++          ? CaptureCard(onStop: () => engine.stopCapture())
++          : ViewCard(
+           view: v.msg.view ?? '',
+           title: v.msg.viewTitle ?? v.msg.toolName ?? '',
+           data: v.msg.viewData ?? const {},
+@@ -410,6 +413,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+                       }
+                     });
+                   }
++                  if (engine.captureActive) {
++                    msgs.add(ChatMsg('view', '', view: 'capture', viewTitle: '抓包'));
++                  }
+                   if (engine.streaming) {
+                     msgs.add(ChatMsg('assistant',
+                         engine.streamingText.isEmpty ? '思考中…' : engine.streamingText));
+diff --git a/lib/widgets/capture_card.dart b/lib/widgets/capture_card.dart
+new file mode 100644
+index 0000000..1b2d424
+--- /dev/null
++++ b/lib/widgets/capture_card.dart
+@@ -0,0 +1,224 @@
++import 'dart:async';
++import 'package:flutter/material.dart';
++import '../native/native_bridge.dart';
++import '../theme/app_theme.dart';
++
++/// 抓包窗口：AI 开始抓包后在对话里常驻，实时显示 DNS 记录。
++class CaptureCard extends StatefulWidget {
++  final Future<void> Function() onStop;
++  const CaptureCard({super.key, required this.onStop});
++
++  @override
++  State<CaptureCard> createState() => _CaptureCardState();
++}
++
++class _CaptureCardState extends State<CaptureCard> {
++  Timer? _timer;
++  List<CaptureHit> _hits = [];
++
++  @override
++  void initState() {
++    super.initState();
++    _load();
++    _timer = Timer.periodic(const Duration(milliseconds: 1500), (_) => _load());
++  }
++
++  @override
++  void dispose() {
++    _timer?.cancel();
++    super.dispose();
++  }
++
++  Future<void> _load() async {
++    final text = await NativeBridge.vpnLog();
++    if (!mounted) return;
++    final hits = text
++        .split('\n')
++        .where((l) => l.trim().isNotEmpty)
++        .map(CaptureHit.parse)
++        .whereType<CaptureHit>()
++        .toList()
++        .reversed
++        .toList();
++    setState(() => _hits = hits);
++  }
++
++  Future<void> _clear() async {
++    await NativeBridge.vpnClear();
++    await _load();
++  }
++
++  void _expand() {
++    showModalBottomSheet<void>(
++      context: context,
++      backgroundColor: Colors.white,
++      isScrollControlled: true,
++      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
++      builder: (ctx) => SizedBox(
++        height: MediaQuery.of(ctx).size.height * 0.7,
++        child: Column(
++          children: [
++            Padding(
++              padding: const EdgeInsets.fromLTRB(18, 16, 12, 6),
++              child: Row(children: [
++                const Text('抓包记录', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
++                const SizedBox(width: 8),
++                Text('${_hits.length}',
++                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
++                const Spacer(),
++                TextButton(onPressed: _clear, child: const Text('清空', style: TextStyle(fontSize: 12))),
++              ]),
++            ),
++            Expanded(
++              child: _hits.isEmpty
++                  ? const Center(
++                      child: Text('还没有抓到记录', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
++                    )
++                  : ListView.separated(
++                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
++                      itemCount: _hits.length,
++                      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
++                      itemBuilder: (_, i) => _row(_hits[i], fontSize: 11.5),
++                    ),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  Widget _row(CaptureHit h, {double fontSize = 10.5}) {
++    return Padding(
++      padding: const EdgeInsets.symmetric(vertical: 6),
++      child: Row(children: [
++        SizedBox(
++          width: 58,
++          child: Text(h.time,
++              style: const TextStyle(fontSize: 9.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
++        ),
++        Expanded(
++          child: Text(h.host,
++              maxLines: 1,
++              overflow: TextOverflow.ellipsis,
++              style: TextStyle(fontSize: fontSize, fontFamily: 'monospace', color: const Color(0xFF334155))),
++        ),
++        if (h.ips.isNotEmpty) ...[
++          const SizedBox(width: 8),
++          Text(h.ips,
++              maxLines: 1,
++              overflow: TextOverflow.ellipsis,
++              style: const TextStyle(fontSize: 9.5, color: Color(0xFF16A34A), fontFamily: 'monospace')),
++        ],
++      ]),
++    );
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final shown = _hits.take(6).toList();
++    return Container(
++      margin: const EdgeInsets.symmetric(vertical: 6),
++      decoration: BoxDecoration(
++        color: Colors.white,
++        borderRadius: BorderRadius.circular(16),
++        border: Border.all(color: const Color(0xFFE6EAF0)),
++        boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 16, offset: Offset(0, 6))],
++      ),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          Padding(
++            padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
++            child: Row(children: [
++              Container(
++                width: 7,
++                height: 7,
++                decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
++              ),
++              const SizedBox(width: 8),
++              const Text('抓包中', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
++              const SizedBox(width: 8),
++              Text('${_hits.length}',
++                  style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
++              const Spacer(),
++              IconButton(
++                onPressed: widget.onStop,
++                visualDensity: VisualDensity.compact,
++                icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFCBD5E1)),
++              ),
++            ]),
++          ),
++          ConstrainedBox(
++            constraints: const BoxConstraints(minHeight: 96, maxHeight: 210),
++            child: shown.isEmpty
++                ? const Center(
++                    child: Text('等待流量…', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
++                  )
++                : ListView(
++                    padding: const EdgeInsets.symmetric(horizontal: 14),
++                    shrinkWrap: true,
++                    children: [for (final h in shown) _row(h)],
++                  ),
++          ),
++          Padding(
++            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
++            child: Row(children: [
++              Expanded(
++                child: _btn('停止', const Color(0xFFFEF2F2), const Color(0xFFDC2626), widget.onStop),
++              ),
++              const SizedBox(width: 8),
++              Expanded(
++                child: _btn('清空', const Color(0xFFF1F4F8), const Color(0xFF475569), _clear),
++              ),
++              const SizedBox(width: 8),
++              Expanded(
++                child: _btn('展开列表', AppColors.brand, Colors.white, () async => _expand()),
++              ),
++            ]),
++          ),
++        ],
++      ),
++    );
++  }
++
++  Widget _btn(String label, Color bg, Color fg, Future<void> Function() onTap) {
++    return InkWell(
++      onTap: () => onTap(),
++      borderRadius: BorderRadius.circular(10),
++      child: Container(
++        height: 34,
++        alignment: Alignment.center,
++        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
++        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
++      ),
++    );
++  }
++}
++
++class CaptureHit {
++  final String time;
++  final String host;
++  final String ips;
++
++  CaptureHit(this.time, this.host, this.ips);
++
++  /// vpnLog 行格式：<毫秒时间戳> <域名> -> <ip,ip>
++  static CaptureHit? parse(String line) {
++    final idx = line.indexOf(' ');
++    if (idx <= 0) return null;
++    final ts = int.tryParse(line.substring(0, idx));
++    final rest = line.substring(idx + 1);
++    final arrow = rest.indexOf(' -> ');
++    if (arrow <= 0) return null;
++    final host = rest.substring(0, arrow).trim();
++    final ipText = rest.substring(arrow + 4).trim();
++    return CaptureHit(_fmt(ts), host, ipText == '?' ? '' : ipText);
++  }
++
++  static String _fmt(int? ms) {
++    if (ms == null) return '';
++    final d = DateTime.fromMillisecondsSinceEpoch(ms);
++    String two(int v) => v.toString().padLeft(2, '0');
++    return '${two(d.hour)}:${two(d.minute)}:${two(d.second)}';
++  }
++}
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 3d1e2a8..ec832ed 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.9.1+691
++version: 6.9.2+692
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

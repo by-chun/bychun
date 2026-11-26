@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#0B1220;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#E2E8F0;display:flex;flex-direction:column}
+  .player{height:300px;background:linear-gradient(160deg,#1E293B,#0F172A);position:relative;display:flex;align-items:center;justify-content:center}
+  .play{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .pbar{position:absolute;left:14px;right:14px;bottom:12px}
+  .track{height:3px;background:rgba(255,255,255,.16);border-radius:2px}
+  .track i{display:block;width:38%;height:3px;background:#2563EB;border-radius:2px}
+  .time{display:flex;justify-content:space-between;font:9px ui-monospace,monospace;color:#94A3B8;margin-top:5px}
+  .info{padding:12px 16px 6px}
+  .info .t{font-size:14px;font-weight:700}
+  .info .s{font:10px ui-monospace,monospace;color:#94A3B8;margin-top:4px}
+  .sheet{flex:1;background:#fff;color:#0F172A;border-radius:20px 20px 0 0;margin-top:8px;display:flex;flex-direction:column;overflow:hidden}
+  .hd{display:flex;align-items:center;padding:12px 16px 8px}
+  .hd .t{font-size:13px;font-weight:800;flex:1}
+  .hd .n{font:9.5px ui-monospace,monospace;color:#94A3B8}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:4px 16px 10px}
+  .ep{height:34px;border-radius:9px;background:#F4F7FB;color:#475569;font:11px ui-monospace,monospace;display:flex;align-items:center;justify-content:center}
+  .ep.on{background:#2563EB;color:#fff;font-weight:700}
+  .row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid #F1F5F9}
+  .row .l{flex:1;font-size:12px;color:#334155}
+  .row .l span{display:block;font-size:9px;color:#94A3B8;margin-top:2px}
+  .sw{width:40px;height:23px;border-radius:13px;background:#2563EB;position:relative}
+  .sw i{position:absolute;top:3px;left:20px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.2)}
+  .btn{margin:10px 16px 16px;height:38px;border-radius:11px;background:#2563EB;color:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+  <div class="player">
+    <div class="play">▶</div>
+    <div class="pbar">
+      <div class="track"><i></i></div>
+      <div class="time"><span>08:12</span><span>23:40</span></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="t">第 7 集 · 雨夜追踪</div>
+    <div class="s">某番剧 · 全 12 集 · 自动连播开</div>
+  </div>
+  <div class="sheet">
+    <div class="hd"><div class="t">选集</div><div class="n">12 集</div></div>
+    <div class="grid">
+      <div class="ep">1</div><div class="ep">2</div><div class="ep">3</div><div class="ep">4</div><div class="ep">5</div>
+      <div class="ep">6</div><div class="ep on">7</div><div class="ep">8</div><div class="ep">9</div><div class="ep">10</div>
+      <div class="ep">11</div><div class="ep">12</div>
+    </div>
+    <div class="row">
+      <div class="l">自动连播<span>播完自动下一集</span></div>
+      <div class="sw"><i></i></div>
+    </div>
+    <div class="btn">下一集 · 第 8 集</div>
+  </div>
+</body>
+</html>

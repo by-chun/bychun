@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="color-scheme" content="only light" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rowan · 对话与工具</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{color-scheme:light;
+    --brand:#2563EB;--brand-soft:#EAF1FE;--bg:#F2F4F8;--card:#FFFFFF;--text:#0F172A;
+    --muted:#64748B;--border:#E6EAF0;--check:#10B981;--red:#DC2626;
+    --user-bubble:#E8EFFD;--user-text:#1E3A8A;--sub:#FAFBFD;--sub-border:#F0F4FA;
+    --term:#0B1220;--term-text:#CBD5E1;
+  }
+  body{background:#0e1320;display:flex;justify-content:center;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  .phone{width:390px;height:844px;background:linear-gradient(160deg,#dbe6ff 0%,#e0d7ff 45%,#ffd9ec 100%);position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .status{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:11px;color:var(--text);font-weight:600;flex:none}
+  .bar{height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;flex:none;background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.44));backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+  .burger{width:34px;height:34px;border-radius:12px;background:var(--card);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer}
+  .burger i{width:14px;height:1.6px;background:var(--text);border-radius:1px}
+  .title{font-size:16px;font-weight:700;flex:1;color:var(--text)}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:6px 11px;font-size:10.5px;font-weight:600;color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#cbd5e1}
+  .dot.run{background:var(--check);box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+  /* 待办 */
+  .todobar{background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.44));border:1px solid rgba(255,255,255,.75);border-radius:16px;margin:0 14px 10px;box-shadow:0 8px 26px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.65);overflow:hidden;backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+  .todohd{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text)}
+  .todohd svg{width:15px;height:15px;stroke:var(--brand);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .todohd .cnt{font-size:10px;font-weight:700;color:#fff;background:var(--brand);border-radius:9px;padding:1px 7px}
+  .todohd .sp{flex:1}
+  .todohd .chev{color:var(--muted);font-size:9px;transition:transform .2s}
+  .todobar.fold .todobody{display:none}
+  .todobar.fold .chev{transform:rotate(-90deg)}
+  .todobody{padding:2px 13px 6px}
+  .todobody .empty{font-size:11px;color:var(--muted);padding:4px 0 8px}
+  .torow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f3f6fb;cursor:pointer}
+  .torow:first-child{border-top:none}
+  .cb{width:19px;height:19px;border-radius:6px;border:1.6px solid #cbd5e1;display:flex;align-items:center;justify-content:center;flex:none;transition:all .15s}
+  .cb svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+  .torow.done .cb{background:var(--brand);border-color:var(--brand)}
+  .torow.done .cb svg{opacity:1}
+  .torow .txt{font-size:12px;color:var(--text);flex:1}
+  .torow.done .txt{color:var(--muted);text-decoration:line-through}
+  .tag{font-size:9px;font-weight:700;color:var(--muted);background:#f1f5fb;border-radius:6px;padding:2px 6px;flex:none}
+  .tag.doing{color:#b45309;background:#fef3e2}
+  .tag.done{color:#0f9d6e;background:#e9fbf3}
+  /* 会话 */
+  .chat{flex:1;overflow-y:auto;padding:6px 16px 12px;scroll-behavior:smooth}
+  .day{text-align:center;font-size:10px;color:var(--muted);margin:4px 0 12px}
+  .msg{display:flex;margin-bottom:12px;animation:in .25s ease;align-items:flex-start}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .msg.user{justify-content:flex-end}
+  .bwrap{max-width:78%;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+  .msg.user .bwrap{align-items:flex-end}
+  .bmeta{font-size:9.5px;color:var(--muted);margin-bottom:3px}
+  .bubble{padding:11px 14px;font-size:13px;line-height:1.62;word-break:break-word}
+  .msg.ai .bubble{background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.44));color:var(--text);border-radius:14px;border:1px solid rgba(255,255,255,.75);box-shadow:0 8px 26px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.65);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+  .msg.user .bubble{background:var(--user-bubble);color:var(--user-text);border-radius:14px}
+  .cursor{display:inline-block;width:2px;height:14px;background:var(--brand);vertical-align:-2px;margin-left:1px;animation:blink .8s infinite}
+  @keyframes blink{50%{opacity:0}}
+  .queued{margin:0 0 12px;display:flex;align-items:center;gap:8px;background:#f1f5fb;border:1px dashed #c7d6ee;border-radius:12px;padding:9px 12px;max-width:78%;font-size:12px;color:var(--muted)}
+  .queued .qtag{font-size:9.5px;color:var(--brand);font-weight:700;flex:none}
+  .queued .qbody{flex:1;word-break:break-all}
+  /* 工具调用分组卡 */
+  .toolgroup{background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.44));border:1px solid rgba(255,255,255,.75);border-radius:16px;margin:0 0 12px 12px;overflow:hidden;box-shadow:0 8px 26px rgba(15,23,42,.14),inset 0 1px 0 rgba(255,255,255,.65);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+  .tghead{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer}
+  .tghead .ic{width:22px;height:22px;border-radius:50%;background:rgba(16,185,129,.12);display:flex;align-items:center;justify-content:center;flex:none}
+  .tghead .ic svg{width:12px;height:12px;stroke:var(--check);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .tghead .n{font-size:12px;font-weight:600;color:var(--text)}
+  .tghead .stat{flex:1;font-size:9.5px;color:#b6c2d3;font-family:ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tghead .chev{color:#cbd5e1;font-size:9px;transition:transform .2s;flex:none}
+  .toolgroup.fold .tgbody{display:none}
+  .toolgroup.fold .chev{transform:rotate(-90deg)}
+  .tgbody{padding:2px 6px 6px}
+  .trow{background:var(--sub);border:1px solid var(--sub-border);border-radius:11px;margin-bottom:4px;overflow:hidden}
+  .trhead{display:flex;align-items:center;gap:6px;padding:8px 9px;cursor:pointer}
+  .trhead .ic{width:12px;height:12px;flex:none}
+  .trhead .ic svg{width:12px;height:12px;stroke:var(--check);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .trhead .ic.spin{width:12px;height:12px;border:2px solid #dce9ff;border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite}
+  .trhead .ic.spin svg{display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .trhead .tname{font-size:10.5px;font-weight:700;color:#334155}
+  .trhead .cmd{flex:1;font-size:10px;color:var(--muted);font-family:ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trhead .ln{font-size:9px;color:#94a3b8;background:#f1f5f9;border-radius:6px;padding:1px 5px;font-family:ui-monospace,monospace;flex:none}
+  .trhead .chev{color:#cbd5e1;font-size:8px;transition:transform .18s;flex:none}
+  .trow.fold .trbody{display:none}
+  .trow.fold .chev{transform:rotate(-90deg)}
+  .trbody{margin:0 6px 6px;border-radius:9px;overflow:hidden}
+  .term-head{display:flex;align-items:center;gap:7px;padding:7px 10px;background:#1e293b}
+  .term-head .dots{display:flex;gap:4px}
+  .term-head .d{width:8px;height:8px;border-radius:50%}
+  .term-head .d.r{background:#ff5f57}.term-head .d.y{background:#febc2e}.term-head .d.g{background:#28c840}
+  .term-head .tt{flex:1;text-align:center;font-size:9px;color:#94a3b8}
+  .term-body{padding:9px 10px;font:9.5px/1.6 ui-monospace,Menlo,monospace;color:#cbd5e1;background:#0f172a;max-height:150px;overflow:auto}
+  .term-body .k{color:#7dd3fc}
+  /* 输入区 */
+  .inputbar{background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.44));border-top:1px solid rgba(255,255,255,.75);padding:8px 12px;flex:none;backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+  .queuetip{font-size:10px;color:#b45309;text-align:center;margin-bottom:6px;display:none}
+  .inputrow{display:flex;align-items:center;gap:8px}
+  .field{flex:1;height:42px;border:1px solid var(--border);border-radius:21px;background:var(--card);display:flex;align-items:center;padding:0 15px}
+  .field input{border:none;background:transparent;outline:none;font-size:13px;color:var(--text);width:100%;font-family:inherit}
+  .field input::placeholder{color:var(--muted)}
+  .send{width:42px;height:42px;border-radius:999px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.35)}
+  .send svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .send.stop{background:#ef4444;box-shadow:0 4px 12px rgba(239,68,68,.35)}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"><span>9:41</span><span>▮▮▮ 📶 🔋</span></div>
+  <div class="bar">
+    <div class="burger"><i></i><i></i><i></i></div>
+    <div class="title">对话</div>
+    <div class="pill"><span class="dot" id="statusDot"></span><span id="statusTxt">就绪</span></div>
+  </div>
+
+  <div class="todobar" id="todobar">
+    <div class="todohd" onclick="document.getElementById('todobar').classList.toggle('fold')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 10h8M8 14h5"/></svg>
+      待办<span class="cnt" id="todoCount">0</span><span class="sp"></span><span class="chev">▼</span>
+    </div>
+    <div class="todobody" id="todobody"><div class="empty">暂无待办</div></div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="day">今天 09:41</div>
+  </div>
+
+  <div class="inputbar">
+    <div class="queuetip" id="queuetip">还有 <b id="qn">0</b> 条已排队，AI 结束后自动发送</div>
+    <div class="inputrow">
+      <div class="field"><input id="inp" placeholder="输入消息…" /></div>
+      <div class="send" id="sendBtn" onclick="onSend()"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const chat=document.getElementById('chat'),inp=document.getElementById('inp'),sendBtn=document.getElementById('sendBtn'),todobody=document.getElementById('todobody'),todoCount=document.getElementById('todoCount');
+let busy=false,queue=[],qn=0,todoN=0;
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function scrollBottom(){chat.scrollTop=chat.scrollHeight;}
+const ICON_OK='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-5"/></svg>';
+const ICON_CHEV='<span class="chev">▼</span>';
+function setStatus(run){busy=run;document.getElementById('statusDot').className='dot'+(run?' run':'');document.getElementById('statusTxt').textContent=run?'运行中…':'就绪';sendBtn.innerHTML=run?'<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>':'<svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>';sendBtn.classList.toggle('stop',run);}
+function now(){const d=new Date();return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');}
+function addUser(t){chat.insertAdjacentHTML('beforeend',`<div class="msg user"><div class="bwrap"><div class="bmeta">${now()}</div><div class="bubble">${esc(t)}</div></div></div>`);scrollBottom();}
+function addQueued(t){chat.insertAdjacentHTML('beforeend',`<div class="queued"><span class="qtag">待发送</span><span class="qbody">${esc(t)}</span></div>`);scrollBottom();}
+function addAiStart(){chat.insertAdjacentHTML('beforeend',`<div class="msg ai"><div class="bwrap"><div class="bmeta">Rowan · ${now()}</div><div class="bubble" id="aiBubble"><span class="cursor"></span></div></div></div>`);scrollBottom();return document.getElementById('aiBubble');}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function streamInto(el,text){for(let i=0;i<text.length;i++){el.innerHTML=esc(text.slice(0,i))+'<span class="cursor"></span>';scrollBottom();await sleep(20);}el.innerHTML=esc(text);}
+function addTodo(items){const em=todobody.querySelector('.empty');if(em)em.remove();items.forEach(it=>{todoN++;todobody.insertAdjacentHTML('beforeend',`<div class="torow ${it.done?'done':''}" onclick="toggleTodo(this)"><div class="cb"><svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg></div><span class="txt">${esc(it.t)}</span><span class="tag ${it.done?'done':it.doing?'doing':''}">${it.done?'完成':it.doing?'进行中':'待办'}</span></div>`);});todoCount.textContent=todoN;}
+function toggleTodo(row){row.classList.toggle('done');const tag=row.querySelector('.tag');if(row.classList.contains('done')){tag.textContent='完成';tag.className='tag done';}else{tag.textContent='进行中';tag.className='tag doing';}}
+
+/* 工具调用分组卡 */
+function startToolGroup(n, stat){
+  chat.insertAdjacentHTML('beforeend',`<div class="toolgroup" id="tg"><div class="tghead" onclick="document.getElementById('tg').classList.toggle('fold')"><span class="ic">${ICON_OK}</span><span class="n">${n} 次工具调用</span><span class="stat" id="tgstat">${esc(stat)}</span><span class="chev">▼</span></div><div class="tgbody" id="tgbody"></div></div>`);
+  scrollBottom(); return document.getElementById('tgbody');
+}
+async function runToolRow(body, name, cmd, lines){
+  body.insertAdjacentHTML('beforeend',`<div class="trow" id="tr-${name}"><div class="trhead" onclick="this.parentNode.classList.toggle('fold')"><span class="ic spin"></span><span class="tname">${esc(name)}</span><span class="cmd">${esc(cmd)}</span><span class="ln" id="ln-${name}">…</span><span class="chev">▼</span></div><div class="trbody" id="out-${name}"><div class="term-head"><span class="dots"><i class="d r"></i><i class="d y"></i><i class="d g"></i></span><span class="tt">输出</span></div><div class="term-body" id="tb-${name}"></div></div></div>`);
+  const out=document.getElementById('tb-'+name), ln=document.getElementById('ln-'+name);
+  for(let i=0;i<lines.length;i++){out.innerHTML+='<span class="k">$</span> '+esc(lines[i])+'<br>';ln.textContent=(i+1)+' 行';scrollBottom();await sleep(300);}
+  const row=document.getElementById('tr-'+name);
+  row.querySelector('.ic').className='ic';row.querySelector('.ic').innerHTML=ICON_OK;
+}
+
+async function aiTurn(){
+  setStatus(true);
+  addTodo([{t:'扫描内存数值 12345',doing:true},{t:'读取第一个地址'},{t:'抓取网络请求'},{t:'汇总报告'}]);
+  let b=addAiStart();
+  await streamInto(b,'好的，我分三步来：扫描内存 → 读值 → 抓包。');
+  const tg=startToolGroup(3,'memScan×1 · memRead×1 · capture_start×1');
+  await runToolRow(tg,'memScan','12345 i32',['attach pid=12345 …','扫描 0x60000000-0x7fffffff …','命中 128 处']);
+  b=addAiStart(); await streamInto(b,'扫到 128 个地址，我读第一个。');
+  await runToolRow(tg,'memRead','0x7B3A1000',['read 0x7B3A1000 …','value = 12345']);
+  b=addAiStart(); await streamInto(b,'内存读到了，现在开始抓包。');
+  await runToolRow(tg,'capture_start','vpn+dns',['VpnService 已启动 …','DNS 抓取中 …','已捕获 37 条']);
+  b=addAiStart(); await streamInto(b,'都搞定了：值 12345 在 0x7B3A1000，抓包在后台跑，有新请求我实时推给你。');
+  setStatus(false);
+}
+
+async function onSend(){
+  const t=inp.value.trim(); if(!t) return; inp.value='';
+  if(busy){ qn++; queue.push(t); addQueued(t); document.getElementById('qn').textContent=qn; document.getElementById('queuetip').style.display='block'; return; }
+  addUser(t); await aiTurn();
+  while(queue.length){ const nt=queue.shift(); qn--; document.getElementById('qn').textContent=qn; if(qn<=0)document.getElementById('queuetip').style.display='none'; chat.querySelectorAll('.queued').forEach(e=>{if(e.textContent.includes(nt))e.remove();}); addUser(nt); await aiTurn(); }
+}
+inp.addEventListener('keydown',e=>{if(e.key==='Enter')onSend();});
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:820px;height:380px;background:#0B1220;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#E2E8F0;display:flex;flex-direction:column}
+  .top{display:flex;align-items:center;gap:6px;padding:8px 12px 4px}
+  .x{width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.08);color:#CBD5E1;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .t{flex:1;font-size:12px;font-weight:600}
+  .chip{font-size:10px;color:#94A3B8;background:rgba(255,255,255,.08);border-radius:7px;padding:4px 8px;margin-left:4px}
+  .chip.on{background:#2563EB;color:#fff}
+  .body{flex:1;display:flex;gap:12px;padding:2px 14px 10px;min-height:0}
+  .player{flex:1.5;background:linear-gradient(160deg,#1E293B,#0F172A);border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative}
+  .play{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:15px}
+  .pbar{position:absolute;left:12px;right:12px;bottom:10px}
+  .track{height:3px;background:rgba(255,255,255,.16);border-radius:2px}
+  .track i{display:block;width:38%;height:3px;background:#2563EB;border-radius:2px}
+  .panel{flex:1;background:#fff;color:#0F172A;border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .hd{display:flex;align-items:center;padding:9px 12px 6px}
+  .hd .t{font-size:12px;font-weight:800;flex:1}
+  .hd .n{font:9px ui-monospace,monospace;color:#94A3B8}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:2px 12px 8px}
+  .ep{height:26px;border-radius:7px;background:#F4F7FB;color:#475569;font:10px ui-monospace,monospace;display:flex;align-items:center;justify-content:center}
+  .ep.on{background:#2563EB;color:#fff;font-weight:700}
+  .row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-top:1px solid #F1F5F9;margin-top:auto}
+  .row .l{flex:1;font-size:9.5px;color:#334155}
+  .sw{width:34px;height:20px;border-radius:12px;background:#2563EB;position:relative;flex:none}
+  .sw i{position:absolute;top:3px;left:17px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.2)}
+  .btn{margin:0 12px 10px;height:30px;border-radius:9px;background:#2563EB;color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="x">✕</div>
+    <div class="t">第 7 集 雨夜追踪</div>
+    <div class="chip">自动</div>
+    <div class="chip">竖</div>
+    <div class="chip on">横</div>
+  </div>
+  <div class="body">
+    <div class="player">
+      <div class="play">▶</div>
+      <div class="pbar"><div class="track"><i></i></div></div>
+    </div>
+    <div class="panel">
+      <div class="hd"><div class="t">选集</div><div class="n">12 集</div></div>
+      <div class="grid">
+        <div class="ep">1</div><div class="ep">2</div><div class="ep">3</div><div class="ep">4</div><div class="ep">5</div><div class="ep">6</div>
+        <div class="ep on">7</div><div class="ep">8</div><div class="ep">9</div><div class="ep">10</div><div class="ep">11</div><div class="ep">12</div>
+      </div>
+      <div class="row"><div class="l">自动连播 · 播完下一集</div><div class="sw"><i></i></div></div>
+      <div class="btn">下一集 · 第 8 集</div>
+    </div>
+  </div>
+</body>
+</html>

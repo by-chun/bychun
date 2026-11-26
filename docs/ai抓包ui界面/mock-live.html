@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  .bar .back { font-size: 20px; color: #2563eb; }
+  .bar h1 { font-size: 16px; font-weight: 800; color: #0f172a; }
+  .chat { flex: 1; padding: 4px 14px 0; overflow: hidden; }
+
+  .me { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .me .b { background: #2563eb; color: #fff; font-size: 13px; padding: 9px 13px;
+           border-radius: 15px 15px 4px 15px; max-width: 82%; }
+  .ai { display: flex; gap: 8px; margin-bottom: 12px; }
+  .av { width: 26px; height: 26px; border-radius: 50%; background: #eaf1fe; color: #2563eb;
+        font-size: 11px; font-weight: 700; display: flex; align-items: center;
+        justify-content: center; flex: none; }
+  .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .bubble { background: #f7f9fc; border-radius: 14px; padding: 10px 13px; font-size: 13px;
+            color: #334155; line-height: 1.55; max-width: 92%; }
+
+  .card { background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+          box-shadow: 0 10px 26px rgba(15,23,42,.07); overflow: hidden;
+          max-width: 306px; display: flex; flex-direction: column; }
+
+  .chead { display: flex; align-items: center; gap: 7px; padding: 10px 12px 8px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
+         box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+  .chead b { font-size: 12.5px; color: #0f172a; font-weight: 700; }
+  .chead .cnt { font-size: 9.5px; color: #94a3b8; font-family: ui-monospace, monospace; }
+  .chead .sp { flex: 1; }
+  .chead .x { color: #cbd5e1; font-size: 13px; }
+
+  /* 实时输出：浅色行，最新高亮 */
+  .live { height: 214px; overflow: hidden; padding: 0 8px; position: relative;
+          border-top: 1px solid #f5f8fc; }
+  .live:after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 18px;
+                background: linear-gradient(transparent, #fff); }
+  .r { display: flex; gap: 6px; font-family: ui-monospace, monospace; font-size: 9.5px;
+       padding: 4px 3px; align-items: center; border-bottom: 1px solid #f7fafd; }
+  .r .t { color: #94a3b8; width: 46px; flex: none; }
+  .r .app { color: #64748b; width: 30px; flex: none; overflow: hidden; white-space: nowrap; }
+  .r .h { color: #0f172a; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap;
+          text-overflow: ellipsis; }
+  .r .c { color: #16a34a; flex: none; font-weight: 700; }
+  .r .c.e { color: #ef4444; }
+  .r.new { background: #eff6ff; border-radius: 5px; }
+
+  .cfoot { display: flex; gap: 7px; padding: 9px 10px 10px; border-top: 1px solid #f1f4f8; }
+  .btn { flex: 1; height: 30px; border-radius: 9px; display: flex; align-items: center;
+         justify-content: center; font-size: 10.5px; font-weight: 600; }
+  .btn.p { background: #2563eb; color: #fff; }
+  .btn.s { background: #f1f4f8; color: #475569; }
+  .btn.d { background: rgba(239,68,68,.1); color: #dc2626; }
+
+  .inputbar { padding: 10px 12px 16px; border-top: 1px solid #f1f4f8; display: flex; gap: 9px; }
+  .f { flex: 1; height: 38px; border-radius: 19px; background: #f4f7fb; color: #94a3b8;
+       font-size: 12.5px; display: flex; align-items: center; padding: 0 14px; }
+  .snd { width: 38px; height: 38px; border-radius: 50%; background: #2563eb; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="status"><span>22:21</span><span>5G ▮▮▮ 84%</span></div>
+    <div class="bar"><span class="back">‹</span><h1>AI 助手</h1></div>
+
+    <div class="chat">
+      <div class="me"><div class="b">开始抓包，实时给我看</div></div>
+
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="card">
+            <div class="chead">
+              <div class="dot"></div><b>抓包中</b>
+              <div class="cnt">128 · 8.4MB</div>
+              <div class="sp"></div>
+              <div class="x">✕</div>
+            </div>
+
+            <div class="live">
+              <div class="r new"><span class="t">22:21:07</span><span class="app">微信</span><span class="h">api.weixin.qq.com</span><span class="c">200</span></div>
+              <div class="r"><span class="t">22:21:06</span><span class="app">Edge</span><span class="h">www.bing.com</span><span class="c">200</span></div>
+              <div class="r"><span class="t">22:21:05</span><span class="app">微信</span><span class="h">mmbiz.qpic.cn</span><span class="c">200</span></div>
+              <div class="r"><span class="t">22:21:04</span><span class="app">QQ</span><span class="h">imgcache.qq.com</span><span class="c">304</span></div>
+              <div class="r"><span class="t">22:21:03</span><span class="app">微信</span><span class="h">dns.weixin.qq.com</span><span class="c e">-4</span></div>
+              <div class="r"><span class="t">22:21:02</span><span class="app">G</span><span class="h">dl-cdn.alpinelinux.org</span><span class="c">200</span></div>
+              <div class="r"><span class="t">22:21:01</span><span class="app">系统</span><span class="h">connectivitycheck.gstatic.com</span><span class="c">200</span></div>
+            </div>
+
+            <div class="cfoot">
+              <div class="btn d">停止</div>
+              <div class="btn s">看应用</div>
+              <div class="btn p">展开列表</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="f">发消息…</div>
+      <div class="snd"></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+From d44a4ea8376ebad764e2d185d3340f5dbb080907 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 15:10:18 +0800
+Subject: [PATCH] =?UTF-8?q?fix(chat):=20=E5=81=9C=E6=AD=A2=E8=83=BD?=
+ =?UTF-8?q?=E4=B8=AD=E6=96=AD=E4=BB=BB=E4=BD=95=E6=AD=A3=E5=9C=A8=E8=BF=90?=
+ =?UTF-8?q?=E8=A1=8C=E7=9A=84=E7=8E=AF=E8=8A=82?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 新增 _aborted 标记：点停止 3 秒后强制置位，_runLoop 在每个检查点立即退出
+  （不再把半截流式内容当正式回复、不再执行剩余工具、不再发下一轮请求）
+- 工具执行统一包 180s 超时，卡死的调用不会把会话拖住
+- UI 3 秒内必定解锁，按钮从「停止中」回到「发送」
+- 版本 6.2.7+627（仅本地提交）
+---
+ lib/agent/agent_engine.dart | 34 ++++++++++++++++++++++++++++------
+ pubspec.yaml                |  2 +-
+ 2 files changed, 29 insertions(+), 7 deletions(-)
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index cb0da67..fffcb87 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -67,6 +67,8 @@ class AgentEngine extends ChangeNotifier {
+ 
+   bool _running = false;
+   bool _stopRequested = false;
++  /// 强制停止：置 true 后 _runLoop 在每个检查点立即退出，不再继续发请求/跑工具。
++  bool _aborted = false;
+   bool _stopping = false;
+ 
+   /// 模型上下文窗口估算（默认 128k）。
+@@ -117,9 +119,10 @@ class AgentEngine extends ChangeNotifier {
+     // 急停：把还在跑的容器命令全部杀掉，不用等它自己结束
+     NativeBridge.killAllProcs();
+     notifyListeners();
+-    // 兜底：3 秒还没退出就强制解锁 UI，不让按钮卡死
++    // 兜底：3 秒还没退出就强制解锁 UI，并让后台流程立刻作废
+     Future.delayed(const Duration(seconds: 3), () {
+       if (_running) {
++        _aborted = true;
+         _running = false;
+         _stopping = false;
+         _add(const ChatMsg('assistant', '（已强制停止）'));
+@@ -558,6 +561,7 @@ class AgentEngine extends ChangeNotifier {
+     _running = true;
+     _stopRequested = false;
+     _stopping = false;
++    _aborted = false;
+     notifyListeners();
+     try {
+       await _runLoop(api, tools);
+@@ -568,10 +572,18 @@ class AgentEngine extends ChangeNotifier {
+     }
+   }
+ 
++  /// 工具执行带超时：卡住时不会把整个会话拖死。
++  Future<ToolResult> _execTool(AgentTool tool, Map<String, String> args) {
++    return tool.execute(args).timeout(
++      const Duration(seconds: 180),
++      onTimeout: () => const ToolResult(false, '执行超时，已中止（可重新尝试）'),
++    );
++  }
++
+   Future<void> _runLoop(List<Map<String, dynamic>> api, List<Map<String, dynamic>> tools) async {
+     final recent = <String>[];
+     for (var turn = 0; maxToolTurns == 0 || turn < maxToolTurns; turn++) {
+-      if (_stopRequested) {
++      if (_stopRequested || _aborted) {
+         _add(const ChatMsg('assistant', '（已停止）'));
+         return;
+       }
+@@ -583,6 +595,14 @@ class AgentEngine extends ChangeNotifier {
+       final resp = await _llm!.chatStream(api, tools, onDelta: (d) {
+         _pendingText += d;
+       });
++      // 停止后不再把已经收到的半截内容当作正式回复继续处理
++      if (_aborted) {
++        _stopTyping();
++        streaming = false;
++        streamingText = '';
++        notifyListeners();
++        return;
++      }
+       await _finishTyping();
+       final streamed = streamingText;
+       final tookMs = DateTime.now().difference(t0).inMilliseconds;
+@@ -638,15 +658,15 @@ class AgentEngine extends ChangeNotifier {
+               if (_stopRequested) {
+               r = const ToolResult(false, '已停止，未执行');
+             } else {
+-              r = await tool.execute(tc.args);
++              r = await _execTool(tool, tc.args);
+             }
+             } else if (choice == 'once') {
+-              r = await tool.execute(tc.args);
++              r = await _execTool(tool, tc.args);
+             } else {
+               r = ToolResult(false, '用户拒绝执行：${tool.name}');
+             }
+           } else {
+-            r = await tool.execute(tc.args);
++            r = await _execTool(tool, tc.args);
+           }
+         }
+         _add(ChatMsg('tool', r.content, toolName: tc.name, ok: r.ok));
+@@ -661,8 +681,10 @@ class AgentEngine extends ChangeNotifier {
+           ));
+         }
+         api.add({'role': 'tool', 'tool_call_id': tc.id, 'content': r.content});
++        // 点了停止：不再执行本次响应里剩下的工具
++        if (_aborted) return;
+       }
+-      if (_stopRequested) {
++      if (_stopRequested || _aborted) {
+         _add(const ChatMsg('assistant', '（已停止）'));
+         return;
+       }
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 6c956f5..93d0eed 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.2.6+626
++version: 6.2.7+627
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

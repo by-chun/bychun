@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+         background: #fff; display: flex; justify-content: center; padding: 20px; }
+  .phone { width: 380px; height: 820px; background: #fff; border-radius: 32px;
+           box-shadow: 0 20px 60px rgba(15,23,42,.14); overflow: hidden;
+           display: flex; flex-direction: column; }
+  .status { height: 38px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; font-size: 11.5px; color: #64748b; font-weight: 600; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  .bar .back { font-size: 20px; color: #2563eb; }
+  .bar h1 { font-size: 16px; font-weight: 800; color: #0f172a; }
+  .chat { flex: 1; padding: 4px 14px 0; overflow: hidden; }
+
+  .me { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .me .b { background: #2563eb; color: #fff; font-size: 13px; padding: 9px 13px;
+           border-radius: 15px 15px 4px 15px; max-width: 82%; }
+  .ai { display: flex; gap: 8px; }
+  .av { width: 26px; height: 26px; border-radius: 50%; background: #eaf1fe; color: #2563eb;
+        font-size: 11px; font-weight: 700; display: flex; align-items: center;
+        justify-content: center; flex: none; }
+  .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+  .bubble { background: #f7f9fc; border-radius: 14px; padding: 10px 13px; font-size: 13px;
+            color: #334155; line-height: 1.55; max-width: 92%; }
+
+  .card { background: #fff; border: 1px solid #eef2f7; border-radius: 16px;
+          box-shadow: 0 10px 26px rgba(15,23,42,.07); overflow: hidden; max-width: 308px; }
+  .chead { display: flex; align-items: center; gap: 7px; padding: 11px 12px 8px; }
+  .chead b { font-size: 12.5px; color: #0f172a; font-weight: 700; }
+  .chead .sp { flex: 1; }
+  .chead .x { color: #cbd5e1; font-size: 12px; }
+
+  .opt { display: flex; gap: 9px; align-items: flex-start; padding: 10px 12px;
+         border-top: 1px solid #f7fafd; }
+  .opt.on { background: #fbfdff; }
+  .rd { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #dbe2ea;
+        flex: none; margin-top: 1px; }
+  .opt.on .rd { border-color: #2563eb; background: #2563eb; position: relative; }
+  .opt.on .rd:after { content: ""; position: absolute; left: 4px; top: 1.5px; width: 4.5px;
+                      height: 8px; border: solid #fff; border-width: 0 1.5px 1.5px 0;
+                      transform: rotate(45deg); }
+  .txt { flex: 1; min-width: 0; }
+  .txt .t1 { display: flex; align-items: center; gap: 6px; }
+  .txt b { font-size: 12px; color: #0f172a; font-weight: 600; }
+  .badge { font-size: 8px; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+  .ok { background: rgba(22,163,74,.12); color: #16a34a; }
+  .warn { background: rgba(245,158,11,.14); color: #d97706; }
+  .no { background: #f1f4f8; color: #94a3b8; }
+  .txt .t2 { font-size: 9.5px; color: #94a3b8; margin-top: 2px; line-height: 1.5; }
+  .txt .t2 em { color: #2563eb; font-style: normal; }
+  .go { flex: none; font-size: 9px; color: #2563eb; font-weight: 600;
+        background: #eaf1fe; padding: 4px 7px; border-radius: 6px; margin-top: 1px; }
+
+  .hint { padding: 8px 12px 10px; font-size: 9px; color: #b6c0cd; line-height: 1.6;
+          border-top: 1px solid #f7fafd; }
+
+  .cfoot { display: flex; gap: 7px; padding: 10px; border-top: 1px solid #f1f4f8; }
+  .btn { flex: 1; height: 32px; border-radius: 9px; display: flex; align-items: center;
+         justify-content: center; font-size: 11px; font-weight: 600; }
+  .btn.p { background: #2563eb; color: #fff; }
+  .btn.s { background: #f1f4f8; color: #475569; }
+
+  .inputbar { padding: 10px 12px 16px; border-top: 1px solid #f1f4f8; display: flex; gap: 9px; }
+  .f { flex: 1; height: 38px; border-radius: 19px; background: #f4f7fb; color: #94a3b8;
+       font-size: 12.5px; display: flex; align-items: center; padding: 0 14px; }
+  .snd { width: 38px; height: 38px; border-radius: 50%; background: #2563eb; }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="status"><span>23:44</span><span>5G ▮▮▮ 84%</span></div>
+    <div class="bar"><span class="back">‹</span><h1>AI 助手</h1></div>
+
+    <div class="chat">
+      <div class="me"><div class="b">把这条登录请求改一下再发，用注入</div></div>
+
+      <div class="ai">
+        <div class="av">AI</div>
+        <div class="stack">
+          <div class="bubble">选一种注入方式（你设备上哪些可用我标出来了）：</div>
+
+          <div class="card">
+            <div class="chead">
+              <b>注入方式</b>
+              <div class="sp"></div>
+              <div class="x">✕</div>
+            </div>
+
+            <div class="opt on">
+              <div class="rd"></div>
+              <div class="txt">
+                <div class="t1"><b>抓包层（请求重写）</b><span class="badge ok">可用</span></div>
+                <div class="t2">抓包层直接改包重放，<em>不需要 root / 模块</em></div>
+              </div>
+            </div>
+
+            <div class="opt">
+              <div class="rd"></div>
+              <div class="txt">
+                <div class="t1"><b>Xposed 模块</b><span class="badge no">未安装</span></div>
+                <div class="t2">需 LSPosed 并重启，改完对目标 App 长期生效</div>
+              </div>
+              <div class="go">去装</div>
+            </div>
+
+            <div class="opt">
+              <div class="rd"></div>
+              <div class="txt">
+                <div class="t1"><b>Zygisk（KernelSU）</b><span class="badge ok">可用</span></div>
+                <div class="t2">按需启动，<em>不随开机自启</em>；启动时由脚本触发</div>
+              </div>
+            </div>
+
+            <div class="hint">三种方式都只在你主动启动时生效，不会开机自启。</div>
+
+            <div class="cfoot">
+              <div class="btn s">取消</div>
+              <div class="btn p">用选中的方式</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="f">发消息…</div>
+      <div class="snd"></div>
+    </div>
+  </div>
+</body>
+</html>

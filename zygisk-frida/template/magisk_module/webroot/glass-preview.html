@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="color-scheme" content="only light" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>玻璃样式预览</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:390px;height:844px;margin:0 auto;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;
+       position:relative;overflow:hidden;background:#0f172a}
+  /* 背景：彩色渐变 + 光斑，让玻璃模糊可见 */
+  .bg{position:absolute;inset:0;background:linear-gradient(160deg,#3b82f6 0%,#8b5cf6 45%,#ec4899 100%)}
+  .blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.75}
+  .b1{width:260px;height:260px;background:#38bdf8;top:-60px;left:-40px}
+  .b2{width:220px;height:220px;background:#fbbf24;bottom:-40px;right:-30px}
+  .b3{width:200px;height:200px;background:#34d399;bottom:200px;left:180px}
+  /* 玻璃卡片（统一后的 LiquidGlass） */
+  .glass{position:absolute;left:20px;right:20px;top:120px;border-radius:22px;padding:20px;
+         background:linear-gradient(135deg,rgba(255,255,255,.52),rgba(255,255,255,.30));
+         border:1px solid rgba(255,255,255,.62);
+         box-shadow:0 10px 40px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.7);
+         backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+  .glass h2{font-size:16px;font-weight:800;color:#0f172a;margin-bottom:4px}
+  .glass p{font-size:11.5px;color:#475569;line-height:1.6}
+  /* 玻璃按钮（统一后 GlassButton） */
+  .btns{position:absolute;left:20px;right:20px;top:360px;display:flex;gap:10px}
+  .gbtn{flex:1;padding:13px 0;border-radius:14px;text-align:center;font-size:13px;font-weight:700;
+        color:#2563eb;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.9);
+        backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+        box-shadow:0 6px 18px rgba(0,0,0,.12)}
+  .gbtn.primary{color:#fff;background:linear-gradient(140deg,#3b82f6,#2563eb);border:none;
+        box-shadow:0 6px 18px rgba(37,99,235,.4)}
+  /* 圆形玻璃图标按钮 */
+  .icons{position:absolute;left:20px;top:440px;display:flex;gap:12px}
+  .ic{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.68);
+      border:1px solid #fff;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      box-shadow:0 4px 14px rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;
+      color:#334155;font-size:18px}
+  /* 玻璃弹窗 */
+  .dialog{position:absolute;left:34px;right:34px;top:250px;border-radius:22px;padding:18px 20px;
+          background:rgba(255,255,255,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+          border:1px solid #fff;box-shadow:0 20px 60px rgba(0,0,0,.3);z-index:5}
+  .dialog .bar{width:36px;height:4px;border-radius:2px;background:#e2e8f0;margin:0 auto 14px}
+  .dialog h3{font-size:15px;font-weight:800;color:#0f172a;text-align:center;margin-bottom:8px}
+  .dialog p{font-size:12px;color:#475569;text-align:center;line-height:1.6;margin-bottom:16px}
+  .dialog .row{display:flex;gap:10px}
+  .dialog .btn{flex:1;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+               font-size:13px;font-weight:700}
+  .dialog .btn.cancel{background:#f1f4f8;color:#475569}
+  .dialog .btn.ok{background:#2563eb;color:#fff}
+  .tag{position:absolute;top:56px;left:20px;color:#fff;font-size:11px;font-weight:600;opacity:.9;
+       letter-spacing:.5px}
+</style>
+</head>
+<body>
+  <div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+  <div class="tag">Rowan · 统一玻璃样式预览</div>
+  <div class="glass">
+    <h2>液态玻璃卡片</h2>
+    <p>磨砂模糊 + 半透明 + 边缘高光 + 内阴影。所有玻璃组件统一走同一套 GlassSpec 参数，可在「设置 → 外观」里一起调模糊度 / 透明度 / 高光。</p>
+  </div>
+  <div class="btns">
+    <div class="gbtn">取消</div>
+    <div class="gbtn primary">确定</div>
+  </div>
+  <div class="icons">
+    <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+    <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>
+    <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></div>
+  </div>
+  <div class="dialog">
+    <div class="bar"></div>
+    <h3>玻璃弹窗</h3>
+    <p>统一后的弹窗也走同一套玻璃参数，圆角、模糊、按钮风格一致。</p>
+    <div class="row"><div class="btn cancel">取消</div><div class="btn ok">确定</div></div>
+  </div>
+</body>
+</html>

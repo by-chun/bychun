@@ -1,0 +1,105 @@
+From 700044fae132b250c500db4face31011b93712b0 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 16:14:49 +0800
+Subject: [PATCH] =?UTF-8?q?feat:=20=E5=86=85=E7=BD=AE=20Zygisk=20=E6=A8=A1?=
+ =?UTF-8?q?=E5=9D=97=20zip=20+=20=E5=88=A0=E6=8E=89=E5=AE=B9=E5=99=A8?=
+ =?UTF-8?q?=E5=8F=AF=E6=9B=BF=E4=BB=A3=E7=9A=84=E5=B7=A5=E5=85=B7?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 新增 assets/g-frida.zip（module.prop / customize.sh / post-fs-data.sh / service.sh / uninstall.sh）
+  开机会自动启动 /data/adb/g-frida/frida-server；二进制不内置，由 AI 按架构下载
+- 不再注册这些工具（容器里装现成的更好用）：
+  ApkEntries / ApkRead（apktool）、Assemble（keystone）、Git / SetGitCredential（git）、ReadPdf（pdftotext）
+- 版本 6.6.1+661（仅本地提交）
+---
+ android/app/src/main/assets/g-frida.zip | Bin 0 -> 1250 bytes
+ lib/agent/agent_engine.dart             |   6 ------
+ pubspec.yaml                            |   2 +-
+ 3 files changed, 1 insertion(+), 7 deletions(-)
+ create mode 100644 android/app/src/main/assets/g-frida.zip
+
+diff --git a/android/app/src/main/assets/g-frida.zip b/android/app/src/main/assets/g-frida.zip
+new file mode 100644
+index 0000000000000000000000000000000000000000..a5f740bb981964d86d37b3d8bbfde770c95ad59a
+GIT binary patch
+literal 1250
+zcmWIWW@Zs#U|`^2xYAe|tFd@~z$PH?C=hc4ac+J}X-=wMK~a9eX`hY0*L}55`FK7#
+z<$cC?YiW1^bD>C6aQCU8?i~#~ER5~XUkf<TaIEZ{zvoudCtf<bCr{{a($)7pr*ZbN
+zm#40u-YFdo#+9|ZmOs2XCszMfxb54hk0pny6jm;nKPh6;iup4pE#cqlBk%J{tU0%G
+z|MJHt*Uc0Eoo@g3#<!YNZmjP9t?9ON&p*qpHe3JnWZygS>hJsRU;dnP^w9F+<@U2T
+zKRdeas(;xRySW>p7;}#Oww)Wp5P;$}_TOS*$ADh?1jIZ*oLpL5lAoJdm8w^q5gc|!
+zf1Qq==h>_Nr_Nl~KldOg?1Qh*d7X3DzWeE(@;=MS7h17v-RGl^uBBhzZu>gsUs57}
+zcwU)T+Qg>3#-=*2B+o^4NnVrccI8C{rg<ra7rEutbv5l=sVTPe(wQGki_Yv3VpWZ8
+zeZKj+?Op4yFTeTvo9EQ*tDY*ltVmVl>-k-~L=GI<b#$d`>PlCx^UK~;-`e=_=&z*$
+zlkdHMS@0#K;@19uC*K|QFDu!9|MJf||MRE6-CHhv&3^8M?~7`$US21vP<EY5RS(U-
+zOxMi93W5Ht0%Cq3F32w~(M>DXO-U?C#OCEsU&{+W@@xuSX%=wx`l_czpT2Cq>hG!J
+zdBxwy^O8R#=C80%hB`CmBG)caE-x*Isa{+gxlB#DR*KG4<zkDe{3*GV)qvCb@02S>
+zfA?IPBg3j}ZR*Twitaj&r8hIT09|zhh`E5cIJKxOGZ|}KP{(1Xxcs;0S6QVW?S3mf
+zKkvqm6!-U_VDzq<?-%iZOEznG+N`EUPL5T9S&dD3vzmm=CQlW4^CdXw^q0?G#YG}L
+zZ?5pH74<R-`n*F#<kKf(FYbi0MVdhYkG)PmVL}V}1JgqCtbu;A1!7Q2E6vNyD=taQ
+z$-x%vS|`q(IT?7tH#ooxJ&e7$+{%7wu1x(^xzy4Ul$;rvM3`~sRiI5^(7*_yka8}%
+zM)aHj(Z;~gz<3+TM9vrJI?>Y<Lg#6qrD!P(T{C)=BQ$3+AtwNIedxi7(C5mG8n^-8
+TtZX1zRv=UYI%pM8o`C@X)WG1S
+
+literal 0
+HcmV?d00001
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index cf41c23..dc0372b 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -261,8 +261,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     registry.register(RootShellTool());
+     registry.register(TaskTool(this));
+     registry.register(ListAppsTool());
+-    registry.register(ApkEntriesTool());
+-    registry.register(ApkReadTool());
+     registry.register(MemScanTool());
+     registry.register(MemReadTool());
+     registry.register(MemWriteTool());
+@@ -275,7 +273,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     registry.register(AddPromptTool());
+     registry.register(McpListTool());
+     registry.register(McpCallTool());
+-    registry.register(GitExecTool());
+     registry.register(ContainerShellTool(this));
+     registry.register(InstallContainerTool());
+     registry.register(ListContainersTool());
+@@ -284,11 +281,9 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     registry.register(CaptureRecordClearTool());
+     registry.register(CaptureListTool());
+     registry.register(StopTasksTool());
+-    registry.register(SetGitCredentialTool());
+     registry.register(SetWorkspaceTool());
+     registry.register(InstallApkTool());
+     registry.register(SetBalanceScriptTool());
+-    registry.register(AssembleTool());
+     registry.register(PlayAudioTool());
+     registry.register(AudioControlTool());
+     registry.register(PlayVideoTool());
+@@ -296,7 +291,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     registry.register(RunPluginTool());
+     registry.register(WebSearchTool());
+     registry.register(FetchPageTool());
+-    registry.register(ReadPdfTool());
+     registry.register(HttpRequestTool());
+     registry.register(CaptureLogTool());
+     registry.register(ReadConfigTool());
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 06231ad..2a57f18 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.6.0+660
++version: 6.6.1+661
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+

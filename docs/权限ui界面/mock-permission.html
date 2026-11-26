@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:380px;height:820px;background:#F2F5FA;font-family:-apple-system,system-ui,"Noto Sans SC",sans-serif;color:#0F172A;padding:14px}
+  .card{margin:0 2px 14px;padding:12px;background:#fff;border-radius:16px;border:1px solid #E6EAF0;box-shadow:0 8px 18px rgba(15,23,42,.08)}
+  .card.hr{border-color:#FECACA}
+  .hd{display:flex;align-items:center;gap:8px}
+  .hd .ic{width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+  .ic.n{background:#EAF1FE;color:#2563EB}
+  .ic.h{background:#FEF2F2;color:#DC2626}
+  .hd .t{font-size:13.5px;font-weight:800;flex:1}
+  .t.h{color:#B91C1C}
+  .tag{font-size:9px;font-weight:600;padding:3px 7px;border-radius:6px;background:#EAF1FE;color:#2563EB}
+  .tag.h{background:#FEF2F2;color:#DC2626}
+  .tool{margin:8px 0 0 25px;font:10.5px ui-monospace,monospace;color:#64748B}
+  .cmd{margin-top:8px;padding:10px;border-radius:10px;background:#0B1220;color:#7DD3FC;font:10.5px/1.6 ui-monospace,monospace;white-space:pre-wrap}
+  .warn{margin-top:8px;padding:8px 10px;border-radius:9px;background:#FEF2F2;color:#B91C1C;font-size:10px;line-height:1.5}
+  .row{display:flex;gap:8px;margin-top:10px}
+  .btn{flex:1;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .deny{background:#F1F4F8;color:#475569}
+  .once{background:#2563EB;color:#fff}
+  .once.h{background:#DC2626}
+  .always{background:#EAF1FE;color:#2563EB}
+  .cap{font-size:10px;color:#94A3B8;margin:2px 4px 8px}
+</style>
+</head>
+<body>
+  <div class="cap">普通工具 · 三个选项</div>
+  <div class="card">
+    <div class="hd">
+      <div class="ic n">✓</div>
+      <div class="t">允许执行？</div>
+      <div class="tag">执行模式</div>
+    </div>
+    <div class="tool">工具 readFile</div>
+    <div class="cmd">path: /data/adb/modules/rowan/scripts</div>
+    <div class="row">
+      <div class="btn deny">拒绝</div>
+      <div class="btn once">允许一次</div>
+      <div class="btn always">始终允许</div>
+    </div>
+  </div>
+
+  <div class="cap">高危工具 · 同样三个选项</div>
+  <div class="card hr">
+    <div class="hd">
+      <div class="ic h">!</div>
+      <div class="t h">高危操作</div>
+      <div class="tag h">高危</div>
+    </div>
+    <div class="tool">工具 rootShell</div>
+    <div class="cmd">rm -rf /data/local/tmp/rowan-test</div>
+    <div class="warn">这一步无法撤销，请确认命令内容后再允许。</div>
+    <div class="row">
+      <div class="btn deny">拒绝</div>
+      <div class="btn once h">允许一次</div>
+      <div class="btn always">始终允许</div>
+    </div>
+  </div>
+</body>
+</html>

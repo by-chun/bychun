@@ -1,0 +1,366 @@
+From 07f7bf9aa2058ed96f117c3b469781f1c1e2fa16 Mon Sep 17 00:00:00 2001
+From: wuchun-by <wuchun-by@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 18:04:45 +0800
+Subject: [PATCH] =?UTF-8?q?feat(ui):=20=E6=9D=83=E9=99=90=E6=A3=80?=
+ =?UTF-8?q?=E6=B5=8B=E5=8F=8D=E9=A6=88=20+=20=E6=A0=91=E5=B1=95=E5=BC=80/?=
+ =?UTF-8?q?=E6=8B=96=E6=8B=BD=E5=8A=A8=E7=94=BB?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 权限行：点开关 → 「检测中…」+ spinner → 回来重新检测 → 「✓ 已开启」/「✗ 未开启：需在系统里手动允许」
+- 树状抽屉：应用详情、目录子项展开用 AnimatedSize（180ms easeOutCubic）
+- 拖拽关闭抽屉：拖出时抽屉跟手左移+变淡（140px 满进度），70px 触发关闭，取消/完成自动复位
+- 版本 6.8.0+680（仅本地）
+---
+ lib/pages/settings_page.dart | 111 ++++++++++++++++++++++++-----------
+ lib/widgets/tree_drawer.dart |  83 +++++++++++++++++++-------
+ pubspec.yaml                 |   2 +-
+ 3 files changed, 140 insertions(+), 56 deletions(-)
+
+diff --git a/lib/pages/settings_page.dart b/lib/pages/settings_page.dart
+index a81a489..13e4437 100644
+--- a/lib/pages/settings_page.dart
++++ b/lib/pages/settings_page.dart
+@@ -1092,6 +1092,8 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+   final _ctrl = TextEditingController();
+   String _moduleMsg = '';
+   Map<String, bool> _perm = {};
++  final Set<String> _checking = {};
++  final Set<String> _checked = {};
+ 
+   @override
+   void initState() {
+@@ -1105,35 +1107,74 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+   }
+ 
+   /// 权限行：右侧开关反映真实状态；点开关去授权（关闭需在系统设置里改）。
+-  Widget _permRow(String label, String desc, bool granted, Future<void> Function() onTap) {
++  /// 权限行：点开关 → 真实申请 → 回来重新检测 → 给出成功/失败反馈。
++  Widget _permRow(String key, String label, String desc, bool granted, Future<void> Function() onTap) {
++    final checking = _checking.contains(key);
+     return GlassCard(
+       margin: const EdgeInsets.only(bottom: 6),
+-      child: Row(children: [
+-        Expanded(
+-          child: Column(
+-            crossAxisAlignment: CrossAxisAlignment.start,
+-            children: [
+-              Text(label, style: const TextStyle(fontSize: 13)),
+-              if (desc.isNotEmpty)
+-                Padding(
+-                  padding: const EdgeInsets.only(top: 2),
+-                  child: Text(desc, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+-                ),
+-            ],
++      child: Padding(
++        padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
++        child: Row(children: [
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(label, style: const TextStyle(fontSize: 13)),
++                if (desc.isNotEmpty)
++                  Padding(
++                    padding: const EdgeInsets.only(top: 2),
++                    child: Text(desc, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
++                  ),
++                if (checking)
++                  const Padding(
++                    padding: EdgeInsets.only(top: 3),
++                    child: Text('检测中…', style: TextStyle(fontSize: 10, color: AppColors.brand)),
++                  )
++                else if (_checked.contains(key))
++                  Padding(
++                    padding: const EdgeInsets.only(top: 3),
++                    child: Text(
++                      granted ? '✓ 已开启' : '✗ 未开启：需在系统里手动允许，回来后再点一次',
++                      style: TextStyle(
++                          fontSize: 10,
++                          color: granted ? AppColors.green : const Color(0xFFDC2626)),
++                    ),
++                  ),
++              ],
++            ),
+           ),
+-        ),
+-        Switch(
+-          value: granted,
+-          activeColor: AppColors.brand,
+-          onChanged: (_) async {
+-            await onTap();
+-            await _loadPerm();
+-          },
+-        ),
+-      ]),
++          if (checking)
++            const Padding(
++              padding: EdgeInsets.symmetric(horizontal: 18),
++              child: SizedBox(
++                  width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
++            )
++          else
++            Switch(
++              value: granted,
++              activeColor: AppColors.brand,
++              onChanged: (_) => _applyPerm(key, onTap),
++            ),
++        ]),
++      ),
+     );
+   }
+ 
++  Future<void> _applyPerm(String key, Future<void> Function() onTap) async {
++    setState(() {
++      _checking.add(key);
++      _checked.remove(key);
++    });
++    await onTap();
++    await Future.delayed(const Duration(milliseconds: 900));
++    await _loadPerm();
++    if (!mounted) return;
++    setState(() {
++      _checking.remove(key);
++      _checked.add(key);
++    });
++  }
++
+   Future<void> _installModule() async {
+     final choice = await showModalBottomSheet<String>(
+       context: context,
+@@ -1202,44 +1243,44 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+         padding: const EdgeInsets.all(16),
+         children: [
+           const Text('常用', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-          _permRow('所有文件访问', '读写 /sdcard、读 APK', _perm['allFiles'] == true, () async {
++          _permRow('allFiles', '所有文件访问', '读写 /sdcard、读 APK', _perm['allFiles'] == true, () async {
+             await NativeBridge.requestStorage();
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+           }),
+-          _permRow('通知权限', '后台任务完成时提醒', _perm['notification'] == true, () async {
++          _permRow('notification', '通知权限', '后台任务完成时提醒', _perm['notification'] == true, () async {
+             await NativeBridge.requestPermissions();
+             await Future.delayed(const Duration(milliseconds: 800));
+             _loadPerm();
+           }),
+-          _permRow('悬浮窗', '日志窗、小窗终端', _perm['overlay'] == true, () async {
++          _permRow('overlay', '悬浮窗', '日志窗、小窗终端', _perm['overlay'] == true, () async {
+             await NativeBridge.openSettings('overlay');
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+           }),
+-          _permRow('安装应用', '装 APK 需要', _perm['installPackages'] == true, () async {
++          _permRow('installPackages', '安装应用', '装 APK 需要', _perm['installPackages'] == true, () async {
+             await NativeBridge.openSettings('unknownSources');
+           }),
+ 
+           const SizedBox(height: 10),
+           const Text('应用与媒体', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-          _permRow('电池优化白名单', '后台不被杀', _perm['battery'] == true, () async {
++          _permRow('battery', '电池优化白名单', '后台不被杀', _perm['battery'] == true, () async {
+             await NativeBridge.openSettings('battery');
+           }),
+-          _permRow('使用情况访问', '看前台应用、流量归属', _perm['usageStats'] == true, () async {
++          _permRow('usageStats', '使用情况访问', '看前台应用、流量归属', _perm['usageStats'] == true, () async {
+             await NativeBridge.openSettings('usage');
+           }),
+-          _permRow('图片读取', '选头像、看图', _perm['mediaImages'] == true, () async {
++          _permRow('mediaImages', '图片读取', '选头像、看图', _perm['mediaImages'] == true, () async {
+             await NativeBridge.requestMedia();
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+           }),
+-          _permRow('视频读取', '视频页、选文件', _perm['mediaVideo'] == true, () async {
++          _permRow('mediaVideo', '视频读取', '视频页、选文件', _perm['mediaVideo'] == true, () async {
+             await NativeBridge.requestMedia();
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+           }),
+-          _permRow('音频读取', '音乐页、选文件', _perm['mediaAudio'] == true, () async {
++          _permRow('mediaAudio', '音频读取', '音乐页、选文件', _perm['mediaAudio'] == true, () async {
+             await NativeBridge.requestMedia();
+             await Future.delayed(const Duration(milliseconds: 600));
+             _loadPerm();
+@@ -1247,7 +1288,7 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+ 
+           const SizedBox(height: 10),
+           const Text('系统能力', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+-          _permRow('Root', '高危操作需要', _perm['root'] == true, () async {
++          _permRow('root', 'Root', '高危操作需要', _perm['root'] == true, () async {
+             // 真正发起一次 su，触发超级用户弹窗
+             await NativeBridge.rootExec('id');
+             await _loadPerm();
+@@ -1256,7 +1297,7 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+                   error: _perm['root'] != true);
+             }
+           }),
+-          _permRow('Shizuku', '免 root 的 shell 能力', _perm['shizuku'] == true, () async {
++          _permRow('shizuku', 'Shizuku', '免 root 的 shell 能力', _perm['shizuku'] == true, () async {
+             await _loadPerm();
+             if (mounted) {
+               showToast(
+@@ -1265,7 +1306,7 @@ class _PowerPageState extends ConsumerState<PowerPage> {
+                   error: _perm['shizuku'] != true);
+             }
+           }),
+-          _permRow('VPN', '抓包时才会请求', _perm['vpn'] == true, () async {
++          _permRow('vpn', 'VPN', '抓包时才会请求', _perm['vpn'] == true, () async {
+             await NativeBridge.openSettings('vpn');
+             await Future.delayed(const Duration(milliseconds: 800));
+             _loadPerm();
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index 772a63d..aba44d5 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -28,6 +28,13 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+   final Map<String, List<(String, bool)>> _dirs = {};
+   double _dragDist = 0;
+   bool _dragClosed = false;
++  double _dragP = 0;
++
++  void _setDragProgress(double d) {
++    _dragDist = d;
++    final p = (d / 140).clamp(0.0, 1.0);
++    if ((p - _dragP).abs() > 0.01 && mounted) setState(() => _dragP = p);
++  }
+ 
+   bool _isOpen(String k) => _open.contains(k);
+ 
+@@ -71,10 +78,24 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    return Container(
+-      color: AppColors.bg,
+-      child: SafeArea(
+-        child: Column(
++    return AnimatedOpacity(
++      // 往外拖时抽屉跟着变淡 + 位移，拖出去一点就关
++      opacity: 1 - _dragP * 0.55,
++      duration: Duration(milliseconds: _dragP == 0 ? 160 : 0),
++      child: Transform.translate(
++        offset: Offset(-_dragP * 48, 0),
++        child: Container(
++          color: AppColors.bg,
++          child: SafeArea(
++            child: _treeBody(),
++          ),
++        ),
++      ),
++    );
++  }
++
++  Widget _treeBody() {
++    return Column(
+           children: [
+             Padding(
+               padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+@@ -121,9 +142,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+               ),
+             ),
+           ],
+-        ),
+-      ),
+-    );
++        );
+   }
+ 
+   Widget _card(List<Widget> children) {
+@@ -409,17 +428,23 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+               const Icon(Icons.drag_handle_rounded, size: 14, color: Color(0xFFE2E8F0)),
+             ],
+           ),
+-          if (open)
+-            Padding(
+-              padding: const EdgeInsets.fromLTRB(42, 4, 8, 6),
+-              child: Column(
+-                children: [
+-                  _kvLine('APK', _size((a['size'] as num?)?.toInt() ?? 0)),
+-                  _kvLine('路径', (a['apk'] ?? '—').toString()),
+-                  _kvLine('类型', a['system'] == true ? '系统应用' : '用户应用'),
+-                ],
+-              ),
+-            ),
++          AnimatedSize(
++            duration: const Duration(milliseconds: 180),
++            curve: Curves.easeOutCubic,
++            alignment: Alignment.topCenter,
++            child: open
++                ? Padding(
++                    padding: const EdgeInsets.fromLTRB(42, 4, 8, 6),
++                    child: Column(
++                      children: [
++                        _kvLine('APK', _size((a['size'] as num?)?.toInt() ?? 0)),
++                        _kvLine('路径', (a['apk'] ?? '—').toString()),
++                        _kvLine('类型', a['system'] == true ? '系统应用' : '用户应用'),
++                      ],
++                    ),
++                  )
++                : const SizedBox(width: double.infinity, height: 0),
++          ),
+         ],
+       ),
+     );
+@@ -556,7 +581,17 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+             ),
+           ),
+         ),
+-        if (open && isDir) Padding(padding: const EdgeInsets.only(left: 16), child: _dirChildren(rootKey, full, depth + 1)),
++        AnimatedSize(
++          duration: const Duration(milliseconds: 180),
++          curve: Curves.easeOutCubic,
++          alignment: Alignment.topCenter,
++          child: open && isDir
++              ? Padding(
++                  padding: const EdgeInsets.only(left: 16),
++                  child: _dirChildren(rootKey, full, depth + 1),
++                )
++              : const SizedBox(width: double.infinity, height: 0),
++        ),
+       ],
+     );
+   }
+@@ -573,16 +608,24 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+       onDragStarted: () {
+         _dragDist = 0;
+         _dragClosed = false;
++        if (_dragP != 0 && mounted) setState(() => _dragP = 0);
+       },
+       onDragUpdate: (d) {
+         // 拖离抽屉一定距离就关闭抽屉，手指能接着拖到输入区
+         if (_dragClosed || widget.onClose == null) return;
+-        _dragDist += d.delta.distance;
++        _setDragProgress(_dragDist + d.delta.distance);
+         if (_dragDist > 70) {
+           _dragClosed = true;
+           widget.onClose!.call();
++          if (mounted) setState(() => _dragP = 0);
+         }
+       },
++      onDraggableCanceled: (_, __) {
++        if (mounted) setState(() => _dragP = 0);
++      },
++      onDragCompleted: () {
++        if (mounted) setState(() => _dragP = 0);
++      },
+       feedback: Material(
+         color: Colors.transparent,
+         child: Container(
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 84700cb..5c84b53 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 6.7.4+674
++version: 6.8.0+680
+ 
+ environment:
+   sdk: ^3.9.2
+-- 
+2.47.3
+
