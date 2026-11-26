@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -873,15 +874,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Widget _inputRow(AgentEngine engine) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFEDF1F6)),
-          boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 22, offset: Offset(0, 8))],
-        ),
-        child: Column(
+      child: GlassContainer.card(
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
@@ -967,7 +963,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   static const Map<String, String> _modeLabels = {'BUILD': '执行', 'PLAN': '规划', 'AUTO': '自动'};
