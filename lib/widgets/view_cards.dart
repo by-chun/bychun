@@ -657,14 +657,23 @@ class _StreamViewCardState extends State<_StreamViewCard> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(13, 11, 12, 11),
               child: Row(children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: running ? AppColors.brand : const Color(0xFF10B981),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+                running
+                    ? const SizedBox(
+                        width: 13,
+                        height: 13,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.brand,
+                        ),
+                      )
+                    : Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(widget.title,
