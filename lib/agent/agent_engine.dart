@@ -769,7 +769,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
         _add(ChatMsg('assistant', streamed, elapsedMs: tookMs));
       }
       final seenCalls = <String>{};
-      var consecutiveFail = 0;
       for (final tc in resp.toolCalls) {
         final sig = '${tc.name}|${jsonEncode(tc.args)}';
         if (!seenCalls.add(sig)) {
@@ -817,15 +816,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
           }
         }
         _add(ChatMsg('tool', r.content, toolName: tc.name, ok: r.ok));
-        consecutiveFail = r.ok ? 0 : consecutiveFail + 1;
-        if (consecutiveFail >= 3) {
-          final first = r.content.trim().split('\n').first;
-          _add(ChatMsg(
-            'assistant',
-            '连续 3 次工具失败，已停止本轮。最后错误：${first.length > 160 ? '${first.substring(0, 160)}…' : first}',
-          ));
-          return;
-        }
         if (tc.name == 'capture_start' || tc.name == 'capture_stop') {
           captureActive = tc.name == 'capture_start' && r.ok;
           notifyListeners();
