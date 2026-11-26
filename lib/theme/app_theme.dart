@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'liquid_glass.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:flutter/material.dart';
 
 class AppColors {
@@ -63,10 +64,11 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final glass = LiquidGlass(
-      radius: radius,
-      padding: padding,
-      child: child,
+    final glass = lg.GlassContainer.card(
+      child: Padding(
+        padding: padding ?? const EdgeInsets.all(14),
+        child: child,
+      ),
     );
     if (onTap == null && onLongPress == null) return Padding(padding: margin, child: glass);
     return Padding(
