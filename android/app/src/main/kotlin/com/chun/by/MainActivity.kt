@@ -1347,7 +1347,7 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
 
     private fun runSu(cmd: String): Map<String, Any> {
         return try {
-            val result = Shell.su(cmd).exec()
+            val result = Shell.cmd(cmd).exec()
             mapOf(
                 "stdout" to result.out.joinToString("\n"),
                 "stderr" to result.err.joinToString("\n"),
@@ -1362,7 +1362,7 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
     /** Operit 同款兜底：跑一次 su --version，看输出识别 KernelSU / APatch。 */
     private fun checkKernelSu(): Boolean {
         return try {
-            val result = Shell.su("su --version").exec()
+            val result = Shell.cmd("su --version").exec()
             val output = (result.out + result.err).joinToString("\n")
             output.contains("KernelSU", ignoreCase = true) || output.contains("APatch", ignoreCase = true)
         } catch (e: Exception) {
