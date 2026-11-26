@@ -398,15 +398,10 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
     final stat = '${counts.entries.map((e) => '${e.key}×${e.value}').join(' · ')}'
         '${fails.isEmpty ? '' : ' · 失败 ${fails.length}'}';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.66),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 1),
-        boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 20, offset: Offset(0, 6))],
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: GlassContainer.card(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
@@ -468,7 +463,8 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _rowCard(int k) {
@@ -480,9 +476,9 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
       padding: const EdgeInsets.only(bottom: 4),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFBFD),
+          color: Colors.white.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: const Color(0xFFF0F4FA)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
