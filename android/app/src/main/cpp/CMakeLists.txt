@@ -15,10 +15,10 @@ set_target_properties(gmem PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 add_custom_command(TARGET gmem POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../jniLibs/${ANDROID_ABI}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}
     COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:gmem>
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../jniLibs/${ANDROID_ABI}/libgmem.so
+        ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libgmem.so
     COMMENT "copy gmem -> jniLibs/${ANDROID_ABI}/libgmem.so"
 )
 
