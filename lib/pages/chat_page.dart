@@ -651,7 +651,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Future<void> _showAttachSheet() async {
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.white.withValues(alpha: 0.7),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => SafeArea(
@@ -714,9 +714,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: Colors.white.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEDF1F7)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
         ),
         child: Column(children: [
           Container(
