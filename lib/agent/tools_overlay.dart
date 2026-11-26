@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../native/native_bridge.dart';
+import '../native/gmem.dart';
 import '../pages/video_page.dart';
 import 'agent_engine.dart';
 import 'audio_service.dart';

@@ -1240,7 +1240,7 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                 if (img != null) break
                 Thread.sleep(50); tries++
             }
-            if (img == null) { vd.release(); imageReader.close(); return null }
+            if (img == null) { vd?.release(); imageReader.close(); return null }
             val plane = img.planes[0]
             val buffer = plane.buffer
             val pixelStride = plane.pixelStride
@@ -1250,7 +1250,7 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                 w + rowPadding / pixelStride, h, android.graphics.Bitmap.Config.ARGB_8888)
             bmp.copyPixelsFromBuffer(buffer)
             img.close()
-            vd.release(); imageReader.close()
+            vd?.release(); imageReader.close()
             virtualDisplay = null
             val cropped = android.graphics.Bitmap.createBitmap(bmp, 0, 0, w, h)
             val bos = java.io.ByteArrayOutputStream()

@@ -12,6 +12,7 @@ import android.view.WindowManager
 import io.flutter.embedding.android.FlutterView
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
+import io.flutter.embedding.engine.FlutterInjector
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.plugin.common.MethodChannel
 
@@ -82,7 +83,7 @@ class FloatingChatService(private val ctx: Context) {
 
             wm.addView(v, p)
 
-            engine = engine; view = v; lp = p
+            this.engine = engine; view = v; lp = p
             channel = MethodChannel(engine.dartExecutor.binaryMessenger, CHANNEL)
             channel?.setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -110,7 +111,7 @@ class FloatingChatService(private val ctx: Context) {
                     else -> result.notImplemented()
                 }
             }
-            this.instance = this
+            FloatingChatService.instance = this
             v.post { p.alpha = 1f; wm.updateViewLayout(v, p) }
         } catch (e: Throwable) {
             android.util.Log.e("FloatingChatService", "ensure failed", e)
