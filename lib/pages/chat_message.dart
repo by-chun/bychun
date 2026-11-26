@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../theme/toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -95,16 +96,18 @@ class UserBubble extends StatelessWidget {
       children: [
         Align(
           alignment: Alignment.centerRight,
-          child: Container(
-            margin: const EdgeInsets.only(top: 6, bottom: 2),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 290),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8EFFD),
-              borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 2),
+              child: GlassContainer.card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Text(text,
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.55)),
+                ),
+              ),
             ),
-            child: Text(text,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF1E3A8A), height: 1.55)),
           ),
         ),
         if (time != null)
@@ -138,15 +141,10 @@ class AssistantBubble extends StatelessWidget {
     final blocks = _split(text);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.62),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 1),
-          boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 20, offset: Offset(0, 6))],
-        ),
-        child: Column(
+      child: GlassContainer.card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (typing && text.trim().isEmpty)
@@ -214,7 +212,8 @@ class AssistantBubble extends StatelessWidget {
         ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   /// 拆成「普通文本 / 代码块」段。
