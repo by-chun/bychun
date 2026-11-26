@@ -48,9 +48,13 @@ void main() async {
 @pragma('vm:entry-point')
 void floatingChatMain() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MaterialApp(
+  runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: Scaffold(backgroundColor: Colors.transparent, body: FloatingChatApp()),
+    theme: ThemeData(
+      scaffoldBackgroundColor: Colors.transparent,
+      canvasColor: Colors.transparent,
+    ),
+    home: const Scaffold(backgroundColor: Colors.transparent, body: FloatingChatApp()),
   ));
 }
 

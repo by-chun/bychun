@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterView
+import io.flutter.embedding.android.RenderMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.FlutterInjector
@@ -66,7 +67,7 @@ class FloatingChatService(private val ctx: Context) {
             engine.dartExecutor.executeDartEntrypoint(entry)
             FlutterEngineCache.getInstance().put("floating_chat", engine)
 
-            val v = FlutterView(ctx.applicationContext)
+            val v = FlutterView(ctx.applicationContext, RenderMode.texture)
             v.attachToFlutterEngine(engine)
             v.setBackgroundColor(Color.TRANSPARENT)
 
