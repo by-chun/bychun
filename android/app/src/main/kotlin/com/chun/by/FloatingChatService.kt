@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
@@ -79,7 +81,7 @@ class FloatingChatService(private val ctx: Context) {
             p.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             p.x = 0
             p.y = dp(16)
-            p.alpha = 0f
+            p.alpha = 1f
 
             wm.addView(v, p)
 
@@ -112,13 +114,17 @@ class FloatingChatService(private val ctx: Context) {
                 }
             }
             FloatingChatService.instance = this
-            v.post { p.alpha = 1f; wm.updateViewLayout(v, p) }
         } catch (e: Throwable) {
             android.util.Log.e("FloatingChatService", "ensure failed", e)
+            Toast.makeText(ctx, "悬浮窗启动失败：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     fun show() {
+        if (!Settings.canDrawOverlays(ctx)) {
+            Toast.makeText(ctx, "请先开启悬浮窗权限（设置 → 权限 → 悬浮窗）", Toast.LENGTH_LONG).show()
+            return
+        }
         ensure()
         view?.post {
             lp?.let {
