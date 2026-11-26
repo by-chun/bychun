@@ -67,6 +67,7 @@ dependencies {
     compileOnly("de.robv.android.xposed:api:82")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
+    implementation("com.github.topjohnwu.libsu:core:6.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     // 各发行版官方 rootfs 多用 .tar.xz，需 xz 解压
     implementation("org.apache.commons:commons-compress:1.26.2")

@@ -10,6 +10,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import com.topjohnwu.superuser.Shell
 
 class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
 
@@ -668,7 +669,7 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                             granted("android.permission.READ_MEDIA_VIDEO") else storage
                         val mediaAudio = if (Build.VERSION.SDK_INT >= 33)
                             granted("android.permission.READ_MEDIA_AUDIO") else storage
-                        val root = ((runSu("id")["stdout"] as? String) ?: "").contains("uid=0")
+                        val root = (Shell.isAppGrantedRoot() ?: false) || checkKernelSu()
                         val shizuku = try { ShizukuBridge.available() } catch (e: Exception) { false }
                         runOnUiThread {
                             safeSuccess(result, mapOf(
@@ -1346,38 +1347,26 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
 
     private fun runSu(cmd: String): Map<String, Any> {
         return try {
-            var p: Process? = null
-            var lastErr: Exception? = null
-            for (bin in listOf("su", "/system/bin/su", "/system/xbin/su")) {
-                try { p = ProcessBuilder(bin, "-c", cmd).start(); break } catch (e: Exception) { lastErr = e }
-            }
-            if (p == null) throw lastErr ?: Exception("su not found")
-            val out = StringBuilder()
-            val err = StringBuilder()
-            val t1 = Thread {
-                try {
-                    BufferedReader(InputStreamReader(p.inputStream)).use { r -> r.forEachLine { out.appendLine(it) } }
-                } catch (_: Throwable) {
-                }
-            }
-            val t2 = Thread {
-                try {
-                    BufferedReader(InputStreamReader(p.errorStream)).use { r -> r.forEachLine { err.appendLine(it) } }
-                } catch (_: Throwable) {
-                }
-            }
-            t1.start(); t2.start()
-            val done = p.waitFor(60, TimeUnit.SECONDS)
-            if (!done) p.destroy()
-            t1.join(1000); t2.join(1000)
+            val result = Shell.su(cmd).exec()
             mapOf(
-                "stdout" to out.toString(),
-                "stderr" to err.toString(),
-                "code" to (if (done) p.exitValue() else -1),
-                "timeout" to !done,
+                "stdout" to result.out.joinToString("\n"),
+                "stderr" to result.err.joinToString("\n"),
+                "code" to result.code,
+                "timeout" to false,
             )
         } catch (e: Exception) {
             mapOf("stdout" to "", "stderr" to (e.message ?: "su error"), "code" to -1, "timeout" to false)
+        }
+    }
+
+    /** Operit 同款兜底：跑一次 su --version，看输出识别 KernelSU / APatch。 */
+    private fun checkKernelSu(): Boolean {
+        return try {
+            val result = Shell.su("su --version").exec()
+            val output = (result.out + result.err).joinToString("\n")
+            output.contains("KernelSU", ignoreCase = true) || output.contains("APatch", ignoreCase = true)
+        } catch (e: Exception) {
+            false
         }
     }
 
