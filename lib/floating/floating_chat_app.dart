@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -166,7 +164,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
                   _inputBar(),
                 ],
               ),
-              Positioned(right: 3, bottom: 3, child: _resizeHandle()),
+              Positioned(right: 2, bottom: 2, child: _resizeHandle()),
             ],
           ),
         ),
@@ -182,10 +180,10 @@ class _FloatingChatAppState extends State<FloatingChatApp>
         floatingChannel.invokeMethod('resize', {'dw': d.delta.dx, 'dh': d.delta.dy});
       },
       child: Container(
-        width: 28,
-        height: 28,
+        width: 18,
+        height: 18,
         alignment: Alignment.center,
-        child: Icon(Icons.open_in_full, size: 15, color: AppColors.muted.withValues(alpha: 0.7)),
+        child: Icon(Icons.open_in_full, size: 13, color: AppColors.muted.withValues(alpha: 0.7)),
       ),
     );
   }
@@ -281,7 +279,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
 
   Widget _inputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(11, 9, 11, 11),
+      padding: const EdgeInsets.fromLTRB(11, 9, 18, 18),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x80FFFFFF)))),
       child: Row(
         children: [

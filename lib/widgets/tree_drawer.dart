@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../theme/toast.dart';
 import '../state/drawer_ctrl.dart';
+import '../state/theme_controller.dart';
 import '../native/native_bridge.dart';
 import '../state/chat_refs.dart';
 import '../state/active_session.dart';
@@ -1071,6 +1072,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     return [
       _section('settings', '设置', _typeIcon(Icons.settings_outlined, const Color(0xFF2563EB))),
       if (open) ...[
+        _themeRow(),
         _settingNode('provider', 'AI 供应商', const ProvidersPage(embedded: true)),
         _settingNode('persona', '人物', const PersonasPage(embedded: true)),
         _settingNode('subagent', '子代理', const SkillsSubPage(embedded: true)),
@@ -1082,6 +1084,39 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
         _settingNode('backup', '备份与恢复', const BackupPage(embedded: true)),
       ],
     ];
+  }
+
+  /// 7 套主题色板：点一个即切换全局主题。
+  Widget _themeRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(30, 8, 12, 10),
+      child: Row(
+        children: [
+          const Text('主题', style: TextStyle(fontSize: 12.5, color: Color(0xFF334155))),
+          const SizedBox(width: 10),
+          ...List.generate(rowanThemes.length, (i) {
+            final t = rowanThemes[i];
+            final active = ref.watch(themeColorProvider).accent == t.accent;
+            return GestureDetector(
+              onTap: () => ref.read(themeColorProvider.notifier).set(i),
+              child: Container(
+                width: 22,
+                height: 22,
+                margin: const EdgeInsets.only(right: 7),
+                decoration: BoxDecoration(
+                  gradient: t.gradient,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: active ? const Color(0xFF0F172A) : Colors.white,
+                    width: active ? 2 : 1.5,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   /// 设置项：在树里展开后直接显示该页内容（不分页跳转）。
