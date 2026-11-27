@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'dart:math' as math;
@@ -8,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../theme/liquid_glass.dart';
 import '../theme/glass.dart';
+import '../theme/glass_kit.dart';
 import '../state/theme_controller.dart';
 import '../theme/glass_dialog.dart';
 import '../theme/toast.dart';
@@ -576,20 +578,36 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   void _showLogs(AgentEngine engine) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF141B2E),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => ListenableBuilder(
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F1628).withValues(alpha: 0.92),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: ListenableBuilder(
         listenable: engine,
         builder: (ctx, __) {
           final logs = engine.messages.where((m) => m.role == 'tool').toList();
           return SafeArea(
         child: SizedBox(
-          height: 420,
+          height: 440,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
                 child: Row(children: [
                   const Text('运行日志', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
                   const SizedBox(width: 8),
@@ -646,56 +664,52 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           );
         },
       ),
+      ),
+      ),
     );
   }
 
   Future<void> _showAttachSheet() async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.white.withValues(alpha: 0.10),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
-      builder: (ctx) => SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A3550),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+    final action = await showGlassSheet<String>(
+      context,
+      title: '添加内容',
+      fixedHeight: false,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(children: [
+            Expanded(
+              child: GlassGridCell(
+                icon: Icons.image_outlined,
+                title: '照片',
+                desc: '从相册选',
+                onTap: () => Navigator.of(context).pop('photo'),
               ),
-              const SizedBox(height: 14),
-              const Text('添加内容',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.text)),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                  child: _attachCell(ctx, Icons.image_outlined, '照片', '从相册选', 'photo'),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _attachCell(ctx, Icons.folder_outlined, '文件', '任意文件', 'file'),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _attachCell(ctx, Icons.layers_outlined, '切换模型', '选这次用哪个', 'model'),
-                ),
-              ]),
-              const SizedBox(height: 12),
-              const Text('点空白处或下滑关闭',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF7886A0))),
-            ],
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GlassGridCell(
+                icon: Icons.folder_outlined,
+                title: '文件',
+                desc: '任意文件',
+                onTap: () => Navigator.of(context).pop('file'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GlassGridCell(
+                icon: Icons.layers_outlined,
+                title: '切换模型',
+                desc: '选这次用哪个',
+                onTap: () => Navigator.of(context).pop('model'),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          const Center(
+            child: Text('点空白处或下滑关闭', style: TextStyle(fontSize: 10, color: AppColors.muted)),
           ),
-        ),
+        ],
       ),
     );
     if (!mounted || action == null) return;
@@ -706,38 +720,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     } else if (action == 'model') {
       await _pickModel();
     }
-  }
-
-  Widget _attachCell(BuildContext ctx, IconData icon, String title, String desc, String value) {
-    return InkWell(
-      onTap: () => Navigator.of(ctx).pop(value),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
-        ),
-        child: Column(children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E2A45),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 19, color: AppColors.brand),
-          ),
-          const SizedBox(height: 8),
-          Text(title,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text)),
-          const SizedBox(height: 3),
-          Text(desc, style: const TextStyle(fontSize: 9, color: Color(0xFF7886A0))),
-        ]),
-      ),
-    );
   }
 
   Future<void> _pickPhoto() async {
@@ -833,18 +815,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _roundKey(IconData icon, VoidCallback onTap, {Color bg = const Color(0xFF1A2338), Color fg = const Color(0xFF9AA7C0)}) {
-    return ScaleOnTap(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-        child: Icon(icon, size: 20, color: fg),
-      ),
-    );
-  }
-
   Widget _refChips() {
     final refs = ref.watch(chatRefsProvider);
     if (refs.isEmpty) return const SizedBox.shrink();
@@ -873,100 +843,130 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }
 
   Widget _inputRow(AgentEngine engine) {
+    final accent = ref.watch(themeColorProvider).accent;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      child: lg.GlassContainer.card(
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF141B2E),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _input,
-                minLines: 1,
-                maxLines: 5,
-                style: const TextStyle(fontSize: 13.5, height: 1.45),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                  hintText: '发消息，或把文件拖进来…',
-                  hintStyle: TextStyle(fontSize: 13.5, color: Color(0xFF9AA4B2)),
-                ),
-                onSubmitted: (_) => _send(engine),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // chips 行：模式 + 模型 + 工作区（原型 .chips）
+          SizedBox(
+            height: 26,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
               children: [
-                _roundKey(Icons.add_rounded, _showAttachSheet),
-                const Spacer(),
                 _modeChip(),
-                const SizedBox(width: 8),
-                ListenableBuilder(
-                  listenable: engine,
-                  builder: (_, __) => SizedBox(
-                    width: 38,
-                    height: 38,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _ContextRingPainter(
-                              ratio: engine.contextRatio,
-                              color: _contextColor(engine.contextRatio),
-                            ),
-                          ),
-                        ),
-                        engine.running
-                            ? ScaleOnTap(
-                                onTap: () => engine.stop(),
-                                child: Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: const BoxDecoration(
-                                      color: Color(0xFFEF4444), shape: BoxShape.circle),
-                                  child: engine.stopping
-                                      ? const Center(
-                                          child: SizedBox(
-                                            width: 13,
-                                            height: 13,
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                valueColor: AlwaysStoppedAnimation(Colors.white)),
-                                          ),
-                                        )
-                                      : const Icon(Icons.stop_rounded, size: 17, color: Colors.white),
-                                ),
-                              )
-                            : ScaleOnTap(
-                                onTap: () => _send(engine),
-                                child: Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                      gradient: ref.watch(themeColorProvider).gradient, shape: BoxShape.circle),
-                                  child: const Icon(Icons.arrow_upward_rounded, size: 17, color: Colors.white),
-                                ),
-                              ),
-                      ],
-                    ),
-                  ),
-                ),
+                const SizedBox(width: 6),
+                if ((engine.workspace ?? '').isNotEmpty) _glassChip(engine.workspace!.split('/').last),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 9),
+          // 单行输入（原型 .row）
+          Row(
+            children: [
+              GlassSquareButton(icon: Icons.add_rounded, size: 40, onTap: _showAttachSheet),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: TextField(
+                    controller: _input,
+                    minLines: 1,
+                    maxLines: 5,
+                    style: const TextStyle(fontSize: 13, color: AppColors.text, height: 1.45),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      hintText: '发消息…',
+                      hintStyle: TextStyle(fontSize: 13, color: AppColors.muted),
+                    ),
+                    onSubmitted: (_) => _send(engine),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ListenableBuilder(
+                listenable: engine,
+                builder: (_, __) => SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _ContextRingPainter(
+                            ratio: engine.contextRatio,
+                            color: _contextColor(engine.contextRatio),
+                          ),
+                        ),
+                      ),
+                      engine.running
+                          ? ScaleOnTap(
+                              onTap: () => engine.stop(),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: const BoxDecoration(
+                                    gradient: LinearGradient(colors: [Color(0xFFF87171), Color(0xFFDC2626)]),
+                                    borderRadius: BorderRadius.all(Radius.circular(14))),
+                                child: engine.stopping
+                                    ? const Center(
+                                        child: SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation(Colors.white)),
+                                        ),
+                                      )
+                                    : const Icon(Icons.stop_rounded, size: 18, color: Colors.white),
+                              ),
+                            )
+                          : ScaleOnTap(
+                              onTap: () => _send(engine),
+                              pressedScale: 0.88,
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                    gradient: LinearGradient(colors: [accent, Color.lerp(accent, const Color(0xFF8A6BFF), 0.5)!]),
+                                    borderRadius: const BorderRadius.all(Radius.circular(14)),
+                                    boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6))]),
+                                child: const Icon(Icons.arrow_upward_rounded, size: 18, color: Colors.white),
+                              ),
+                            ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-    ),
-  );
+    );
   }
+
+  /// 玻璃胶囊 chip（原型 .chip）。
+  Widget _glassChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(text, style: const TextStyle(fontSize: 9.5, color: AppColors.muted)),
+    );
+  }
+
 
   static const Map<String, String> _modeLabels = {'BUILD': '执行', 'PLAN': '规划', 'AUTO': '自动'};
 

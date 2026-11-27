@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../theme/toast.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import '../theme/app_theme.dart';
+import '../state/theme_controller.dart';
 import '../agent/agent_engine.dart';
 
 /// 消息列表的一项：单条消息，或一组连续的工具调用。
@@ -99,13 +101,30 @@ class UserBubble extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 290),
             child: Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 2),
-              child: GlassContainer.card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Text(text,
-                      style: const TextStyle(fontSize: 13, color: Color(0xFFD4DBE8), height: 1.55)),
-                ),
+              padding: const EdgeInsets.only(top: 6, bottom: 2, left: 48),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final accent = ref.watch(themeColorProvider).accent;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [accent, Color.lerp(accent, const Color(0xFF8A6BFF), 0.5)!],
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                        bottomLeft: Radius.circular(16),
+                        bottomRight: Radius.circular(5),
+                      ),
+                      boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.4), blurRadius: 18, offset: const Offset(0, 6))],
+                    ),
+                    child: Text(text,
+                        style: const TextStyle(fontSize: 13, color: Colors.white, height: 1.55)),
+                  );
+                },
               ),
             ),
           ),

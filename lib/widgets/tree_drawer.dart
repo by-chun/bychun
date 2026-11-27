@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/glass_kit.dart';
 import '../theme/toast.dart';
 import '../state/drawer_ctrl.dart';
 import '../state/theme_controller.dart';
@@ -215,19 +216,23 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
   }
 
   Widget _card(List<Widget> children) {
-    return GlassContainer.card(
+    return LiquidPanel(
+      radius: 15,
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: EdgeInsets.zero,
       child: Column(children: children),
     );
   }
 
   Widget _typeIcon(IconData ic, Color color) => Container(
-        width: 26,
-        height: 26,
+        width: 30,
+        height: 30,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.white.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: AppColors.border),
         ),
-        child: Icon(ic, size: 15, color: color),
+        child: Icon(ic, size: 15, color: AppColors.text),
       );
 
   Widget _section(String key, String title, Widget icon) {
@@ -241,16 +246,16 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             SizedBox(
               width: 10,
               child: Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
-                  size: 14, color: const Color(0xFFC3CCD8)),
+                  size: 14, color: AppColors.muted),
             ),
             const SizedBox(width: 6),
             icon,
             const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFEAF0FB))),
+            Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
             const Spacer(),
             if (key == 'apps' && _apps != null)
               Text('${_apps!.length}',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFFC3CCD8), fontFamily: 'monospace')),
+                  style: const TextStyle(fontSize: 10, color: AppColors.muted, fontFamily: 'monospace')),
             const SizedBox(width: 4),
           ],
         ),
@@ -1069,116 +1074,146 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
   }
 
   // ---------------- 设置 ----------------
+  /// 抽屉里的「设置」：一张卡片行，点开弹底部玻璃抽屉（原型：设置从下往上）。
   List<Widget> _settingRows() {
-    final open = _isOpen('settings');
     return [
-      _section('settings', '设置', _typeIcon(Icons.settings_outlined, const Color(0xFF2563EB))),
-      if (open) ...[
-        _themeRow(),
-        _settingNode('provider', 'AI 供应商', const ProvidersPage(embedded: true)),
-        _settingNode('persona', '人物', const PersonasPage(embedded: true)),
-        _settingNode('subagent', '子代理', const SkillsSubPage(embedded: true)),
-        _settingNode('prompt', '提示词', const PromptPage(embedded: true)),
-        _settingNode('container', '容器', const ContainerPage(embedded: true)),
-        _settingNode('perm', '权限', const PowerPage(embedded: true)),
-        _settingNode('mcp', 'MCP 服务器', const McpPage(embedded: true)),
-        _settingNode('compact', '上下文压缩', const CompactPage(embedded: true)),
-        _settingNode('backup', '备份与恢复', const BackupPage(embedded: true)),
-      ],
+      _card([
+        InkWell(
+          onTap: () => _openSettingsSheet(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 12),
+            child: Row(children: [
+              _typeIcon(Icons.settings_outlined, AppColors.brand),
+              const SizedBox(width: 9),
+              const Expanded(
+                child: Text('设置', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.muted),
+            ]),
+          ),
+        ),
+      ]),
     ];
   }
 
-  /// 7 套主题色板：点一个即切换全局主题。
+  /// 设置项：图标 + 标题 + 副标题，对应一个 embedded 页面。
+  static const _settingsEntries = <(IconData, String, String, String)>[
+    (Icons.memory_outlined, 'AI 供应商', '模型 / Key / 地址', 'provider'),
+    (Icons.person_outline_rounded, '人物', '角色设定', 'persona'),
+    (Icons.groups_outlined, '子代理', '多角色协作', 'subagent'),
+    (Icons.description_outlined, '提示词', '内置规则', 'prompt'),
+    (Icons.inventory_2_outlined, '容器', 'PRoot 环境', 'container'),
+    (Icons.shield_outlined, '权限', 'root / 悬浮窗 / VPN', 'perm'),
+    (Icons.hub_outlined, 'MCP 服务器', '外部工具接入', 'mcp'),
+    (Icons.compress_outlined, '上下文压缩', '超出时自动压缩', 'compact'),
+    (Icons.settings_backup_restore_outlined, '备份与恢复', '导出 / 导入配置', 'backup'),
+  ];
+
+  Widget _settingsPage(String key) {
+    switch (key) {
+      case 'provider': return const ProvidersPage(embedded: true);
+      case 'persona': return const PersonasPage(embedded: true);
+      case 'subagent': return const SkillsSubPage(embedded: true);
+      case 'prompt': return const PromptPage(embedded: true);
+      case 'container': return const ContainerPage(embedded: true);
+      case 'perm': return const PowerPage(embedded: true);
+      case 'mcp': return const McpPage(embedded: true);
+      case 'compact': return const CompactPage(embedded: true);
+      case 'backup': return const BackupPage(embedded: true);
+    }
+    return const SizedBox.shrink();
+  }
+
+  /// 7 套主题色板 + 自定义背景图按钮（原型：主题行）。用 Consumer 取 ref，放进 sheet 也能用。
   Widget _themeRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(30, 8, 12, 10),
-      child: Row(
-        children: [
-          const Text('主题', style: TextStyle(fontSize: 12.5, color: Color(0xFFD4DBE8))),
-          const SizedBox(width: 10),
-          ...List.generate(rowanThemes.length, (i) {
-            final t = rowanThemes[i];
-            final active = ref.watch(themeColorProvider).accent == t.accent;
-            return GestureDetector(
-              onTap: () => ref.read(themeColorProvider.notifier).set(i),
-              child: Container(
-                width: 22,
-                height: 22,
-                margin: const EdgeInsets.only(right: 7),
-                decoration: BoxDecoration(
-                  gradient: t.gradient,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: active ? const Color(0xFFEAF0FB) : Colors.white,
-                    width: active ? 2 : 1.5,
+    return Consumer(
+      builder: (context, ref, _) {
+        final cur = ref.watch(themeColorProvider);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
+          child: Row(
+            children: [
+              const Text('主题', style: TextStyle(fontSize: 12.5, color: AppColors.text)),
+              const SizedBox(width: 10),
+              for (var i = 0; i < rowanThemes.length; i++)
+                GestureDetector(
+                  onTap: () => ref.read(themeColorProvider.notifier).set(i),
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    margin: const EdgeInsets.only(right: 7),
+                    decoration: BoxDecoration(
+                      gradient: rowanThemes[i].gradient,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: cur.accent == rowanThemes[i].accent ? Colors.white : AppColors.border,
+                        width: cur.accent == rowanThemes[i].accent ? 2 : 1.5,
+                      ),
+                    ),
                   ),
                 ),
+              GestureDetector(
+                onTap: () async {
+                  final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+                  if (x == null) return;
+                  await ref.read(appearanceProvider.notifier).setImage(x.path);
+                },
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1A2338),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.add_photo_alternate_outlined, size: 13, color: AppColors.muted),
+                ),
               ),
-            );
-          }),
-          GestureDetector(
-            onTap: _pickBackground,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFCBD5E1)),
-              ),
-              child: const Icon(Icons.add_photo_alternate_outlined, size: 13, color: Color(0xFF9AA7C0)),
-            ),
+            ],
           ),
+        );
+      },
+    );
+  }
+
+  /// 底部玻璃设置抽屉：主题色板 + 设置项列表；点项进入二级页。
+  void _openSettingsSheet() {
+    widget.onClose?.call();
+    showGlassSheet<void>(
+      context,
+      title: '设置',
+      maxHeight: 0.86,
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          _themeRow(),
+          for (final e in _settingsEntries)
+            GlassOptionRow(
+              icon: e.$1,
+              title: e.$2,
+              subtitle: e.$3,
+              onTap: () => _openSettingDetail(e.$4, e.$2),
+            ),
         ],
       ),
     );
   }
 
-  /// 选一张本地图作为液态玻璃的壁纸背景。
-  Future<void> _pickBackground() async {
-    final x = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (x == null) return;
-    await ref.read(appearanceProvider.notifier).setImage(x.path);
-  }
-
-  /// 设置项：在树里展开后直接显示该页内容（不分页跳转）。
-  Widget _settingNode(String key, String title, Widget page) {
-    final k = 'set:$key';
-    final open = _isOpen(k);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () => _toggle(k),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(30, 9, 12, 9),
-            child: Row(children: [
-              Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
-                  size: 13, color: const Color(0xFFC3CCD8)),
-              const SizedBox(width: 6),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 12.5, color: Color(0xFFD4DBE8)))),
-              const Icon(Icons.chevron_right_rounded, size: 15, color: Color(0xFFCBD5E1)),
-            ]),
-          ),
+  /// 设置二级页：同样是底部玻璃抽屉，带返回。
+  void _openSettingDetail(String key, String title) {
+    Navigator.of(context).pop();
+    showGlassSheet<void>(
+      context,
+      title: title,
+      maxHeight: 0.90,
+      body: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: LiquidPanel(
+          radius: 14,
+          margin: EdgeInsets.zero,
+          padding: EdgeInsets.zero,
+          child: _settingsPage(key),
         ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: open
-              ? Container(
-                  height: 420,
-                  margin: const EdgeInsets.fromLTRB(24, 2, 10, 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
-                  ),
-                  child: ClipRRect(borderRadius: BorderRadius.circular(12), child: page),
-                )
-              : const SizedBox(width: double.infinity, height: 0),
-        ),
-      ],
+      ),
     );
   }
 
