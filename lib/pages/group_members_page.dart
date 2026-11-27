@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db_provider.dart';
+import '../data/app_db.dart';
 import '../theme/app_theme.dart';
 import '../theme/glass_kit.dart';
 import '../theme/toast.dart';

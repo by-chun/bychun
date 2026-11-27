@@ -263,7 +263,6 @@ class GlassField extends StatelessWidget {
   final TextEditingController? controller;
   final bool obscure;
   final int maxLines;
-  final String? initialValue;
   const GlassField({
     super.key,
     this.hint,
@@ -271,7 +270,6 @@ class GlassField extends StatelessWidget {
     this.controller,
     this.obscure = false,
     this.maxLines = 1,
-    this.initialValue,
   });
 
   @override
@@ -280,7 +278,6 @@ class GlassField extends StatelessWidget {
       controller: controller,
       obscureText: obscure,
       maxLines: maxLines,
-      initialValue: initialValue,
       style: const TextStyle(fontSize: 13, color: AppColors.text),
       decoration: InputDecoration(
         hintText: hint,
