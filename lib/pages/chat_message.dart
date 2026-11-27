@@ -149,7 +149,18 @@ class AssistantBubble extends StatelessWidget {
   final bool typing;
   final int? elapsedMs;
   final DateTime? time;
-  const AssistantBubble({super.key, required this.text, this.typing = false, this.elapsedMs, this.time});
+  /// 群聊里发言的成员名（空 = 单会话，不显示）
+  final String sender;
+  final Color? senderColor;
+  const AssistantBubble({
+    super.key,
+    required this.text,
+    this.typing = false,
+    this.elapsedMs,
+    this.time,
+    this.sender = '',
+    this.senderColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +169,7 @@ class AssistantBubble extends StatelessWidget {
 
   Widget _body(BuildContext context) {
     final blocks = _split(text);
+    final c = senderColor ?? AppColors.brand;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: GlassContainer.card(
@@ -166,6 +178,18 @@ class AssistantBubble extends StatelessWidget {
           child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+        if (sender.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(children: [
+              Container(
+                width: 8, height: 8,
+                decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 5),
+              Text(sender, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: c)),
+            ]),
+          ),
           if (typing && text.trim().isEmpty)
             const _ThinkingDots()
           else

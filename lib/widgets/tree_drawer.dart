@@ -19,6 +19,7 @@ import '../widgets/app_icon.dart';
 import '../pages/plugins_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/personas_page.dart';
+import '../pages/group_members_page.dart';
 import '../pages/container_page.dart';
 import '../pages/compact_page.dart';
 import '../pages/backup_page.dart';
@@ -501,77 +502,104 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
       stream: db.watchSessions(),
       builder: (context, snap) {
         final list = snap.data ?? const <Session>[];
-        if (list.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.fromLTRB(34, 4, 10, 10),
-            child: Text('（还没有会话）', style: TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
-          );
-        }
+        // 会话分类：单会话 / 群聊 各一组，互不混在一起
+        final singles = list.where((s) => s.kind != 'group').toList();
+        final groups = list.where((s) => s.kind == 'group').toList();
         // 组内切换会话：列表做 180ms 轻微滑动（active 作 key，切换时触发）
         return AnimatedSlide(
           key: ValueKey('session-list-$active'),
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           offset: Offset.zero,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.04, end: 0.0),
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            builder: (_, v, __) => Transform.translate(
-              offset: Offset(0, v * 8),
-              child: Column(children: [
-          for (final s in list.take(30))
-            Dismissible(
-              key: ValueKey('session-${s.id}'),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 16),
-                color: const Color(0xFF2A1A1A),
-                child: const Text('删除',
-                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _groupLabel('群聊'),
+              if (groups.isEmpty) _emptyHint('（还没有群聊）'),
+              for (final s in groups.take(30)) _sessionTile(db, s, active, isGroup: true),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(34, 2, 10, 8),
+                child: Row(children: [
+                  InkWell(
+                    onTap: () => _newGroup(db),
+                    child: Text('＋ 新群聊', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
+                  ),
+                ]),
               ),
-              onDismissed: (_) async {
-                await db.deleteSession(s.id);
-                if (ref.read(activeSessionProvider) == s.id) {
-                  ref.read(agentEngineProvider).newConversation();
-                  ref.read(activeSessionProvider.notifier).reset();
-                }
-              },
-              child: _DrawerRow(
-                active: s.id == active,
-                onTap: () {
-                  ref.read(activeSessionProvider.notifier).open(s.id);
-                  widget.onClose?.call();
-                },
-                icon: s.id == active ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
-                label: s.title.isEmpty ? '新对话' : s.title,
+              _groupLabel('单会话'),
+              if (singles.isEmpty) _emptyHint('（还没有会话）'),
+              for (final s in singles.take(30)) _sessionTile(db, s, active, isGroup: false),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(34, 2, 10, 8),
+                child: Row(children: [
+                  InkWell(
+                    onTap: () {
+                      ref.read(agentEngineProvider).newConversation();
+                      ref.read(activeSessionProvider.notifier).reset();
+                      widget.onClose?.call();
+                    },
+                    child: Text('＋ 新对话', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
+                  ),
+                  const Spacer(),
+                  InkWell(
+                    onTap: _clearSessions,
+                    child: const Text('全部删除', style: TextStyle(fontSize: 11, color: Color(0xFFDC2626))),
+                  ),
+                ]),
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.only(left: 34, right: 10, top: 2, bottom: 8),
-            child: Row(children: [
-              InkWell(
-                onTap: () {
-                  ref.read(agentEngineProvider).newConversation();
-                  ref.read(activeSessionProvider.notifier).reset();
-                  widget.onClose?.call();
-                },
-                child: Text('＋ 新对话', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
-              ),
-              const Spacer(),
-              InkWell(
-                onTap: _clearSessions,
-                child: const Text('全部删除', style: TextStyle(fontSize: 11, color: Color(0xFFDC2626))),
-              ),
-            ]),
-          ),
-              ]),
-            ),
+            ],
           ),
         );
       },
     );
+  }
+
+  Widget _groupLabel(String t) => Padding(
+        padding: const EdgeInsets.fromLTRB(34, 8, 10, 4),
+        child: Text(t, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.muted)),
+      );
+
+  Widget _emptyHint(String t) => Padding(
+        padding: const EdgeInsets.fromLTRB(34, 4, 10, 6),
+        child: Text(t, style: const TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
+      );
+
+  /// 会话条目：带选中高亮、左滑删除；群聊条目带一个小标记。
+  Widget _sessionTile(AppDb db, Session s, int? active, {required bool isGroup}) {
+    return Dismissible(
+      key: ValueKey('session-${s.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        color: const Color(0xFF2A1A1A),
+        child: const Text('删除', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
+      ),
+      onDismissed: (_) async {
+        await db.deleteSession(s.id);
+        if (ref.read(activeSessionProvider) == s.id) {
+          ref.read(agentEngineProvider).newConversation();
+          ref.read(activeSessionProvider.notifier).reset();
+        }
+      },
+      child: _DrawerRow(
+        active: s.id == active,
+        onTap: () {
+          ref.read(activeSessionProvider.notifier).open(s.id);
+          widget.onClose?.call();
+        },
+        icon: isGroup ? Icons.groups_rounded : (s.id == active ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded),
+        label: s.title.isEmpty ? (isGroup ? '新群聊' : '新对话') : s.title,
+      ),
+    );
+  }
+
+  /// 新建群聊：建会话、打开、关抽屉。
+  Future<void> _newGroup(AppDb db) async {
+    final engine = ref.read(agentEngineProvider);
+    final id = await engine.newGroup(db, '新群聊');
+    ref.read(activeSessionProvider.notifier).open(id);
+    widget.onClose?.call();
   }
 
   Future<void> _clearSessions() async {
@@ -1140,6 +1168,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     (Icons.memory_outlined, 'AI 供应商', '模型 / Key / 地址', 'provider'),
     (Icons.person_outline_rounded, '人物', '角色设定', 'persona'),
     (Icons.groups_outlined, '子代理', '多角色协作', 'subagent'),
+    (Icons.diversity_3_outlined, '群成员', '群聊里各模型各干各的', 'members'),
     (Icons.description_outlined, '提示词', '内置规则', 'prompt'),
     (Icons.inventory_2_outlined, '容器', 'PRoot 环境', 'container'),
     (Icons.shield_outlined, '权限', 'root / 悬浮窗 / VPN', 'perm'),
@@ -1153,6 +1182,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
       case 'provider': return const ProvidersPage(embedded: true);
       case 'persona': return const PersonasPage(embedded: true);
       case 'subagent': return const SkillsSubPage(embedded: true);
+      case 'members': return const GroupMembersPage(embedded: true);
       case 'prompt': return const PromptPage(embedded: true);
       case 'container': return const ContainerPage(embedded: true);
       case 'perm': return const PowerPage(embedded: true);

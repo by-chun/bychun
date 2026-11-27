@@ -49,6 +49,9 @@ class ChatMsg {
   /// 消息时间（展示 HH:mm），历史消息从数据库 createdAt 读回。
   final DateTime? time;
 
+  /// 群聊里是哪个成员说的；单会话为空。
+  final String sender;
+
   const ChatMsg(
     this.role,
     this.text, {
@@ -59,6 +62,7 @@ class ChatMsg {
     this.viewData,
     this.elapsedMs,
     this.time,
+    this.sender = '',
   });
 }
 
@@ -100,6 +104,104 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
 
   /// 已点了停止，正在等后台退出（UI 用它显示「停止中」）。
   bool get stopping => _stopping;
+
+  // ================= 群聊 =================
+  /// 当前会话是否为群聊（kind == 'group'）。
+  bool _isGroup = false;
+  bool get isGroup => _isGroup;
+
+  /// 正在发言的群成员名（null = 没有成员在说话）。
+  String? _speakingMember;
+  String? get speakingMember => _speakingMember;
+
+  /// 群聊：用户发一条，按顺序让每个启用的成员各回一轮。
+  /// 每个成员用自己的供应商配置 + 自己的角色提示词（可选叠加人物设定）。
+  Future<void> _runGroupTurn() async {
+    final db = _db;
+    final sid = _sid;
+    if (db == null || sid == null) return;
+    final members = (await db.allGroupMembers()).where((m) => m.enabled).toList();
+    if (members.isEmpty) {
+      _add(const ChatMsg('assistant', '（群聊里还没有启用的成员，去 设置 → 群成员 添加）'));
+      return;
+    }
+    final (providers, activeName) = await ProviderStore.loadAllWithActive();
+    final personas = await PersonaStore.load();
+    final gen = ++_runGen;
+    _running = true;
+    _stopRequested = false;
+    _stopping = false;
+    _aborted = false;
+    notifyListeners();
+    try {
+      // 群聊上下文：把历史消息标上发言者名字，让每个成员知道谁说了什么
+      final history = <Map<String, dynamic>>[];
+      for (final m in messages) {
+        if (m.role == 'user') {
+          history.add({'role': 'user', 'content': m.text});
+        } else if (m.role == 'assistant') {
+          final who = _senderOf(m);
+          history.add({
+            'role': 'assistant',
+            'content': who == null || who.isEmpty ? m.text : '[$who] ${m.text}',
+          });
+        }
+      }
+      for (final mem in members) {
+        if (_stopRequested || _aborted || _runGen != gen) break;
+        final prov = ProviderStore.activeOf(providers, mem.provider) ??
+            ProviderStore.activeOf(providers, activeName);
+        if (prov == null) {
+          _add(ChatMsg('assistant', '（成员「${mem.name}」没有可用的供应商配置）', sender: mem.name));
+          continue;
+        }
+        final personaText = personas
+            .where((p0) => p0.name == mem.persona && mem.persona.isNotEmpty)
+            .map((p0) => p0.persona)
+            .join('\n');
+        final sys = <String>[
+          '你正在一个多模型群聊里发言。你的名字是「${mem.name}」。',
+          '群里其他成员的发言以 [名字] 开头。用简短、直接的方式回应，不要重复别人说过的内容。',
+          if (mem.rolePrompt.isNotEmpty) '你在群里的角色设定：\n${mem.rolePrompt}',
+          if (personaText.isNotEmpty) '人物设定：\n$personaText',
+        ].join('\n\n');
+        final api = <Map<String, dynamic>>[
+          {'role': 'system', 'content': sys},
+          ...history,
+        ];
+        _speakingMember = mem.name;
+        notifyListeners();
+        final t0 = DateTime.now();
+        String text;
+        try {
+          final llm = LlmClient(LlmConfig(
+            baseUrl: prov.baseUrl,
+            apiKey: prov.apiKey,
+            model: mem.model.isNotEmpty ? mem.model : prov.model,
+          ));
+          final r = await llm.chat(api, const []);
+          text = r.error != null ? '（出错：${r.error}）' : r.text;
+        } catch (e) {
+          text = '（出错：$e）';
+        }
+        final elapsed = DateTime.now().difference(t0).inMilliseconds;
+        _speakingMember = null;
+        if (text.trim().isEmpty) continue;
+        final msg = ChatMsg('assistant', text.trim(), elapsedMs: elapsed, sender: mem.name);
+        _add(msg);
+        history.add({'role': 'assistant', 'content': '[${mem.name}] ${text.trim()}'});
+      }
+    } finally {
+      _speakingMember = null;
+      if (_runGen == gen) {
+        _running = false;
+        _stopping = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  String? _senderOf(ChatMsg m) => m.sender.isEmpty ? null : m.sender;
 
   void stop() {
     if (!_running && pendingPermission == null) return;
@@ -402,8 +504,9 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     messages.clear();
     final rows = await db.messagesOf(sessionId);
     for (final r in rows) {
-      messages.add(ChatMsg(r.role, r.content, time: r.createdAt));
+      messages.add(ChatMsg(r.role, r.content, time: r.createdAt, sender: r.sender));
     }
+    _isGroup = (await db.sessionKind(sessionId)) == 'group';
     notifyListeners();
   }
 
@@ -411,8 +514,17 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
   void newConversation() {
     _abortRun();
     _sid = null;
+    _isGroup = false;
     messages.clear();
     notifyListeners();
+  }
+
+  /// 新建一个群聊会话（kind = group）并打开它。
+  Future<int> newGroup(AppDb db, String title) async {
+    _abortRun();
+    final id = await db.createSession(title.isEmpty ? '新群聊' : title, kind: 'group');
+    await openSession(db, id);
+    return id;
   }
 
   void _abortRun() {
@@ -451,12 +563,15 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
             viewTitle: m.viewTitle,
             viewData: m.viewData,
             elapsedMs: m.elapsedMs,
-            time: DateTime.now());
+            time: DateTime.now(),
+            sender: m.sender);
     messages.add(msg);
     final db = _db;
     final sid = _sid;
     // 视图卡是临时渲染，不入库（历史里只保留文本摘要）
-    if (msg.role != 'view' && db != null && sid != null) db.addMessage(sid, msg.role, msg.text);
+    if (msg.role != 'view' && db != null && sid != null) {
+      db.addMessage(sid, msg.role, msg.text, sender: msg.sender);
+    }
     notifyListeners();
   }
 
@@ -474,6 +589,12 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     final text = input.trim();
     if (text.isEmpty) return;
     _add(ChatMsg('user', text));
+
+    // 群聊：不走工具循环，直接让每个成员轮流发言
+    if (_isGroup) {
+      await _runGroupTurn();
+      return;
+    }
 
     switch (text) {
       case '/tools':

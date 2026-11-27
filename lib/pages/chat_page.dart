@@ -155,7 +155,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final w = switch (item) {
       UserItem u => UserBubble(text: u.msg.text, time: u.msg.time),
       AssistantItem a => AssistantBubble(
-          text: a.msg.text, typing: a.typing, elapsedMs: a.msg.elapsedMs, time: a.msg.time),
+          text: a.msg.text, typing: a.typing, elapsedMs: a.msg.elapsedMs, time: a.msg.time, sender: a.msg.sender),
       ToolGroupItem g => ToolGroupTile(tools: g.tools, outputs: g.outputs),
       ViewItem v => v.msg.view == 'capture'
           ? CaptureCard(onStop: () => engine.stopCapture())
@@ -339,15 +339,28 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Rowan',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFFEAF0FB))),
+                        ListenableBuilder(
+                          listenable: engine,
+                          builder: (_, __) => Row(children: [
+                            if (engine.isGroup) ...[
+                              Icon(Icons.groups_rounded, size: 15, color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 5),
+                            ],
+                            Text(engine.isGroup ? '群聊' : 'Rowan',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.text)),
+                          ]),
+                        ),
                         ListenableBuilder(
                           listenable: engine,
                           builder: (_, __) => Text(
-                            engine.messages.isEmpty ? '新对话' : '${engine.messages.length} 条消息',
-                            style: const TextStyle(fontSize: 9, color: Color(0xFF7886A0)),
+                            engine.speakingMember != null
+                                ? '${engine.speakingMember} 正在发言…'
+                                : engine.messages.isEmpty
+                                    ? '新对话'
+                                    : '${engine.messages.length} 条消息',
+                            style: const TextStyle(fontSize: 9, color: AppColors.muted),
                           ),
                         ),
                       ],
@@ -366,6 +379,22 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   GlassIconButton(
                     icon: Icons.add_rounded,
                     onTap: () async {
+                      // 新建：选单会话还是群聊
+                      final kind = await showGlassSheet<String>(
+                        context,
+                        title: '新建',
+                        fixedHeight: false,
+                        body: Column(mainAxisSize: MainAxisSize.min, children: [
+                          GlassGridCell(icon: Icons.chat_bubble_outline_rounded, title: '单会话', desc: '一个 AI', onTap: () => Navigator.of(context).pop('single')),
+                          const SizedBox(height: 9),
+                          GlassGridCell(icon: Icons.groups_rounded, title: '群聊', desc: '多个模型各干各的', onTap: () => Navigator.of(context).pop('group')),
+                        ]),
+                      );
+                      if (kind == 'group') {
+                        final id2 = await engine.newGroup(ref.read(appDbProvider), '新群聊');
+                        if (context.mounted) ref.read(activeSessionProvider.notifier).open(id2);
+                        return;
+                      }
                       final id = await ref.read(appDbProvider).createSession('新会话');
                       if (context.mounted) {
                         ref.read(activeSessionProvider.notifier).open(id);
