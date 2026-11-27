@@ -31,7 +31,11 @@ class FloatingChatService(private val ctx: Context) {
             private set
 
         const val CHANNEL = "com.chun.by/floating"
-        private const val PILL_W = 230
+        private const val KEY_W = "win_w"
+        private const val KEY_H = "win_h"
+        private const val KEY_X = "pos_x"
+        private const val KEY_Y = "pos_y"
+        private const val PILL_W = 260
         private const val PILL_H = 64
         private const val WIN_W = 330
         private const val WIN_H = 600
@@ -50,6 +54,9 @@ class FloatingChatService(private val ctx: Context) {
     private var pillX = 0
     private var pillY = 0
     private var fromY = 0
+    private val prefs by lazy {
+        ctx.getSharedPreferences("floating_chat", Context.MODE_PRIVATE)
+    }
 
     /** 悬浮窗发来 send（用户消息）/ action（卡片点按），转发给主引擎的 AI。 */
     var onEvent: ((String, Map<String, Any?>?) -> Unit)? = null
@@ -83,11 +90,20 @@ class FloatingChatService(private val ctx: Context) {
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT,
             )
-            p.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            p.x = 0
-            p.y = dp(16)
+            // 上次拖过就从上次的位置出现；没有就顶部居中
+            val savedX = prefs.getInt(KEY_X, Int.MIN_VALUE)
+            val savedY = prefs.getInt(KEY_Y, Int.MIN_VALUE)
+            if (savedX != Int.MIN_VALUE && savedY != Int.MIN_VALUE) {
+                p.gravity = Gravity.TOP or Gravity.START
+                p.x = savedX; p.y = savedY
+                moved = true
+            } else {
+                p.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                p.x = 0
+                p.y = dp(16)
+            }
             p.alpha = 1f
-            fromY = dp(16)
+            fromY = p.y
 
             wm.addView(v, p)
 
@@ -98,14 +114,15 @@ class FloatingChatService(private val ctx: Context) {
                     "expand" -> { expand(); result.success(true) }
                     "collapse" -> { collapse(); result.success(true) }
                     "move" -> {
+                        // Flutter 传的是逻辑像素，乘 density 转物理像素
                         val dx = call.argument<Double>("dx") ?: 0.0
                         val dy = call.argument<Double>("dy") ?: 0.0
-                        move(dx.toInt(), dy.toInt()); result.success(true)
+                        move((dx * density).toInt(), (dy * density).toInt()); result.success(true)
                     }
                     "resize" -> {
                         val dw = call.argument<Double>("dw") ?: 0.0
                         val dh = call.argument<Double>("dh") ?: 0.0
-                        resize(dw.toInt(), dh.toInt()); result.success(true)
+                        resize((dw * density).toInt(), (dh * density).toInt()); result.success(true)
                     }
                     "close" -> { hide(); result.success(true) }
                     "send" -> {
@@ -169,7 +186,10 @@ class FloatingChatService(private val ctx: Context) {
         p.flags = p.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
         // 记住展开前的位置，收起时回去
         if (!moved) { pillX = p.x; pillY = p.y }
-        animateSize(p.width, p.height, dp(WIN_W), dp(WIN_H), dp(70))
+        // 用上次用户缩放后的尺寸；没缩过就用默认
+        val w = prefs.getInt(KEY_W, dp(WIN_W))
+        val h = prefs.getInt(KEY_H, dp(WIN_H))
+        animateSize(p.width, p.height, w, h, dp(70))
     }
 
     private fun collapse() {
@@ -179,7 +199,8 @@ class FloatingChatService(private val ctx: Context) {
         val p = lp ?: return
         // 收起回胶囊：恢复不抢焦点
         p.flags = p.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-        animateSize(p.width, p.height, dp(PILL_W), dp(PILL_H), if (moved) p.y else dp(16))
+        // 收起回胶囊：回到展开前记下的位置（pillY）
+        animateSize(p.width, p.height, dp(PILL_W), dp(PILL_H), pillY)
     }
 
     /** 尺寸/位置用 180ms 动画过渡，避免窗口尺寸突变导致 FlutterView 卡屏。 */
@@ -211,11 +232,17 @@ class FloatingChatService(private val ctx: Context) {
         val v = view ?: return
         val p = lp ?: return
         p.gravity = Gravity.TOP or Gravity.START
-        p.x += dx
-        p.y += dy
+        // 限制在屏幕内：至少露出 40dp，避免拖没了找不回来
+        val dm = ctx.resources.displayMetrics
+        val maxX = dm.widthPixels - dp(40)
+        val maxY = dm.heightPixels - dp(40)
+        p.x = (p.x + dx).coerceIn(-dp(190), maxX)
+        p.y = (p.y + dy).coerceIn(0, maxY)
         moved = true
         fromY = p.y
         wm.updateViewLayout(v, p)
+        // 记住拖动后的位置
+        prefs.edit().putInt(KEY_X, p.x).putInt(KEY_Y, p.y).apply()
     }
 
     private fun resize(dw: Int, dh: Int) {
@@ -224,6 +251,8 @@ class FloatingChatService(private val ctx: Context) {
         p.width = (p.width + dw).coerceIn(dp(220), dp(400))
         p.height = (p.height + dh).coerceIn(dp(280), dp(900))
         wm.updateViewLayout(v, p)
+        // 记住缩放后的尺寸，下次展开沿用
+        prefs.edit().putInt(KEY_W, p.width).putInt(KEY_H, p.height).apply()
     }
 
     fun pushState(text: String) {

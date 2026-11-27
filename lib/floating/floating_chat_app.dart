@@ -22,6 +22,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   final List<Map<String, dynamic>> _msgs = [];
   dynamic _view;
   final TextEditingController _input = TextEditingController();
+  bool _pillDragged = false;
 
   @override
   void initState() {
@@ -108,8 +109,19 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   }
 
   // ---------- 胶囊 ----------
+  /// 灵动岛胶囊：可拖动；没怎么动就松手 = 点击展开。
   Widget _pill() {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (_) => _pillDragged = false,
+      onPanUpdate: (d) {
+        if (d.delta.distance > 0.5) _pillDragged = true;
+        // 逻辑像素 → 原生物理像素
+        floatingChannel.invokeMethod('move', {'dx': d.delta.dx, 'dy': d.delta.dy});
+      },
+      onPanEnd: (_) {
+        if (!_pillDragged) _toggle();
+      },
       onTap: _toggle,
       child: Container(
         height: 34,
