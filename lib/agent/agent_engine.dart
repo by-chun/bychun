@@ -318,6 +318,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
         send(data);
       } else if (type == 'stop') {
         stop();
+      } else if (type == 'attach') {
+        _attachFromOverlay();
       }
     });
     // 工作区目录改名历史：G → Anvil → Rowan，旧目录在、新目录不在时自动迁移
@@ -343,6 +345,14 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     await PromptStore.ensureBuiltin();
     await _refreshKnowledge();
     notifyListeners();
+  }
+
+  /// 浮窗上传：选一个文件，把路径作为附件提示发给 AI（与主界面 ChatRef 同格式）。
+  Future<void> _attachFromOverlay() async {
+    final p = await NativeBridge.pickFile();
+    if (p == null || p.isEmpty) return;
+    final name = p.split('/').last;
+    send('[文件: $name]\n$p');
   }
 
   static const _seedKey = 'plugins_seeded_v1';
