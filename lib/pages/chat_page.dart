@@ -618,7 +618,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     const Row(mainAxisSize: MainAxisSize.min, children: [
                       SizedBox(width: 8, height: 8, child: CircularProgressIndicator(strokeWidth: 1.6)),
                       SizedBox(width: 5),
-                      Text('进行中', style: TextStyle(fontSize: 10, color: Color(0xFF2563EB))),
+                      Text('进行中', style: TextStyle(fontSize: 10, color: AppColors.brand)),
                     ]),
                 ]),
               ),

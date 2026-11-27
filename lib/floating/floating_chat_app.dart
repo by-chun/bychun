@@ -28,9 +28,12 @@ class _FloatingChatAppState extends State<FloatingChatApp>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 200),
     );
-    _spring = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack);
+    // 从 0.9 放到 1.0，避免 scale 从 0 起跳导致小窗口里布局撑爆
+    _spring = Tween<double>(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+    );
     floatingChannel.setMethodCallHandler(_onCall);
   }
 

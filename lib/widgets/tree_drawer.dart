@@ -167,7 +167,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               child: Row(
                 children: [
                   const Text('Rowan',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFFEAF0FB))),
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.text)),
                   const Spacer(),
                   if (widget.onClose != null)
                     InkWell(
@@ -185,34 +185,76 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
                 children: [
-                  _card([
-                    _section('sessions', '会话', _typeIcon(Icons.forum_outlined, const Color(0xFF2563EB))),
-                    if (_isOpen('sessions')) _sessionChildren(),
-                  ]),
+                  // 每组一个稳定 Key（相当于 view-transition-name）：
+                  // 同组内切换 = 180ms 滑动；跨组切换 = 只淡入淡出，不做长距离位移。
+                  KeyedSubtree(
+                    key: const ValueKey('group:sessions'),
+                    child: _card([
+                      _section('sessions', '会话', _typeIcon(Icons.forum_outlined, AppColors.brand)),
+                      _groupBody('sessions', _sessionChildren()),
+                    ]),
+                  ),
                   const SizedBox(height: 6),
-                  _card([_section('apps', '应用', _typeIcon(Icons.grid_view_rounded, const Color(0xFF2563EB)))]),
-                  ..._appChildren(),
+                  KeyedSubtree(
+                    key: const ValueKey('group:apps'),
+                    child: Column(children: [
+                      _card([_section('apps', '应用', _typeIcon(Icons.grid_view_rounded, AppColors.brand))]),
+                      ..._appChildren(),
+                    ]),
+                  ),
                   const SizedBox(height: 6),
-                  _card([
-                    _section('files', '文件', _typeIcon(Icons.folder_outlined, const Color(0xFF9AA7C0))),
-                    if (_isOpen('files'))
-                      _searchAdd('files', onAdd: () => _newSheet('/storage/emulated/0')),
-                    if (_isOpen('files')) _dirChildren('files', '/storage/emulated/0', 1),
-                  ]),
+                  KeyedSubtree(
+                    key: const ValueKey('group:files'),
+                    child: _card([
+                      _section('files', '文件', _typeIcon(Icons.folder_outlined, AppColors.muted)),
+                      _groupBody('files', Column(children: [
+                        _searchAdd('files', onAdd: () => _newSheet('/storage/emulated/0')),
+                        _dirChildren('files', '/storage/emulated/0', 1),
+                      ])),
+                    ]),
+                  ),
                   const SizedBox(height: 6),
-                  _card([
-                    _section('plugins', '插件', _typeIcon(Icons.extension_outlined, const Color(0xFF9AA7C0))),
-                    if (_isOpen('plugins'))
-                      _searchAdd('plugins', onAdd: () => _newSheet('/storage/emulated/0/Rowan/plugins')),
-                    if (_isOpen('plugins')) _dirChildren('plugins', '/storage/emulated/0/Rowan/plugins', 1),
-                  ]),
+                  KeyedSubtree(
+                    key: const ValueKey('group:plugins'),
+                    child: _card([
+                      _section('plugins', '插件', _typeIcon(Icons.extension_outlined, AppColors.muted)),
+                      _groupBody('plugins', Column(children: [
+                        _searchAdd('plugins', onAdd: () => _newSheet('/storage/emulated/0/Rowan/plugins')),
+                        _dirChildren('plugins', '/storage/emulated/0/Rowan/plugins', 1),
+                      ])),
+                    ]),
+                  ),
                   const SizedBox(height: 6),
-                  _card(_settingRows()),
+                  KeyedSubtree(
+                    key: const ValueKey('group:settings'),
+                    child: _card(_settingRows()),
+                  ),
                 ],
               ),
             ),
           ],
         );
+  }
+
+  /// 分组展开区：收起时高度归零 + 淡出；展开时高度撑开 + 淡入。
+  /// 同组内条目切换由子组件自身的 AnimatedSlide 处理（180ms），
+  /// 这里不做任何位移动画，所以不会跨组长距离滑动。
+  Widget _groupBody(String key, Widget child) {
+    final open = _isOpen(key);
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        // 用 key 区分开/关两态：只做淡入淡出，不做位移
+        child: open
+            ? KeyedSubtree(key: ValueKey('$key:open'), child: child)
+            : const SizedBox.shrink(key: ValueKey('closed')),
+      ),
+    );
   }
 
   Widget _card(List<Widget> children) {
@@ -282,25 +324,25 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.create_new_folder_outlined, size: 20, color: Color(0xFF2563EB)),
+            leading: const Icon(Icons.create_new_folder_outlined, size: 20, color: AppColors.brand),
             title: const Text('新建文件夹', style: TextStyle(fontSize: 13.5)),
             onTap: () => Navigator.pop(ctx, 'dir'),
           ),
           ListTile(
-            leading: const Icon(Icons.note_add_outlined, size: 20, color: Color(0xFF2563EB)),
+            leading: const Icon(Icons.note_add_outlined, size: 20, color: AppColors.brand),
             title: const Text('新建文件', style: TextStyle(fontSize: 13.5)),
             subtitle: const Text('自己写文件名和后缀，不限格式', style: TextStyle(fontSize: 10.5)),
             onTap: () => Navigator.pop(ctx, 'file'),
           ),
           ListTile(
-            leading: const Icon(Icons.file_upload_outlined, size: 20, color: Color(0xFF2563EB)),
+            leading: const Icon(Icons.file_upload_outlined, size: 20, color: AppColors.brand),
             title: const Text('从本地导入', style: TextStyle(fontSize: 13.5)),
             subtitle: const Text('任意文件都行', style: TextStyle(fontSize: 10.5)),
             onTap: () => Navigator.pop(ctx, 'import'),
           ),
           if (isPluginDir)
             ListTile(
-              leading: const Icon(Icons.inventory_2_outlined, size: 20, color: Color(0xFF2563EB)),
+              leading: const Icon(Icons.inventory_2_outlined, size: 20, color: AppColors.brand),
               title: const Text('安装内置插件', style: TextStyle(fontSize: 13.5)),
               subtitle: const Text('请求模板、示例脚本', style: TextStyle(fontSize: 10.5)),
               onTap: () => Navigator.pop(ctx, 'seed'),
@@ -441,7 +483,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               child: Container(
                 width: 32,
                 height: 32,
-                decoration: const BoxDecoration(color: Color(0xFF2563EB), shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: AppColors.brand, shape: BoxShape.circle),
                 child: const Icon(Icons.add_rounded, size: 17, color: Colors.white),
               ),
             ),
@@ -465,7 +507,19 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             child: Text('（还没有会话）', style: TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
           );
         }
-        return Column(children: [
+        // 组内切换会话：列表做 180ms 轻微滑动（active 作 key，切换时触发）
+        return AnimatedSlide(
+          key: ValueKey('session-list-$active'),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          offset: Offset.zero,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.04, end: 0.0),
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, __) => Transform.translate(
+              offset: Offset(0, v * 8),
+              child: Column(children: [
           for (final s in list.take(30))
             Dismissible(
               key: ValueKey('session-${s.id}'),
@@ -484,32 +538,14 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                   ref.read(activeSessionProvider.notifier).reset();
                 }
               },
-              child: InkWell(
+              child: _DrawerRow(
+                active: s.id == active,
                 onTap: () {
                   ref.read(activeSessionProvider.notifier).open(s.id);
                   widget.onClose?.call();
                 },
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(34, 8, 10, 8),
-                  child: Row(children: [
-                    Icon(
-                      s.id == active ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
-                      size: 13,
-                      color: s.id == active ? const Color(0xFF2563EB) : const Color(0xFFC3CCD8),
-                    ),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        s.title.isEmpty ? '新对话' : s.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: s.id == active ? const Color(0xFF2563EB) : const Color(0xFFD4DBE8)),
-                      ),
-                    ),
-                  ]),
-                ),
+                icon: s.id == active ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
+                label: s.title.isEmpty ? '新对话' : s.title,
               ),
             ),
           Padding(
@@ -521,7 +557,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                   ref.read(activeSessionProvider.notifier).reset();
                   widget.onClose?.call();
                 },
-                child: const Text('＋ 新对话', style: TextStyle(fontSize: 11, color: Color(0xFF2563EB))),
+                child: Text('＋ 新对话', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
               ),
               const Spacer(),
               InkWell(
@@ -530,7 +566,10 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               ),
             ]),
           ),
-        ]);
+              ]),
+            ),
+          ),
+        );
       },
     );
   }
@@ -1222,5 +1261,77 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     if (b >= 1024 * 1024) return '${(b / 1024 / 1024).toStringAsFixed(0)}MB';
     if (b >= 1024) return '${(b / 1024).toStringAsFixed(0)}KB';
     return '${b}B';
+  }
+}
+
+/// 抽屉里的一行（原型 .drow）：选中时浅底 + 左侧 3px 渐变竖条，200ms 过渡。
+class _DrawerRow extends StatelessWidget {
+  final bool active;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final EdgeInsetsGeometry padding;
+  final Widget? trailing;
+
+  const _DrawerRow({
+    required this.active,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.padding = const EdgeInsets.fromLTRB(34, 9, 12, 9),
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        color: active ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+        padding: padding,
+        child: Stack(children: [
+          if (active)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [accent, Color.lerp(accent, const Color(0xFF8A6BFF), 0.5)!],
+                  ),
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(3)),
+                ),
+              ),
+            ),
+          Row(children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Icon(icon,
+                  key: ValueKey('$icon-$active'), size: 13, color: active ? accent : AppColors.muted),
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                  color: active ? accent : AppColors.text,
+                ),
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+            if (trailing != null) trailing!,
+          ]),
+        ]),
+      ),
+    );
   }
 }

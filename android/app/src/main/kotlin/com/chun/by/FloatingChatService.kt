@@ -46,6 +46,10 @@ class FloatingChatService(private val ctx: Context) {
     private var lp: WindowManager.LayoutParams? = null
     private var channel: MethodChannel? = null
     private var expanded = false
+    private var moved = false
+    private var pillX = 0
+    private var pillY = 0
+    private var fromY = 0
 
     /** 悬浮窗发来 send（用户消息）/ action（卡片点按），转发给主引擎的 AI。 */
     var onEvent: ((String, Map<String, Any?>?) -> Unit)? = null
@@ -83,6 +87,7 @@ class FloatingChatService(private val ctx: Context) {
             p.x = 0
             p.y = dp(16)
             p.alpha = 1f
+            fromY = dp(16)
 
             wm.addView(v, p)
 
@@ -152,6 +157,7 @@ class FloatingChatService(private val ctx: Context) {
         engine = null
         instance = null
         expanded = false
+        moved = false
     }
 
     private fun expand() {
@@ -159,10 +165,11 @@ class FloatingChatService(private val ctx: Context) {
         expanded = true
         val v = view ?: return
         val p = lp ?: return
-        p.width = dp(WIN_W)
-        p.height = dp(WIN_H)
-        p.y = dp(70)
-        wm.updateViewLayout(v, p)
+        // 展开后要能打字：去掉 NOT_FOCUSABLE
+        p.flags = p.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+        // 记住展开前的位置，收起时回去
+        if (!moved) { pillX = p.x; pillY = p.y }
+        animateSize(p.width, p.height, dp(WIN_W), dp(WIN_H), dp(70))
     }
 
     private fun collapse() {
@@ -170,10 +177,34 @@ class FloatingChatService(private val ctx: Context) {
         expanded = false
         val v = view ?: return
         val p = lp ?: return
-        p.width = dp(PILL_W)
-        p.height = dp(PILL_H)
-        p.y = dp(16)
-        wm.updateViewLayout(v, p)
+        // 收起回胶囊：恢复不抢焦点
+        p.flags = p.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        animateSize(p.width, p.height, dp(PILL_W), dp(PILL_H), if (moved) p.y else dp(16))
+    }
+
+    /** 尺寸/位置用 180ms 动画过渡，避免窗口尺寸突变导致 FlutterView 卡屏。 */
+    private fun animateSize(fromW: Int, fromH: Int, toW: Int, toH: Int, toY: Int) {
+        val v = view ?: return
+        val p = lp ?: return
+        android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 180
+            addUpdateListener { a ->
+                val t = a.animatedValue as Float
+                p.width = (fromW + (toW - fromW) * t).toInt()
+                p.height = (fromH + (toH - fromH) * t).toInt()
+                if (!moved) p.y = (fromY + (toY - fromY) * t).toInt()
+                runCatching { wm.updateViewLayout(v, p) }
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    p.width = toW; p.height = toH
+                    if (!moved) p.y = toY
+                    fromY = toY
+                    runCatching { wm.updateViewLayout(v, p) }
+                }
+            })
+            start()
+        }
     }
 
     private fun move(dx: Int, dy: Int) {
@@ -182,6 +213,8 @@ class FloatingChatService(private val ctx: Context) {
         p.gravity = Gravity.TOP or Gravity.START
         p.x += dx
         p.y += dy
+        moved = true
+        fromY = p.y
         wm.updateViewLayout(v, p)
     }
 
