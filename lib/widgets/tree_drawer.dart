@@ -265,7 +265,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     final isPluginDir = dir.contains('/G/plugins');
     final act = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -322,7 +322,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFF141B2E),
           title: const Text('导入文件名', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
           content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('存到 $dir',
@@ -350,7 +350,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: Text(act == 'dir' ? '新建文件夹' : '新建文件',
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -534,7 +534,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: const Text('删除全部会话？', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
         content: const Text('所有对话记录会被删除，无法恢复。', style: TextStyle(fontSize: 12, height: 1.6)),
         actions: [
@@ -834,7 +834,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             final ok = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
-                backgroundColor: Colors.white,
+                backgroundColor: const Color(0xFF141B2E),
                 title: Text(isDir ? '删除「$name」文件夹？' : '删除「$name」？',
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                 content: Text(isDir ? '里面的文件会一起删掉，无法恢复。' : '文件将被删除，无法恢复。',
@@ -983,7 +983,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
   }) async {
     final act = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1027,7 +1027,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: const Text('重命名', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
         content: TextField(controller: c, autofocus: true),
         actions: [
@@ -1049,7 +1049,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: const Text('删除', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
         content: Text(full, style: const TextStyle(fontSize: 11.5, fontFamily: 'monospace')),
         actions: [

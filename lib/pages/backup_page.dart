@@ -44,7 +44,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     final picked = <String>{..._items.keys};
     final go = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => StatefulBuilder(
@@ -293,10 +293,10 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       return embedShell(title: '备份与恢复', body: body);
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('备份与恢复', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
       ),

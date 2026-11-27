@@ -406,10 +406,10 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
     );
     if (widget.embedded) return panel;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: Text(widget.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'monospace')),
       ),

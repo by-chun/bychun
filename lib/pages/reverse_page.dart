@@ -22,10 +22,10 @@ class _ReversePageState extends State<ReversePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('逆向', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         bottom: PreferredSize(
@@ -189,10 +189,10 @@ class _ApkFilesPageState extends State<_ApkFilesPage> {
   Widget build(BuildContext context) {
     final e = _entries;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: Text(widget.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
         actions: [
@@ -429,10 +429,10 @@ class _SoPageState extends State<_SoPage> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final name = widget.entry.split('/').last;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
         actions: [

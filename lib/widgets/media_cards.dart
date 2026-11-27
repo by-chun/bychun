@@ -1153,7 +1153,7 @@ class _ReaderFullscreenState extends State<_ReaderFullscreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       body: SafeArea(
         child: Column(
           children: [

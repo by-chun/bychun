@@ -93,10 +93,10 @@ class _FloatingChatAppState extends State<FloatingChatApp>
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xF2FFFFFF), Color(0xD9FFFFFF)],
+        colors: [Color(0xF2141B2E), Color(0xE60B1020)],
       ),
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
+      border: Border.all(color: const Color(0xFF2A3550)),
       boxShadow: const [
         BoxShadow(color: Color(0x26000000), blurRadius: 18, offset: Offset(0, 6)),
         BoxShadow(color: Color(0x1FFFFFFF), blurRadius: 0, spreadRadius: 0.5),
@@ -197,7 +197,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0x80FFFFFF))),
+          border: Border(bottom: BorderSide(color: Color(0x1FFFFFFF))),
         ),
         child: Row(
           children: [
@@ -213,7 +213,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
                 height: 22,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .5),
+                  color: Colors.white.withValues(alpha: .14),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.close, size: 15, color: AppColors.muted),
@@ -250,12 +250,12 @@ class _FloatingChatAppState extends State<FloatingChatApp>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         constraints: const BoxConstraints(maxWidth: 260),
         decoration: BoxDecoration(
-          color: mine ? const Color(0xFF1E2A45) : Colors.white.withValues(alpha: .62),
+          color: mine ? const Color(0xFF4D7CFE) : Colors.white.withValues(alpha: .10),
           borderRadius: BorderRadius.circular(14),
-          border: mine ? null : Border.all(color: Colors.white.withValues(alpha: .85)),
+          border: mine ? null : Border.all(color: const Color(0xFF2A3550)),
         ),
         child: Text('${m['text']}',
-            style: TextStyle(fontSize: 12, height: 1.5, color: mine ? const Color(0xFF1E3A8A) : AppColors.text)),
+            style: TextStyle(fontSize: 12, height: 1.5, color: mine ? Colors.white : AppColors.text)),
       ),
     );
   }
@@ -263,7 +263,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   Widget _inputBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 9, 18, 18),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x80FFFFFF)))),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x1FFFFFFF)))),
       child: Row(
         children: [
           // 上传文件
@@ -274,9 +274,9 @@ class _FloatingChatAppState extends State<FloatingChatApp>
               height: 30,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .6),
+                color: Colors.white.withValues(alpha: .10),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: .85)),
+                border: Border.all(color: const Color(0xFF2A3550)),
               ),
               child: const Icon(Icons.attach_file, size: 15, color: AppColors.muted),
             ),
@@ -291,15 +291,15 @@ class _FloatingChatAppState extends State<FloatingChatApp>
                 hintText: '给 AI 发消息…',
                 hintStyle: const TextStyle(fontSize: 11.5, color: AppColors.muted),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: .6),
+                fillColor: Colors.white.withValues(alpha: .10),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: .85)),
+                  borderSide: BorderSide(color: const Color(0xFF2A3550)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: .85)),
+                  borderSide: BorderSide(color: const Color(0xFF2A3550)),
                 ),
               ),
               onSubmitted: (_) => _send(),

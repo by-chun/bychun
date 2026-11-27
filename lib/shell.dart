@@ -41,7 +41,7 @@ class _ShellState extends ConsumerState<Shell> {
       drawerEdgeDragWidth: 40,
       drawer: Drawer(
         width: 320,
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.horizontal(right: Radius.circular(26)),
         ),

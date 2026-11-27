@@ -94,7 +94,7 @@ class _CaptureCardState extends State<CaptureCard> {
   void _expand() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SizedBox(

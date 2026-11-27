@@ -576,7 +576,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   void _showLogs(AgentEngine engine) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => ListenableBuilder(
         listenable: engine,
@@ -652,7 +652,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Future<void> _showAttachSheet() async {
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white.withValues(alpha: 0.7),
+      backgroundColor: Colors.white.withValues(alpha: 0.10),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => SafeArea(
@@ -778,7 +778,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
@@ -996,7 +996,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   Future<void> _pickMode() async {
     final m = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [

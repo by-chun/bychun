@@ -50,10 +50,10 @@ class _MemoriesPageState extends ConsumerState<MemoriesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('记忆', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         actions: [

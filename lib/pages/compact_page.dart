@@ -159,10 +159,10 @@ class _CompactPageState extends ConsumerState<CompactPage> {
       return embedShell(title: '上下文压缩', actions: [saveButton], body: body);
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('上下文压缩', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         actions: [saveButton],

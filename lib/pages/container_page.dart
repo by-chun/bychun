@@ -45,7 +45,7 @@ class _ContainerPageState extends State<ContainerPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: const Text('从 URL 安装容器'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -92,7 +92,7 @@ class _ContainerPageState extends State<ContainerPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: const Text('导入 rootfs'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -130,7 +130,7 @@ class _ContainerPageState extends State<ContainerPage> {
     final go = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: Text('删除 $env'),
         content: const Text('会删掉该容器的所有文件，里面的数据不会保留。'),
         actions: [
@@ -149,7 +149,7 @@ class _ContainerPageState extends State<ContainerPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         title: Text(ok ? '完成' : '失败'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 260),
@@ -245,10 +245,10 @@ class _ContainerPageState extends State<ContainerPage> {
       return embedShell(title: '容器', body: body);
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('容器', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
       ),

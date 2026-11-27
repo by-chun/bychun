@@ -136,7 +136,7 @@ class _ProvidersPageState extends State<ProvidersPage> {
   Future<void> _editProvider(ProviderConfig? p) async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SizedBox(
@@ -199,10 +199,10 @@ class _ProvidersPageState extends State<ProvidersPage> {
       return embedShell(title: 'AI 供应商', actions: [addButton], body: body);
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('AI 供应商', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         actions: [addButton],
@@ -383,7 +383,7 @@ class _ProviderEditPageState extends State<ProviderEditPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFF141B2E),
           title: Row(children: [
             const Text('选择模型', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             const Spacer(),
@@ -487,10 +487,10 @@ class _ProviderEditPageState extends State<ProviderEditPage> {
       );
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: Text(widget.initial == null ? '添加供应商' : '编辑供应商',
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
@@ -627,10 +627,10 @@ class _SkillsSubPageState extends ConsumerState<SkillsSubPage> {
       return embedShell(title: '子代理', body: body);
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('子代理', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
       ),
@@ -795,10 +795,10 @@ class _PromptPageState extends State<PromptPage> {
       return embedShell(title: '提示词', actions: actions, body: body);
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('提示词', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         actions: actions,
@@ -906,7 +906,7 @@ class _PowerPageState extends ConsumerState<PowerPage> {
   Future<void> _installModule() async {
     final choice = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1108,10 +1108,10 @@ class _PowerPageState extends ConsumerState<PowerPage> {
       return embedShell(title: '权限', body: body);
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF141B2E),
       appBar: AppBar(
         leading: const BackButton(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('权限', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
       ),
