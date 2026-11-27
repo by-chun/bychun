@@ -125,7 +125,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
       child: Transform.translate(
         offset: Offset(-_dragP * 48, 0),
         child: Container(
-          decoration: glassBackground(image: ref.watch(appearanceProvider).valueOrNull?.path),
+          decoration: glassBackground(image: ref.watch(appearanceProvider).value?.path),
           child: SafeArea(
             // 整张抽屉可向左拖关闭（不只是单个条目）
             child: GestureDetector(

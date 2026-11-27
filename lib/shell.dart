@@ -50,7 +50,7 @@ class _ShellState extends ConsumerState<Shell> {
         ),
       ),
       body: Container(
-        decoration: glassBackground(image: ref.watch(appearanceProvider).valueOrNull?.path),
+        decoration: glassBackground(image: ref.watch(appearanceProvider).value?.path),
         child: Stack(
           children: [
             const ChatPage(),
