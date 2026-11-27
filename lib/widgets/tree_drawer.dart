@@ -20,6 +20,7 @@ import '../pages/plugins_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/personas_page.dart';
 import '../pages/group_members_page.dart';
+import '../pages/video_page.dart' show appNavigatorKey;
 import '../pages/container_page.dart';
 import '../pages/compact_page.dart';
 import '../pages/backup_page.dart';
@@ -1245,33 +1246,41 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
   }
 
   /// 底部玻璃设置抽屉：主题色板 + 设置项列表；点项进入二级页。
+  /// 用根部 navigator 的 context 弹 sheet：抽屉关闭动画期间，抽屉自己的 context
+  /// 被收起中的遮罩层持有，用它弹出的 sheet 触摸会被遮罩吃掉。
+  BuildContext? get _rootCtx => appNavigatorKey.currentContext;
+
   void _openSettingsSheet() {
     widget.onClose?.call();
-    showGlassSheet<void>(
-      context,
-      title: '设置',
-      maxHeight: 0.86,
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          _themeRow(),
-          for (final e in _settingsEntries)
-            GlassOptionRow(
-              icon: e.$1,
-              title: e.$2,
-              subtitle: e.$3,
-              onTap: () => _openSettingDetail(e.$4, e.$2),
-            ),
-        ],
-      ),
-    );
+    // 等抽屉关完（收起动画 ~420ms）再弹，避免两层路由打架
+    Future.delayed(const Duration(milliseconds: 450), () {
+      final ctx = _rootCtx ?? context;
+      showGlassSheet<void>(
+        ctx,
+        title: '设置',
+        maxHeight: 0.86,
+        body: Builder(builder: (sheetCtx) => ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            _themeRow(),
+            for (final e in _settingsEntries)
+              GlassOptionRow(
+                icon: e.$1,
+                title: e.$2,
+                subtitle: e.$3,
+                onTap: () => _openSettingDetail(sheetCtx, e.$4, e.$2),
+              ),
+          ],
+        )),
+      );
+    });
   }
 
-  /// 设置二级页：同样是底部玻璃抽屉，带返回。
-  void _openSettingDetail(String key, String title) {
-    Navigator.of(context).pop();
+  /// 设置二级页：同样是底部玻璃抽屉。
+  void _openSettingDetail(BuildContext sheetCtx, String key, String title) {
+    Navigator.of(sheetCtx).pop();
     showGlassSheet<void>(
-      context,
+      _rootCtx ?? sheetCtx,
       title: title,
       maxHeight: 0.90,
       body: ClipRRect(
