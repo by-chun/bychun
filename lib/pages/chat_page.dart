@@ -22,6 +22,7 @@ import '../state/workspace.dart';
 import '../data/db_provider.dart';
 import '../agent/agent_engine.dart';
 import '../agent/provider_store.dart';
+import '../agent/plugins_store.dart';
 import '../agent/llm.dart';
 import '../native/native_bridge.dart';
 import 'chat_message.dart';
@@ -912,6 +913,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 _modeChip(),
                 const SizedBox(width: 6),
                 if ((engine.workspace ?? '').isNotEmpty) _glassChip(engine.workspace!.split('/').last),
+                const SizedBox(width: 6),
+                // 插件贡献的胶囊按钮（声明在 plugin.json 的 composer.actions）
+                ..._pluginChips(ref),
               ],
             ),
           ),
@@ -1010,6 +1014,57 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         ],
       ),
     );
+  }
+
+  /// 插件胶囊：来自所有启用插件的 composer.actions（全局上限 8）。
+  List<Widget> _pluginChips(WidgetRef ref) {
+    final plugins = ref.watch(pluginsProvider);
+    final acts = allComposerActions(plugins);
+    if (acts.isEmpty) return const [];
+    return [
+      for (final (p, a) in acts)
+        Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: ScaleOnTap(
+            onTap: () => _runPluginEffect(a['effect']),
+            pressedScale: 0.94,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text('${a['label'] ?? a['id']}',
+                  style: const TextStyle(fontSize: 9.5, color: AppColors.text)),
+            ),
+          ),
+        ),
+    ];
+  }
+
+  /// 执行插件按钮的静态效果。
+  void _runPluginEffect(dynamic effect) {
+    if (effect is! Map) {
+      showToast(context, '这个按钮没有配置效果');
+      return;
+    }
+    final (type, text) = applyEffect(Map<String, dynamic>.from(effect));
+    switch (type) {
+      case 'insert':
+        _input.text = text;
+        _input.selection = TextSelection.collapsed(offset: text.length);
+        break;
+      case 'send':
+        ref.read(agentEngineProvider).send(text);
+        break;
+      case 'toast':
+        showToast(context, text);
+        break;
+      case 'open':
+        showToast(context, '面板 $text：用 plugin_create 的 panels 配置');
+        break;
+    }
   }
 
   /// 玻璃胶囊 chip（原型 .chip）。

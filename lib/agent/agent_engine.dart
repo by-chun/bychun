@@ -13,6 +13,7 @@ import 'provider_store.dart';
 import 'persona.dart';
 import 'script_store.dart';
 import 'prompt_store.dart';
+import 'plugins_store.dart';
 import 'default_prompt.dart';
 import 'tools_extra.dart';
 import 'tools_form.dart';
@@ -28,6 +29,7 @@ import 'tools_overlay.dart';
 import 'tools_mem.dart';
 import 'tools_screen.dart';
 import 'tools_plugin.dart';
+import 'tools_rowan_plugin.dart';
 import 'default_plugins.dart';
 import 'compact_store.dart';
 import 'permission.dart';
@@ -403,6 +405,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     registerMemTools(registry);
     registerScreenTools(registry);
     registerPluginTools(registry);
+    registerRowanPluginTools(registry);
     registerFileTools(registry);
     registerFormTools(registry);
     registerMcpTools(registry, live: this);
@@ -448,6 +451,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     }
     await memory.load();
     await PromptStore.ensureBuiltin();
+    await ensurePluginsSeeded();
     await _refreshKnowledge();
     notifyListeners();
   }
@@ -925,6 +929,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
         }
         final tool = registry.get(tc.name);
         _add(ChatMsg('tool', '调用 ${tc.name} ${tc.args}', toolName: tc.name));
+        final toolT0 = DateTime.now();
         ToolResult r;
         if (tool == null) {
           r = ToolResult(false, '未知工具 ${tc.name}');
@@ -961,7 +966,9 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
             r = await _execTool(tool, tc.args);
           }
         }
-        _add(ChatMsg('tool', r.content, toolName: tc.name, ok: r.ok));
+        // 结果带耗时（毫秒），工具行上直接显示
+        _add(ChatMsg('tool', r.content, toolName: tc.name, ok: r.ok,
+            elapsedMs: DateTime.now().difference(toolT0).inMilliseconds));
         if (tc.name == 'capture_start' || tc.name == 'capture_stop') {
           captureActive = tc.name == 'capture_start' && r.ok;
           notifyListeners();

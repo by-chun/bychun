@@ -434,7 +434,116 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
         children: [for (var k = 0; k < widget.tools.length; k++) _rowCard(k)],
       ),
     );
-  }}
+  }
+
+  /// 第 k 条若是「调用」，第 k+1 条就是它的「结果」（工具调用与结果交替）。
+  static ChatMsg? _resultOf(int k) {
+    final t = widget.tools[k];
+    if (!t.text.startsWith('调用 ')) return null;
+    if (k + 1 < widget.tools.length) return widget.tools[k + 1];
+    return null;
+  }
+
+
+  /// 一行工具调用卡：图标 + 工具名 + 命令 + 耗时 + 行数 + 展开箭头。
+  Widget _rowCard(int k) {
+    final t = widget.tools[k];
+    // 「调用 xxx」行才是一张卡；「结果」行合并进上一张卡
+    if (!t.text.startsWith('调用 ')) return const SizedBox.shrink();
+    final result = _resultOf(k);
+    final lines = _linesOf(result);
+    final elapsed = result?.elapsedMs;
+    final ok = result?.ok ?? true;
+    final open = _expanded.contains(k);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0.06)],
+          ),
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InkWell(
+              onTap: lines.isEmpty ? null : () => setState(() {
+                    if (open) {
+                      _expanded.remove(k);
+                    } else {
+                      _expanded.add(k);
+                    }
+                  }),
+              borderRadius: BorderRadius.circular(11),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
+                child: Row(children: [
+                  Icon(ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                      size: 12, color: ok ? const Color(0xFF10B981) : AppColors.red),
+                  const SizedBox(width: 6),
+                  Text(t.toolName ?? 'tool',
+                      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.text)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(_cmdOf(t),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10, color: AppColors.muted, fontFamily: 'monospace')),
+                  ),
+                  // 耗时（毫秒）
+                  if (elapsed != null)
+                    Text(
+                      elapsed >= 1000
+                          ? '${(elapsed / 1000).toStringAsFixed(1)}s'
+                          : '${elapsed}ms',
+                      style: TextStyle(
+                          fontSize: 9.5,
+                          fontFamily: 'monospace',
+                          color: elapsed >= 10000 ? AppColors.orange : AppColors.muted),
+                    ),
+                  if (lines.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Text('${lines.length} 行',
+                        style: const TextStyle(fontSize: 9, color: AppColors.muted, fontFamily: 'monospace')),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: open ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 180),
+                      child: const Icon(Icons.expand_more_rounded, size: 13, color: AppColors.muted),
+                    ),
+                  ],
+                ]),
+              ),
+            ),
+            if (lines.isNotEmpty)
+              AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: open
+                    ? Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: SelectableText(lines.join('\n'),
+                            style: const TextStyle(fontSize: 9.5, height: 1.5, color: AppColors.text, fontFamily: 'monospace')),
+                      )
+                    : const SizedBox(width: double.infinity, height: 0),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 /// 轻量 Markdown：**粗体** / *斜体* / `行内代码` / 行首 - 列表 / # 标题。
 
