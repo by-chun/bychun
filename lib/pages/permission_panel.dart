@@ -45,7 +45,7 @@ class _PermissionPanelState extends State<PermissionPanel> {
         decoration: BoxDecoration(
           color: const Color(0xFF141B2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _hr ? const Color(0xFFFECACA) : const Color(0xFF2A3550)),
+          border: Border.all(color: _hr ? const Color(0xFF7F1D1D) : const Color(0xFF2A3550)),
           boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 18, offset: Offset(0, 6))],
         ),
         child: Column(
