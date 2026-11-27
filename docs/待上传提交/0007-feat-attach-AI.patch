@@ -1,0 +1,46 @@
+From c86d2257ddd1d02dddcdcf7bac80892412c3a970 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 08:37:05 +0800
+Subject: [PATCH 7/8] =?UTF-8?q?feat:=20=E6=82=AC=E6=B5=AE=E7=AA=97?=
+ =?UTF-8?q?=E4=B8=8A=E4=BC=A0=E6=8E=A5=E5=85=A5=E2=80=94=E2=80=94attach=20?=
+ =?UTF-8?q?=E4=BA=8B=E4=BB=B6=E9=80=89=E6=96=87=E4=BB=B6=E5=90=8E=E4=BD=9C?=
+ =?UTF-8?q?=E4=B8=BA=E9=99=84=E4=BB=B6=E5=8F=91=E7=BB=99=20AI?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ lib/agent/agent_engine.dart | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index 6fad9d2..a5c094d 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -318,6 +318,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+         send(data);
+       } else if (type == 'stop') {
+         stop();
++      } else if (type == 'attach') {
++        _attachFromOverlay();
+       }
+     });
+     // 工作区目录改名历史：G → Anvil → Rowan，旧目录在、新目录不在时自动迁移
+@@ -345,6 +347,14 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     notifyListeners();
+   }
+ 
++  /// 浮窗上传：选一个文件，把路径作为附件提示发给 AI（与主界面 ChatRef 同格式）。
++  Future<void> _attachFromOverlay() async {
++    final p = await NativeBridge.pickFile();
++    if (p == null || p.isEmpty) return;
++    final name = p.split('/').last;
++    send('[文件: $name]\n$p');
++  }
++
+   static const _seedKey = 'plugins_seeded_v1';
+ 
+   /// 首次启动写入手册类插件（之后用户可随意改/删，不再写入）。
+-- 
+2.43.0
+

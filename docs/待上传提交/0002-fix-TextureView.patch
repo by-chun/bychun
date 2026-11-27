@@ -1,0 +1,60 @@
+From c5db2ea95f1e1c915cfde6533e4e3ba821eabe4a Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 07:44:22 +0800
+Subject: [PATCH 2/8] =?UTF-8?q?fix:=20=E6=82=AC=E6=B5=AE=E7=AA=97=E9=BB=91?=
+ =?UTF-8?q?=E5=BA=95=E2=80=94=E2=80=94=E6=94=B9=E7=94=A8=20TextureView=20?=
+ =?UTF-8?q?=E9=80=8F=E6=98=8E=E6=A8=A1=E5=BC=8F=20+=20=E9=80=8F=E6=98=8E?=
+ =?UTF-8?q?=E4=B8=BB=E9=A2=98?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../src/main/kotlin/com/chun/by/FloatingChatService.kt    | 3 ++-
+ lib/main.dart                                             | 8 ++++++--
+ 2 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/android/app/src/main/kotlin/com/chun/by/FloatingChatService.kt b/android/app/src/main/kotlin/com/chun/by/FloatingChatService.kt
+index 3071be0..0ebaf3d 100644
+--- a/android/app/src/main/kotlin/com/chun/by/FloatingChatService.kt
++++ b/android/app/src/main/kotlin/com/chun/by/FloatingChatService.kt
+@@ -12,6 +12,7 @@ import android.view.MotionEvent
+ import android.view.View
+ import android.view.WindowManager
+ import io.flutter.embedding.android.FlutterView
++import io.flutter.embedding.android.RenderMode
+ import io.flutter.embedding.engine.FlutterEngine
+ import io.flutter.embedding.engine.FlutterEngineCache
+ import io.flutter.FlutterInjector
+@@ -66,7 +67,7 @@ class FloatingChatService(private val ctx: Context) {
+             engine.dartExecutor.executeDartEntrypoint(entry)
+             FlutterEngineCache.getInstance().put("floating_chat", engine)
+ 
+-            val v = FlutterView(ctx.applicationContext)
++            val v = FlutterView(ctx.applicationContext, RenderMode.texture)
+             v.attachToFlutterEngine(engine)
+             v.setBackgroundColor(Color.TRANSPARENT)
+ 
+diff --git a/lib/main.dart b/lib/main.dart
+index e26b5c3..cf79368 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -48,9 +48,13 @@ void main() async {
+ @pragma('vm:entry-point')
+ void floatingChatMain() {
+   WidgetsFlutterBinding.ensureInitialized();
+-  runApp(const MaterialApp(
++  runApp(MaterialApp(
+     debugShowCheckedModeBanner: false,
+-    home: Scaffold(backgroundColor: Colors.transparent, body: FloatingChatApp()),
++    theme: ThemeData(
++      scaffoldBackgroundColor: Colors.transparent,
++      canvasColor: Colors.transparent,
++    ),
++    home: const Scaffold(backgroundColor: Colors.transparent, body: FloatingChatApp()),
+   ));
+ }
+ 
+-- 
+2.43.0
+
