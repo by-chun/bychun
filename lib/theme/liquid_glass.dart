@@ -121,12 +121,28 @@ class LiquidGlass extends ConsumerWidget {
                     blurRadius: 18,
                     offset: const Offset(0, 6),
                   ),
+                  // 双层边框：外圈细环
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.10 + e * 0.10),
+                    spreadRadius: 0.6,
+                  ),
                   // 内阴影：制造玻璃厚度
                   BoxShadow(
                     color: Colors.white.withValues(alpha: 0.30 + e * 0.35),
                     blurRadius: 1,
                     spreadRadius: -0.5,
                     offset: const Offset(0, 1),
+                  ),
+                  // 边缘色散：极淡的冷暖色晕，模拟折射彩边
+                  BoxShadow(
+                    color: const Color(0xFF7DD3FC).withValues(alpha: 0.06 * e),
+                    blurRadius: 2,
+                    spreadRadius: 0.4,
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFFF0A0C8).withValues(alpha: 0.05 * e),
+                    blurRadius: 2,
+                    spreadRadius: 0.2,
                   ),
                 ],
               ),

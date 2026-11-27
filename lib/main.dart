@@ -63,7 +63,7 @@ class RowanApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final seed = ref.watch(themeColorProvider);
+    final theme = ref.watch(themeColorProvider);
     return MaterialApp(
       navigatorKey: appNavigatorKey,
       title: 'Rowan',
@@ -78,9 +78,9 @@ class RowanApp extends ConsumerWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: seed,
+          seedColor: theme.accent,
           brightness: Brightness.light,
-        ).copyWith(primary: seed, surface: Colors.white),
+        ).copyWith(primary: theme.accent, surface: Colors.white),
         scaffoldBackgroundColor: AppColors.bg,
         splashFactory: InkSparkle.splashFactory,
         dialogTheme: DialogThemeData(
