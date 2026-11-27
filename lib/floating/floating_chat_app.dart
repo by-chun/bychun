@@ -68,10 +68,6 @@ class _FloatingChatAppState extends State<FloatingChatApp>
     if (_expanded) _ctrl.forward(); else _ctrl.reverse();
   }
 
-  void _close() {
-    floatingChannel.invokeMethod('close');
-  }
-
   void _send() {
     final t = _input.text.trim();
     if (t.isEmpty) return;
@@ -209,22 +205,9 @@ class _FloatingChatAppState extends State<FloatingChatApp>
               child: Text('Rowan',
                   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.text)),
             ),
-            // 收起回胶囊
+            // 缩回胶囊
             GestureDetector(
               onTap: _toggle,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text('收起', style: TextStyle(fontSize: 10, color: AppColors.muted)),
-              ),
-            ),
-            const SizedBox(width: 6),
-            // 关闭悬浮窗
-            GestureDetector(
-              onTap: _close,
               child: Container(
                 width: 22,
                 height: 22,
@@ -233,7 +216,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
                   color: Colors.white.withValues(alpha: .5),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.close, size: 13, color: AppColors.muted),
+                child: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.muted),
               ),
             ),
           ],
