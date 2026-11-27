@@ -330,7 +330,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF2563EB)]),
+                gradient: const LinearGradient(colors: [Color(0xFF4D7CFE), Color(0xFF8A6BFF)]),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [BoxShadow(color: Color(0x4D2563EB), blurRadius: 12, offset: Offset(0, 4))],
               ),

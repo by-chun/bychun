@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../theme/liquid_glass.dart';
 import '../theme/glass.dart';
+import '../state/theme_controller.dart';
 import '../theme/glass_dialog.dart';
 import '../theme/toast.dart';
 import '../widgets/choose_sheet.dart';
@@ -949,8 +950,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                                 child: Container(
                                   width: 30,
                                   height: 30,
-                                  decoration: const BoxDecoration(
-                                      color: AppColors.brand, shape: BoxShape.circle),
+                                  decoration: BoxDecoration(
+                                      gradient: ref.watch(themeColorProvider).gradient, shape: BoxShape.circle),
                                   child: const Icon(Icons.arrow_upward_rounded, size: 17, color: Colors.white),
                                 ),
                               ),
