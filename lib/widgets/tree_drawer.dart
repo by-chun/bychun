@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/toast.dart';
 import '../state/drawer_ctrl.dart';
 import '../state/theme_controller.dart';
+import '../agent/appearance_store.dart';
 import '../native/native_bridge.dart';
 import '../state/chat_refs.dart';
 import '../state/active_session.dart';
@@ -123,7 +125,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
       child: Transform.translate(
         offset: Offset(-_dragP * 48, 0),
         child: Container(
-          decoration: glassBackground(),
+          decoration: glassBackground(image: ref.watch(appearanceProvider).valueOrNull?.path),
           child: SafeArea(
             // 整张抽屉可向左拖关闭（不只是单个条目）
             child: GestureDetector(
@@ -1114,9 +1116,29 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               ),
             );
           }),
+          GestureDetector(
+            onTap: _pickBackground,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFCBD5E1)),
+              ),
+              child: const Icon(Icons.add_photo_alternate_outlined, size: 13, color: Color(0xFF64748B)),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// 选一张本地图作为液态玻璃的壁纸背景。
+  Future<void> _pickBackground() async {
+    final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (x == null) return;
+    await ref.read(appearanceProvider.notifier).setImage(x.path);
   }
 
   /// 设置项：在树里展开后直接显示该页内容（不分页跳转）。

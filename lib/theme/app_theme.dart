@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'liquid_glass.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
@@ -27,21 +28,28 @@ BoxDecoration glassDecoration({double radius = 18, bool strong = false}) {
   );
 }
 
-/// 壁纸背景：彩色晚霞/极光渐变，让液态玻璃的折射模糊有内容可透。
-BoxDecoration glassBackground() => const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFFFF6B8A),
-          Color(0xFFFFA94D),
-          Color(0xFFB388FF),
-          Color(0xFF4FC3F7),
-          Color(0xFFF06292),
-        ],
-        stops: [0.0, 0.25, 0.5, 0.75, 1.0],
-      ),
+/// 壁纸背景：有自定义图就用图，否则用彩色晚霞/极光渐变，让液态玻璃的折射有内容可透。
+BoxDecoration glassBackground({String? image}) {
+  if (image != null && image.isNotEmpty && File(image).existsSync()) {
+    return BoxDecoration(
+      image: DecorationImage(image: FileImage(File(image)), fit: BoxFit.cover),
     );
+  }
+  return const BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Color(0xFFFF6B8A),
+        Color(0xFFFFA94D),
+        Color(0xFFB388FF),
+        Color(0xFF4FC3F7),
+        Color(0xFFF06292),
+      ],
+      stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+    ),
+  );
+}
 
 /// 白底磨砂玻璃卡片：背后高斯模糊 + 半透明白 + 柔和阴影。
 class GlassCard extends StatelessWidget {

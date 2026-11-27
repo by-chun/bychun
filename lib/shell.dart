@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme/app_theme.dart';
 import 'theme/glass.dart';
+import 'agent/appearance_store.dart';
 import 'state/drawer_ctrl.dart';
 import 'widgets/tree_drawer.dart';
 import 'pages/chat_page.dart';
@@ -49,7 +50,7 @@ class _ShellState extends ConsumerState<Shell> {
         ),
       ),
       body: Container(
-        decoration: glassBackground(),
+        decoration: glassBackground(image: ref.watch(appearanceProvider).valueOrNull?.path),
         child: Stack(
           children: [
             const ChatPage(),

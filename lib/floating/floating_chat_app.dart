@@ -216,7 +216,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
                   color: Colors.white.withValues(alpha: .5),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.muted),
+                child: const Icon(Icons.close, size: 15, color: AppColors.muted),
               ),
             ),
           ],
