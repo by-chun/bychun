@@ -95,7 +95,7 @@ class RowanApp extends ConsumerWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF1A2338),
+          fillColor: AppColors.card,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),

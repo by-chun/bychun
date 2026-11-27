@@ -22,7 +22,7 @@ class LiquidPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final a = strong ? 0.16 : 0.10;
+    final a = strong ? 0.20 : 0.15;
     return Container(
       margin: margin,
       padding: padding,
@@ -31,7 +31,7 @@ class LiquidPanel extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.white.withValues(alpha: a + 0.04), Colors.white.withValues(alpha: a - 0.04)],
+          colors: [AppColors.card.withValues(alpha: a + 0.04), AppColors.card.withValues(alpha: a - 0.04)],
         ),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: AppColors.border),
@@ -319,7 +319,7 @@ Future<T?> showGlassSheet<T>(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.white.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0.06)],
+                colors: [AppColors.card.withValues(alpha: 0.85), AppColors.card.withValues(alpha: 0.75)],
               ),
               border: Border(top: BorderSide(color: AppColors.border)),
             ),

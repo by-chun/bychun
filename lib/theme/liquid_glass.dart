@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../agent/appearance_store.dart';
+import 'app_theme.dart';
 
 /// 液态玻璃外观参数（可在 设置 → 外观 里调）。
 class GlassSpec {
@@ -21,7 +22,7 @@ class GlassSpec {
 
   const GlassSpec({
     this.blur = 22,
-    this.tint = 0.14,
+    this.tint = 0.15,
     this.edge = 0.9,
     this.radius = 20,
   });
@@ -87,8 +88,8 @@ class LiquidGlass extends ConsumerWidget {
     final spec = ref.watch(glassSpecProvider);
     final r = radius ?? spec.radius;
     final br = BorderRadius.circular(r);
-    final tint = tintColor ?? Colors.white;
-    final alpha = (spec.tint + (strong ? 0.06 : 0)).clamp(0.06, 0.92);
+    final tint = tintColor ?? AppColors.card;
+    final alpha = (spec.tint + (strong ? 0.05 : 0)).clamp(0.05, 0.95);
     final e = spec.edge.clamp(0.0, 1.0);
 
     return ClipRRect(
@@ -112,7 +113,7 @@ class LiquidGlass extends ConsumerWidget {
                 ),
                 // 边缘那一圈折射高光
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35 + e * 0.45),
+                  color: AppColors.border.withValues(alpha: 0.6 + e * 0.3),
                   width: 1.1,
                 ),
                 boxShadow: [

@@ -23,6 +23,8 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   dynamic _view;
   final TextEditingController _input = TextEditingController();
   bool _pillDragged = false;
+  Offset _dragAcc = Offset.zero;
+  DateTime _lastFlush = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
@@ -75,6 +77,8 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   void _send() {
     final t = _input.text.trim();
     if (t.isEmpty) return;
+    // 本地先显示，再发给主引擎
+    setState(() => _msgs.add({'role': 'user', 'text': t}));
     floatingChannel.invokeMethod('send', {'text': t});
     _input.clear();
   }
@@ -113,16 +117,30 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   Widget _pill() {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPanStart: (_) => _pillDragged = false,
+      onPanStart: (_) {
+        _pillDragged = false;
+        _dragAcc = Offset.zero;
+        _lastFlush = DateTime.fromMillisecondsSinceEpoch(0);
+      },
       onPanUpdate: (d) {
         if (d.delta.distance > 0.5) _pillDragged = true;
-        // 逻辑像素 → 原生物理像素
-        floatingChannel.invokeMethod('move', {'dx': d.delta.dx, 'dy': d.delta.dy});
+        _dragAcc += d.delta;
+        // 节流：每 ~50ms 把累计位移刷给原生一次，既跟手又不抖
+        final now = DateTime.now();
+        if (now.difference(_lastFlush).inMilliseconds >= 50) {
+          _lastFlush = now;
+          floatingChannel.invokeMethod('move', {'dx': _dragAcc.dx, 'dy': _dragAcc.dy});
+          _dragAcc = Offset.zero;
+        }
       },
       onPanEnd: (_) {
-        if (!_pillDragged) _toggle();
+        if (!_pillDragged) {
+          _toggle();
+        } else if (_dragAcc != Offset.zero) {
+          floatingChannel.invokeMethod('move', {'dx': _dragAcc.dx, 'dy': _dragAcc.dy});
+          _dragAcc = Offset.zero;
+        }
       },
-      onTap: _toggle,
       child: Container(
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 13),
@@ -241,10 +259,11 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   }
 
   Widget _body() {
+    // reverse：新消息在底部自动可见，不用手动滚
     return ListView(
+      reverse: true,
       padding: const EdgeInsets.all(11),
       children: [
-        for (final m in _msgs) _bubble(m),
         if (_view != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -252,6 +271,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
               floatingChannel.invokeMethod('action', {'action': a, 'args': args});
             }),
           ),
+        for (final m in _msgs.reversed) _bubble(m),
       ],
     );
   }

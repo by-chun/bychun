@@ -151,11 +151,32 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     if (at != _atBottom) setState(() => _atBottom = at);
   }
 
+  /// 思考中一行：左侧 AI 头像 + 三个跳动点 + 「思考中」。
+  Widget _thinkingRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+      child: Row(children: [
+        Container(
+          width: 26, height: 26,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, Color.lerp(Theme.of(context).colorScheme.primary, const Color(0xFF8A6BFF), 0.5)!]),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text('AI', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Colors.white)),
+        ),
+        const SizedBox(width: 8),
+        const ThinkingDots(),
+      ]),
+    );
+  }
+
   Widget _renderItem(ChatItem item, AgentEngine engine) {
     final w = switch (item) {
       UserItem u => UserBubble(text: u.msg.text, time: u.msg.time),
       AssistantItem a => AssistantBubble(
           text: a.msg.text, typing: a.typing, elapsedMs: a.msg.elapsedMs, time: a.msg.time, sender: a.msg.sender),
+      ThinkingItem _ => _thinkingRow(),
       ToolGroupItem g => ToolGroupTile(tools: g.tools, outputs: g.outputs),
       ViewItem v => v.msg.view == 'capture'
           ? CaptureCard(onStop: () => engine.stopCapture())
@@ -512,6 +533,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     }
                   }
                   final items = buildChatItems(msgs, typingLast: engine.streaming);
+                  // 思考中：追加到列表末尾（不替换整页）
+                  if (engine.thinking && !engine.streaming && !engine.liveActive) {
+                    items.add(ThinkingItem());
+                  }
                   // 打开会话/重启后直接停在最新一条，不要回到开头
                   if (!_jumpedToBottom && items.isNotEmpty) {
                     _jumpedToBottom = true;
@@ -901,9 +926,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   constraints: const BoxConstraints(minHeight: 40),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.10),
+                    // 圆角 14 = 高度 40 的标准胶囊感，多行时也服帖
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.border),
                   ),
+                  // 多行时裁切跟随圆角，内容不会顶出弧形
+                  clipBehavior: Clip.antiAlias,
                   child: TextField(
                     controller: _input,
                     minLines: 1,
@@ -912,6 +940,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
+                      // 上下对称 11，单行高 ≈ 40，与圆角对齐
                       contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                       hintText: '发消息…',
                       hintStyle: TextStyle(fontSize: 13, color: AppColors.muted),

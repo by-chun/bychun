@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/glass_kit.dart';
+import '../theme/liquid_glass.dart';
 import '../theme/toast.dart';
 import '../state/drawer_ctrl.dart';
 import '../state/theme_controller.dart';
@@ -1194,52 +1195,75 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
     return const SizedBox.shrink();
   }
 
-  /// 7 套主题色板 + 自定义背景图按钮（原型：主题行）。用 Consumer 取 ref，放进 sheet 也能用。
+  /// 背景行：只保留自定义背景图（不再选主题色）。
   Widget _themeRow() {
     return Consumer(
       builder: (context, ref, _) {
-        final cur = ref.watch(themeColorProvider);
         return Padding(
           padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
-          child: Row(
-            children: [
-              const Text('主题', style: TextStyle(fontSize: 12.5, color: AppColors.text)),
-              const SizedBox(width: 10),
-              for (var i = 0; i < rowanThemes.length; i++)
-                GestureDetector(
-                  onTap: () => ref.read(themeColorProvider.notifier).set(i),
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    margin: const EdgeInsets.only(right: 7),
-                    decoration: BoxDecoration(
-                      gradient: rowanThemes[i].gradient,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: cur.accent == rowanThemes[i].accent ? Colors.white : AppColors.border,
-                        width: cur.accent == rowanThemes[i].accent ? 2 : 1.5,
-                      ),
-                    ),
-                  ),
+          child: Row(children: [
+            const Text('背景', style: TextStyle(fontSize: 12.5, color: AppColors.text)),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () async {
+                final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+                if (x == null) return;
+                await ref.read(appearanceProvider.notifier).setImage(x.path);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.border),
                 ),
-              GestureDetector(
-                onTap: () async {
-                  final x = await ImagePicker().pickImage(source: ImageSource.gallery);
-                  if (x == null) return;
-                  await ref.read(appearanceProvider.notifier).setImage(x.path);
-                },
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1A2338),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.add_photo_alternate_outlined, size: 13, color: AppColors.muted),
-                ),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.add_photo_alternate_outlined, size: 13, color: AppColors.muted),
+                  SizedBox(width: 5),
+                  Text('自定义背景', style: TextStyle(fontSize: 10.5, color: AppColors.muted)),
+                ]),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => ref.read(appearanceProvider.notifier).removeImage(),
+              child: const Text('恢复默认', style: TextStyle(fontSize: 10.5, color: AppColors.muted)),
+            ),
+          ]),
+        );
+      },
+    );
+  }
+
+  /// 全局玻璃透明度滑杆：存 appearance.glassTint（底色不透明度），显示为「透明度」。
+  Widget _glassOpacityRow() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final spec = ref.watch(glassSpecProvider);
+        final opacityPct = ((1 - spec.tint) * 100).round(); // tint 越低越透明
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(2, 0, 2, 14),
+          child: Row(children: [
+            const Text('透明度', style: TextStyle(fontSize: 12.5, color: AppColors.text)),
+            Expanded(
+              child: Slider(
+                value: opacityPct.clamp(20, 95).toDouble(),
+                min: 20,
+                max: 95,
+                divisions: 15,
+                activeColor: AppColors.brand,
+                inactiveColor: Colors.white.withValues(alpha: 0.12),
+                label: '$opacityPct%',
+                onChanged: (v) {
+                  ref.read(glassSpecProvider.notifier).update(spec.copyWith(tint: 1 - v / 100));
+                },
+              ),
+            ),
+            SizedBox(
+              width: 38,
+              child: Text('$opacityPct%', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+            ),
+          ]),
         );
       },
     );
@@ -1263,6 +1287,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
           padding: EdgeInsets.zero,
           children: [
             _themeRow(),
+            _glassOpacityRow(),
             for (final e in _settingsEntries)
               GlassOptionRow(
                 icon: e.$1,

@@ -207,6 +207,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     if (!_running && pendingPermission == null) return;
     _stopRequested = true;
     _stopping = true;
+    thinking = false;
     // 关键：卡在等授权时，不解除就永远停不下来
     final p = pendingPermission;
     pendingPermission = null;
@@ -242,6 +243,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
   /// 流式输出状态：正在逐字到达的文本（UI 把它当临时消息渲染）。
   bool streaming = false;
   String streamingText = '';
+  /// 思考中：已发出请求、还没收到第一个字
+  bool thinking = false;
 
   /// 抓包是否进行中：为 true 时对话里常驻抓包窗口。
   bool captureActive = false;
@@ -573,6 +576,13 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
       db.addMessage(sid, msg.role, msg.text, sender: msg.sender);
     }
     notifyListeners();
+    // 同步给悬浮窗：用户消息和 AI 文本回复都要在小窗里显示
+    if (msg.role == 'user' || msg.role == 'assistant') {
+      if (msg.text.trim().isNotEmpty) {
+        final t = msg.sender.isEmpty ? msg.text : '[${msg.sender}] ${msg.text}';
+        NativeBridge.chatOverlayPush(msg.role, t.length > 2000 ? '${t.substring(0, 2000)}…' : t);
+      }
+    }
   }
 
   Future<void> setProvider(LlmConfig cfg) async {
@@ -737,6 +747,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
 
     final gen = ++_runGen;
     _running = true;
+    thinking = true;
     _stopRequested = false;
     _stopping = false;
     _aborted = false;
@@ -746,6 +757,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     } finally {
       if (_runGen == gen) {
         _running = false;
+        thinking = false;
         _stopping = false;
         notifyListeners();
       }
@@ -816,6 +828,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
       final a = args.entries.map((e) => '${e.key}: ${e.value}').join('\n').trim();
       if (a.isNotEmpty) pushLive(a.length > 300 ? '${a.substring(0, 300)}…' : a);
     }
+    thinking = true;
+    notifyListeners();
     ToolResult r;
     try {
       r = await tool.execute(args).timeout(
@@ -853,6 +867,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
         return;
       }
       streaming = true;
+      thinking = false;
       streamingText = '';
       notifyListeners();
       final t0 = DateTime.now();

@@ -26,6 +26,9 @@ class AssistantItem extends ChatItem {
   AssistantItem(this.msg, this.index, {this.typing = false});
 }
 
+/// 思考中占位：请求已发、还没收到第一个字，或正在执行工具。
+class ThinkingItem extends ChatItem {}
+
 class ToolGroupItem extends ChatItem {
   final List<ChatMsg> tools;
   /// 与 tools 按顺序对应的输出卡片（stream 视图）；数量可能少于 tools。
@@ -99,7 +102,7 @@ class UserBubble extends StatelessWidget {
         Align(
           alignment: Alignment.centerRight,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 290),
+            constraints: const BoxConstraints(maxWidth: 240),
             child: Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 2, left: 48),
               child: Consumer(
@@ -340,13 +343,14 @@ class CodeCard extends StatelessWidget {
 
 // ---------------- 打字机 ----------------
 /// 思考中：三个点循环微跳动，避免看起来像卡住。
-class _ThinkingDots extends StatefulWidget {
-  const _ThinkingDots();
+class ThinkingDots extends StatefulWidget {
+  final String? label;
+  const ThinkingDots({super.key, this.label});
   @override
-  State<_ThinkingDots> createState() => _ThinkingDotsState();
+  State<ThinkingDots> createState() => _ThinkingDotsState();
 }
 
-class _ThinkingDotsState extends State<_ThinkingDots> with SingleTickerProviderStateMixin {
+class _ThinkingDotsState extends State<ThinkingDots> with SingleTickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat();
 
@@ -422,207 +426,15 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
       );
     }
 
-    final failed = widget.tools.any((t) => !t.ok);
-    final fails = widget.tools.where((t) => !t.ok).toList();
-    String errLine = '';
-    for (final t in widget.tools) {
-      if (t.ok) continue;
-      final s = t.text.trim();
-      if (s.isEmpty || s.startsWith('调用 ')) continue;
-      errLine = s.split('\n').first;
-      break;
-    }
-    if (errLine.isEmpty && fails.isNotEmpty) errLine = fails.first.text.trim();
-    final counts = <String, int>{};
-    for (final t in widget.tools) {
-      final k = t.toolName ?? 'tool';
-      counts[k] = (counts[k] ?? 0) + 1;
-    }
-    final stat = '${counts.entries.map((e) => '${e.key}×${e.value}').join(' · ')}'
-        '${fails.isEmpty ? '' : ' · 失败 ${fails.length}'}';
-
+    // 多个工具：直接逐条平铺，不再套折叠组卡
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: GlassContainer.card(
-        child: Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _open = !_open),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(13, 11, 12, 11),
-              child: Row(children: [
-                Icon(failed ? Icons.cancel_rounded : Icons.check_circle_rounded,
-                    size: 14, color: failed ? AppColors.red : const Color(0xFF10B981)),
-                const SizedBox(width: 8),
-                Text('$n 次工具调用',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(stat,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 9.5, color: Color(0xFFB6C2D3), fontFamily: 'monospace')),
-                      if (errLine.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            '失败：${errLine.length > 90 ? '${errLine.substring(0, 90)}…' : errLine}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 9, color: Color(0xFFDC2626)),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                AnimatedRotation(
-                  turns: _open ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  child: const Icon(Icons.expand_more_rounded, size: 16, color: Color(0xFFCBD5E1)),
-                ),
-              ]),
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: !_open
-                ? const SizedBox(width: double.infinity)
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [for (var k = 0; k < widget.tools.length; k++) _rowCard(k)],
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    ),
-  );
-  }
-
-  Widget _rowCard(int k) {
-    final t = widget.tools[k];
-    final out = k < widget.outputs.length ? widget.outputs[k] : null;
-    final lines = _linesOf(out);
-    final open = _expanded.contains(k);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            InkWell(
-              onTap: lines.isEmpty ? null : () => setState(() {
-                    if (open) {
-                      _expanded.remove(k);
-                    } else {
-                      _expanded.add(k);
-                    }
-                  }),
-              borderRadius: BorderRadius.circular(11),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
-                child: Row(children: [
-                  Icon(t.ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                      size: 12, color: t.ok ? const Color(0xFF10B981) : AppColors.red),
-                  const SizedBox(width: 6),
-                  Text(t.toolName ?? 'tool',
-                      style: const TextStyle(
-                          fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFFD4DBE8))),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(_cmdOf(t),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 10, color: Color(0xFF9AA7C0), fontFamily: 'monospace')),
-                  ),
-                  if (lines.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A2338),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text('${lines.length} 行',
-                          style: const TextStyle(
-                              fontSize: 9, color: Color(0xFF7886A0), fontFamily: 'monospace')),
-                    ),
-                    const SizedBox(width: 4),
-                    AnimatedRotation(
-                      turns: open ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 180),
-                      child: const Icon(Icons.expand_more_rounded, size: 13, color: Color(0xFFCBD5E1)),
-                    ),
-                  ],
-                ]),
-              ),
-            ),
-            if (open && lines.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0B1220),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E293B),
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(9)),
-                      ),
-                      child: Row(children: [
-                        for (final c in const [Color(0xFFFF5F57), Color(0xFFFEBC2E), Color(0xFF28C840)])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Container(
-                                width: 8, height: 8,
-                                decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-                          ),
-                        const Spacer(),
-                        const Text('输出',
-                            style: TextStyle(fontSize: 9, color: Color(0xFF7886A0))),
-                      ]),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(9),
-                      constraints: const BoxConstraints(maxHeight: 150),
-                      child: SingleChildScrollView(
-                        child: Text(
-                          lines.length > 40 ? lines.sublist(lines.length - 40).join('\n') : lines.join('\n'),
-                          style: const TextStyle(
-                              fontFamily: 'monospace', fontSize: 9.5, color: Color(0xFFCBD5E1), height: 1.55),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+        children: [for (var k = 0; k < widget.tools.length; k++) _rowCard(k)],
       ),
     );
-  }
-}
+  }}
 
 /// 轻量 Markdown：**粗体** / *斜体* / `行内代码` / 行首 - 列表 / # 标题。
 

@@ -5,14 +5,15 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const brand = Color(0xFF4D7CFE);
-  static const brandSoft = Color(0xFF1E2A45);
-  static const bg = Color(0xFF0B1020);
-  static const card = Color(0xFF141B2E);
+  static const brand = Color(0xFF4ADE80);
+  static const brandSoft = Color(0xFF15302A);
+  static const bg = Color(0xFF0A1512);
+  static const card = Color(0xFF11201B);
   static const text = Color(0xFFEAF0FB);
   static const muted = Color(0xFF9AA7C0);
-  static const border = Color(0xFF2A3550);
-  static const green = Color(0xFF34D399);
+  // 边框：灰色（不要黑色）
+  static const border = Color(0xFF6B7280);
+  static const green = Color(0xFF4ADE80);
   static const orange = Color(0xFFF59E0B);
   static const red = Color(0xFFF87171);
 }
@@ -40,10 +41,10 @@ BoxDecoration glassBackground({String? image}) {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFF101A36),
-        Color(0xFF0A0F20),
-        Color(0xFF141033),
-        Color(0xFF0A1226),
+        Color(0xFF1B3A2E),
+        Color(0xFF0D1F19),
+        Color(0xFF14301F),
+        Color(0xFF081410),
       ],
       stops: [0.0, 0.42, 0.78, 1.0],
     ),
