@@ -23,6 +23,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   String _state = 'AI 待命';
   final List<Map<String, dynamic>> _msgs = [];
   dynamic _view;
+  final TextEditingController _input = TextEditingController();
 
   @override
   void initState() {
@@ -37,6 +38,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
 
   @override
   void dispose() {
+    _input.dispose();
     _ctrl.dispose();
     floatingChannel.setMethodCallHandler(null);
     super.dispose();
@@ -68,11 +70,43 @@ class _FloatingChatAppState extends State<FloatingChatApp>
     if (_expanded) _ctrl.forward(); else _ctrl.reverse();
   }
 
+  void _close() {
+    floatingChannel.invokeMethod('close');
+  }
+
+  void _send() {
+    final t = _input.text.trim();
+    if (t.isEmpty) return;
+    floatingChannel.invokeMethod('send', {'text': t});
+    _input.clear();
+  }
+
+  void _attach() {
+    floatingChannel.invokeMethod('attach');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: _expanded ? _window() : _pill(),
+    );
+  }
+
+  /// 液态玻璃：白磨砂 + 双层亮边 + 内高光。
+  BoxDecoration _glass(double radius) {
+    return BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xF2FFFFFF), Color(0xD9FFFFFF)],
+      ),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
+      boxShadow: const [
+        BoxShadow(color: Color(0x26000000), blurRadius: 18, offset: Offset(0, 6)),
+        BoxShadow(color: Color(0x1FFFFFFF), blurRadius: 0, spreadRadius: 0.5),
+      ],
     );
   }
 
@@ -83,16 +117,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
       child: Container(
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 13),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xF2FFFFFF), Color(0xD9FFFFFF)],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
-          boxShadow: const [BoxShadow(color: Color(0x26000000), blurRadius: 18, offset: Offset(0, 6))],
-        ),
+        decoration: _glass(20),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -130,25 +155,37 @@ class _FloatingChatAppState extends State<FloatingChatApp>
       child: FadeTransition(
         opacity: _ctrl,
         child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xD1FFFFFF), Color(0x9EFFFFFF)],
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: .85)),
-            boxShadow: const [BoxShadow(color: Color(0x290F172A), blurRadius: 40, offset: Offset(0, 14))],
-          ),
+          decoration: _glass(18),
           clipBehavior: Clip.antiAlias,
-          child: Column(
+          child: Stack(
             children: [
-              _header(),
-              Expanded(child: _body()),
-              _inputBar(),
+              Column(
+                children: [
+                  _header(),
+                  Expanded(child: _body()),
+                  _inputBar(),
+                ],
+              ),
+              Positioned(right: 3, bottom: 3, child: _resizeHandle()),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// 右下角缩放把手：拖动时把每帧增量发给原生 resize。
+  Widget _resizeHandle() {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanUpdate: (d) {
+        floatingChannel.invokeMethod('resize', {'dw': d.delta.dx, 'dh': d.delta.dy});
+      },
+      child: Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        child: Icon(Icons.open_in_full, size: 15, color: AppColors.muted.withValues(alpha: 0.7)),
       ),
     );
   }
@@ -174,15 +211,31 @@ class _FloatingChatAppState extends State<FloatingChatApp>
               child: Text('Rowan',
                   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.text)),
             ),
+            // 收起回胶囊
             GestureDetector(
               onTap: _toggle,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .5),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('收起 ▾', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                child: const Text('收起', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+              ),
+            ),
+            const SizedBox(width: 6),
+            // 关闭悬浮窗
+            GestureDetector(
+              onTap: _close,
+              child: Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.close, size: 13, color: AppColors.muted),
               ),
             ),
           ],
@@ -227,15 +280,30 @@ class _FloatingChatAppState extends State<FloatingChatApp>
   }
 
   Widget _inputBar() {
-    final ctrl = TextEditingController();
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 9, 11, 11),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x80FFFFFF)))),
       child: Row(
         children: [
+          // 上传文件
+          GestureDetector(
+            onTap: _attach,
+            child: Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: .85)),
+              ),
+              child: const Icon(Icons.attach_file, size: 15, color: AppColors.muted),
+            ),
+          ),
+          const SizedBox(width: 6),
           Expanded(
             child: TextField(
-              controller: ctrl,
+              controller: _input,
               style: const TextStyle(fontSize: 11.5, color: AppColors.text),
               decoration: InputDecoration(
                 isDense: true,
@@ -253,21 +321,12 @@ class _FloatingChatAppState extends State<FloatingChatApp>
                   borderSide: BorderSide(color: Colors.white.withValues(alpha: .85)),
                 ),
               ),
-              onSubmitted: (t) {
-                if (t.trim().isEmpty) return;
-                floatingChannel.invokeMethod('send', {'text': t.trim()});
-                ctrl.clear();
-              },
+              onSubmitted: (_) => _send(),
             ),
           ),
           const SizedBox(width: 6),
           GestureDetector(
-            onTap: () {
-              final t = ctrl.text.trim();
-              if (t.isEmpty) return;
-              floatingChannel.invokeMethod('send', {'text': t});
-              ctrl.clear();
-            },
+            onTap: _send,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
               decoration: BoxDecoration(

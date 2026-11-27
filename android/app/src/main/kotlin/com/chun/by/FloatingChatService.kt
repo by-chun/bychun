@@ -111,6 +111,10 @@ class FloatingChatService(private val ctx: Context) {
                         onEvent?.invoke("action", call.arguments as? Map<String, Any?>)
                         result.success(true)
                     }
+                    "attach" -> {
+                        onEvent?.invoke("attach", call.arguments as? Map<String, Any?>)
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             }

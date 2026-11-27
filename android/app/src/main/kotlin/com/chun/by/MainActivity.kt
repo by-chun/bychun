@@ -370,21 +370,31 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                     "chatOverlayMinimize" -> {
                         val f = com.chun.by.FloatingChatService(this)
                         f.onEvent = { type, data ->
-                            val text = when (type) {
-                                "send" -> (data?.get("text") as? String) ?: ""
-                                "action" -> {
-                                    val a = (data?.get("action") as? String) ?: ""
-                                    val args = (data?.get("args") as? Map<*, *>) ?: emptyMap<Any, Any>()
-                                    if (args.isEmpty()) a else "$a: ${args.entries.joinToString(" ") { "${it.key}=${it.value}" }}"
-                                }
-                                else -> ""
-                            }
-                            if (text.isNotEmpty()) {
-                                runOnUiThread {
+                            when (type) {
+                                "attach" -> runOnUiThread {
                                     nativeChannel?.invokeMethod(
                                         "chatOverlayEvent",
-                                        mapOf("type" to "send", "data" to text),
+                                        mapOf("type" to "attach", "data" to ""),
                                     )
+                                }
+                                else -> {
+                                    val text = when (type) {
+                                        "send" -> (data?.get("text") as? String) ?: ""
+                                        "action" -> {
+                                            val a = (data?.get("action") as? String) ?: ""
+                                            val args = (data?.get("args") as? Map<*, *>) ?: emptyMap<Any, Any>()
+                                            if (args.isEmpty()) a else "$a: ${args.entries.joinToString(" ") { "${it.key}=${it.value}" }}"
+                                        }
+                                        else -> ""
+                                    }
+                                    if (text.isNotEmpty()) {
+                                        runOnUiThread {
+                                            nativeChannel?.invokeMethod(
+                                                "chatOverlayEvent",
+                                                mapOf("type" to "send", "data" to text),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
