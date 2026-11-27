@@ -183,14 +183,14 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
           decoration: BoxDecoration(
-            color: on ? const Color(0xFF2563EB) : const Color(0xFFF1F5F9),
+            color: on ? const Color(0xFF2563EB) : const Color(0xFF1A2338),
             borderRadius: BorderRadius.circular(9),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 13, color: on ? Colors.white : const Color(0xFF475569)),
+            Icon(icon, size: 13, color: on ? Colors.white : const Color(0xFFAEB9CC)),
             const SizedBox(width: 4),
             Text(label,
-                style: TextStyle(fontSize: 11, color: on ? Colors.white : const Color(0xFF475569))),
+                style: TextStyle(fontSize: 11, color: on ? Colors.white : const Color(0xFFAEB9CC))),
           ]),
         ),
       ),
@@ -219,9 +219,9 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
     }).toList();
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FC),
+        color: const Color(0xFF141B2E),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEF2F7)),
+        border: Border.all(color: const Color(0xFF1A2338)),
       ),
       child: Column(children: [
         Padding(
@@ -279,7 +279,7 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
                     Text(pkg,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+                        style: const TextStyle(fontSize: 9, color: Color(0xFF7886A0), fontFamily: 'monospace')),
                   ]),
                 ),
               );
@@ -341,9 +341,9 @@ class _PluginViewPageState extends ConsumerState<PluginViewPage> {
                               Expanded(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF7F9FC),
+                                    color: const Color(0xFF141B2E),
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFFEEF2F7)),
+                                    border: Border.all(color: const Color(0xFF1A2338)),
                                   ),
                                   padding: const EdgeInsets.all(8),
                                   child: TextField(

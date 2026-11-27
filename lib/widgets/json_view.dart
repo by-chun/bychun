@@ -45,7 +45,7 @@ Widget _render(dynamic node, void Function(String, Map<String, dynamic>)? onActi
     case 'divider':
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 6),
-        child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+        child: Divider(height: 1, color: Color(0xFF1A2338)),
       );
     case 'spacer':
       return SizedBox(height: ((m['h'] as num?)?.toDouble() ?? 8));
@@ -163,7 +163,7 @@ Widget _listTile(Map it, onAction) {
   final content = Container(
     padding: const EdgeInsets.symmetric(vertical: 8),
     decoration: const BoxDecoration(
-      border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+      border: Border(bottom: BorderSide(color: Color(0xFF1A2338))),
     ),
     child: row,
   );
@@ -205,12 +205,12 @@ Widget _table(Map m) {
   final columns = (m['columns'] as List? ?? const []).map((c) => c is Map ? '${c['label'] ?? ''}' : '$c').toList();
   final rows = (m['rows'] as List? ?? const []);
   return Table(
-    border: TableBorder(horizontalInside: BorderSide(color: const Color(0xFFF1F5F9), width: 0.5)),
+    border: TableBorder(horizontalInside: BorderSide(color: const Color(0xFF1A2338), width: 0.5)),
     columnWidths: const {0: IntrinsicColumnWidth()},
     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
     children: [
       TableRow(
-        decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+        decoration: const BoxDecoration(color: Color(0xFF141B2E)),
         children: [for (final c in columns) Padding(
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
           child: Text(c, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.muted)),
@@ -248,7 +248,7 @@ Widget _actionBtn(Map it, onAction) {
   final action = it['action'];
   final primary = it['style'] == 'primary';
   return Material(
-    color: primary ? AppColors.brand : const Color(0xFFF1F5F9),
+    color: primary ? AppColors.brand : const Color(0xFF1A2338),
     borderRadius: BorderRadius.circular(10),
     child: InkWell(
       borderRadius: BorderRadius.circular(10),
@@ -256,7 +256,7 @@ Widget _actionBtn(Map it, onAction) {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Text(label,
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: primary ? Colors.white : const Color(0xFF475569))),
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: primary ? Colors.white : const Color(0xFFAEB9CC))),
       ),
     ),
   );
@@ -335,7 +335,7 @@ Widget _progress(Map m) {
       const SizedBox(height: 4),
       ClipRRect(
         borderRadius: BorderRadius.circular(5),
-        child: LinearProgressIndicator(value: pct, minHeight: 8, color: color, backgroundColor: const Color(0xFFF1F5F9)),
+        child: LinearProgressIndicator(value: pct, minHeight: 8, color: color, backgroundColor: const Color(0xFF1A2338)),
       ),
       if (caption.isNotEmpty)
         Padding(
@@ -350,10 +350,10 @@ Widget _callout(Map m) {
   final text = '${m['text'] ?? ''}';
   final tone = '${m['tone'] ?? 'info'}';
   final (icon, color, bg) = switch (tone) {
-    'good' => (Icons.check_circle_rounded, AppColors.green, const Color(0xFFEAF7EE)),
-    'bad' => (Icons.error_rounded, AppColors.red, const Color(0xFFFDECEC)),
-    'warn' => (Icons.warning_rounded, const Color(0xFFD97706), const Color(0xFFFEF4E6)),
-    _ => (Icons.info_rounded, AppColors.brand, const Color(0xFFEAF1FE)),
+    'good' => (Icons.check_circle_rounded, AppColors.green, const Color(0xFF12251C)),
+    'bad' => (Icons.error_rounded, AppColors.red, const Color(0xFF2A1A1A)),
+    'warn' => (Icons.warning_rounded, const Color(0xFFD97706), const Color(0xFF2A2012)),
+    _ => (Icons.info_rounded, AppColors.brand, const Color(0xFF1E2A45)),
   };
   return Container(
     padding: const EdgeInsets.all(10),

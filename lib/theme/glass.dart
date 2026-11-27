@@ -20,9 +20,9 @@ class GlassButton extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.62),
+              color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(11),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.9)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
               boxShadow: const [BoxShadow(color: Color(0x120F172A), blurRadius: 12, offset: Offset(0, 4))],
             ),
             child: Row(
@@ -58,12 +58,12 @@ class GlassIconButton extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.78),
+          color: Colors.white.withValues(alpha: 0.14),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
           boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 12, offset: Offset(0, 4))],
         ),
-        child: Icon(icon, size: size * 0.5, color: const Color(0xFF334155)),
+        child: Icon(icon, size: size * 0.5, color: const Color(0xFFD4DBE8)),
       ),
     );
   }
@@ -96,7 +96,7 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 14),
             Text(text,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13.5, color: Color(0xFF334155), height: 1.7, fontWeight: FontWeight.w500)),
+                style: const TextStyle(fontSize: 13.5, color: Color(0xFFD4DBE8), height: 1.7, fontWeight: FontWeight.w500)),
           ],
         ),
       ),

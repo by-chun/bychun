@@ -79,10 +79,10 @@ class ViewCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE7EDF5)),
+                border: Border.all(color: const Color(0xFF1A2338)),
                 boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 6) ],
               ),
-              child: const Icon(Icons.open_in_full_rounded, size: 13, color: Color(0xFF64748B)),
+              child: const Icon(Icons.open_in_full_rounded, size: 13, color: Color(0xFF9AA7C0)),
             ),
           ),
         ),
@@ -139,12 +139,12 @@ class _CardFullscreenState extends State<_CardFullscreen> {
         margin: const EdgeInsets.only(left: 6),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: on ? AppColors.brand : const Color(0xFFF1F5F9),
+          color: on ? AppColors.brand : const Color(0xFF1A2338),
           borderRadius: BorderRadius.circular(7),
         ),
         child: Text(label,
             style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w600, color: on ? Colors.white : const Color(0xFF64748B))),
+                fontSize: 10, fontWeight: FontWeight.w600, color: on ? Colors.white : const Color(0xFF9AA7C0))),
       ),
     );
   }
@@ -152,7 +152,7 @@ class _CardFullscreenState extends State<_CardFullscreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F5FA),
+      backgroundColor: const Color(0xFF1A2338),
       body: SafeArea(
         child: Column(
           children: [
@@ -291,8 +291,8 @@ class _ListViewCardState extends State<_ListViewCard> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: const BoxDecoration(
-                color: Color(0xFFFBFCFE),
-                border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+                color: Color(0xFF141B2E),
+                border: Border(top: BorderSide(color: Color(0xFF1A2338))),
               ),
               child: Text('共 ${items.length} 项 · 卡片内滚动查看',
                   style: const TextStyle(fontSize: 9.5, color: AppColors.muted)),
@@ -306,7 +306,7 @@ class _ListViewCardState extends State<_ListViewCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+        border: Border(bottom: BorderSide(color: Color(0xFF1A2338))),
       ),
       child: Row(
         children: [
@@ -400,9 +400,9 @@ class _MemSearchCardState extends State<_MemSearchCard> {
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: const Color(0xFF1A2338),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: const Color(0xFF2A3550)),
         ),
         alignment: Alignment.center,
         child: TextField(
@@ -428,7 +428,7 @@ class _MemSearchCardState extends State<_MemSearchCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEF2F7)),
+        border: Border.all(color: const Color(0xFF1A2338)),
         boxShadow: const [BoxShadow(color: Color(0x0F0F172A), blurRadius: 22, offset: Offset(0, 8))],
       ),
       child: Column(
@@ -457,10 +457,10 @@ class _MemSearchCardState extends State<_MemSearchCard> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
-                      color: _tag == t[0] ? AppColors.brand : const Color(0xFFF1F5F9),
+                      color: _tag == t[0] ? AppColors.brand : const Color(0xFF1A2338),
                       borderRadius: BorderRadius.circular(9),
                       border: Border.all(
-                          color: _tag == t[0] ? AppColors.brand : const Color(0xFFEDF2F8)),
+                          color: _tag == t[0] ? AppColors.brand : const Color(0xFF1A2338)),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(t[0],
@@ -468,12 +468,12 @@ class _MemSearchCardState extends State<_MemSearchCard> {
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               fontFamily: 'monospace',
-                              color: _tag == t[0] ? Colors.white : const Color(0xFF475569))),
+                              color: _tag == t[0] ? Colors.white : const Color(0xFFAEB9CC))),
                       const SizedBox(width: 4),
                       Text(t[1],
                           style: TextStyle(
                               fontSize: 8.5,
-                              color: _tag == t[0] ? Colors.white : const Color(0xFF94A3B8))),
+                              color: _tag == t[0] ? Colors.white : const Color(0xFF7886A0))),
                     ]),
                   ),
                 ),
@@ -645,7 +645,7 @@ class _StreamViewCardState extends State<_StreamViewCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEF2F7)),
+        border: Border.all(color: const Color(0xFF1A2338)),
         boxShadow: const [BoxShadow(color: Color(0x0F0F172A), blurRadius: 22, offset: Offset(0, 8))],
       ),
       child: Column(
@@ -683,12 +683,12 @@ class _StreamViewCardState extends State<_StreamViewCard> {
                 ),
                 if (lines.isNotEmpty)
                   Text('${lines.length} 行',
-                      style: const TextStyle(fontSize: 9.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+                      style: const TextStyle(fontSize: 9.5, color: Color(0xFF7886A0), fontFamily: 'monospace')),
                 const SizedBox(width: 6),
                 Text(running ? '运行中 · $dur' : '完成 · $dur',
                     style: TextStyle(
                       fontSize: 9.5,
-                      color: running ? AppColors.brand : const Color(0xFF94A3B8),
+                      color: running ? AppColors.brand : const Color(0xFF7886A0),
                     )),
                 const SizedBox(width: 6),
                 AnimatedRotation(
@@ -735,7 +735,7 @@ class _StreamViewCardState extends State<_StreamViewCard> {
                           ),
                         const Spacer(),
                         const Text('输出',
-                            style: TextStyle(fontSize: 9, color: Color(0xFF94A3B8))),
+                            style: TextStyle(fontSize: 9, color: Color(0xFF7886A0))),
                       ]),
                     ),
                     Container(
@@ -774,7 +774,7 @@ class _StreamViewCardState extends State<_StreamViewCard> {
                 const Spacer(),
                 if (running)
                   const Text('AI 正在执行…',
-                      style: TextStyle(fontSize: 9.5, color: Color(0xFF94A3B8))),
+                      style: TextStyle(fontSize: 9.5, color: Color(0xFF7886A0))),
               ]),
                       ),
                     ],
@@ -792,13 +792,13 @@ class _StreamViewCardState extends State<_StreamViewCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: const Color(0xFF1A2338),
           borderRadius: BorderRadius.circular(9),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 12, color: const Color(0xFF475569)),
+          Icon(icon, size: 12, color: const Color(0xFFAEB9CC)),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 10.5, color: Color(0xFF475569))),
+          Text(label, style: const TextStyle(fontSize: 10.5, color: Color(0xFFAEB9CC))),
         ]),
       ),
     );
@@ -876,7 +876,7 @@ class _FormViewCardState extends State<_FormViewCard> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: const Color(0xFFF1F5F9),
+                        fillColor: const Color(0xFF1A2338),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -952,11 +952,11 @@ class _ChooseSummaryCard extends StatelessWidget {
       child: const Padding(
         padding: EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Row(children: [
-          Icon(Icons.ads_click_rounded, size: 14, color: Color(0xFF94A3B8)),
+          Icon(Icons.ads_click_rounded, size: 14, color: Color(0xFF7886A0)),
           SizedBox(width: 6),
           Expanded(
             child: Text('已弹出选择窗口，选完会作为消息回传',
-                style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+                style: TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
           ),
         ]),
       ),

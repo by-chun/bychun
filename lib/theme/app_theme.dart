@@ -5,23 +5,23 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const brand = Color(0xFF2563EB);
-  static const brandSoft = Color(0xFFEAF1FE);
-  static const bg = Color(0xFFF2F4F8);
-  static const card = Color(0xFFFFFFFF);
-  static const text = Color(0xFF0F172A);
-  static const muted = Color(0xFF64748B);
-  static const border = Color(0xFFE6EAF0);
-  static const green = Color(0xFF16A34A);
-  static const orange = Color(0xFFF57C00);
-  static const red = Color(0xFFDC2626);
+  static const brand = Color(0xFF4D7CFE);
+  static const brandSoft = Color(0xFF1E2A45);
+  static const bg = Color(0xFF0B1020);
+  static const card = Color(0xFF141B2E);
+  static const text = Color(0xFFEAF0FB);
+  static const muted = Color(0xFF9AA7C0);
+  static const border = Color(0xFF2A3550);
+  static const green = Color(0xFF34D399);
+  static const orange = Color(0xFFF59E0B);
+  static const red = Color(0xFFF87171);
 }
 
 BoxDecoration glassDecoration({double radius = 18, bool strong = false}) {
   return BoxDecoration(
-    color: Colors.white.withValues(alpha: strong ? 0.72 : 0.58),
+    color: Colors.white.withValues(alpha: strong ? 0.16 : 0.10),
     borderRadius: BorderRadius.circular(radius),
-    border: Border.all(color: Colors.white.withValues(alpha: 0.95), width: 1),
+    border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1),
     boxShadow: const [
       BoxShadow(color: Color(0x140F172A), blurRadius: 24, offset: Offset(0, 8)),
     ],
@@ -40,13 +40,12 @@ BoxDecoration glassBackground({String? image}) {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        Color(0xFFFF6B8A),
-        Color(0xFFFFA94D),
-        Color(0xFFB388FF),
-        Color(0xFF4FC3F7),
-        Color(0xFFF06292),
+        Color(0xFF101A36),
+        Color(0xFF0A0F20),
+        Color(0xFF141033),
+        Color(0xFF0A1226),
       ],
-      stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+      stops: [0.0, 0.42, 0.78, 1.0],
     ),
   );
 }

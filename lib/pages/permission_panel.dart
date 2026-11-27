@@ -43,9 +43,9 @@ class _PermissionPanelState extends State<PermissionPanel> {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF141B2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _hr ? const Color(0xFFFECACA) : const Color(0xFFE6EAF0)),
+          border: Border.all(color: _hr ? const Color(0xFFFECACA) : const Color(0xFF2A3550)),
           boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 18, offset: Offset(0, 6))],
         ),
         child: Column(
@@ -75,7 +75,7 @@ class _PermissionPanelState extends State<PermissionPanel> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: _hr ? const Color(0xFFFEF2F2) : const Color(0xFFEAF1FE),
+                      color: _hr ? const Color(0xFF2A1A1A) : const Color(0xFF1E2A45),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -123,7 +123,7 @@ class _PermissionPanelState extends State<PermissionPanel> {
                 Container(
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF7F9FC),
+                    color: const Color(0xFF141B2E),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -131,7 +131,7 @@ class _PermissionPanelState extends State<PermissionPanel> {
                     maxLines: 6,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'monospace', fontSize: 10.5, color: Color(0xFF475569), height: 1.5),
+                        fontFamily: 'monospace', fontSize: 10.5, color: Color(0xFFAEB9CC), height: 1.5),
                   ),
                 ),
               ],
@@ -140,7 +140,7 @@ class _PermissionPanelState extends State<PermissionPanel> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
+                    color: const Color(0xFF2A1A1A),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: const Text(
@@ -152,7 +152,7 @@ class _PermissionPanelState extends State<PermissionPanel> {
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(
-                  child: _btn('拒绝', const Color(0xFFF1F4F8), const Color(0xFF475569),
+                  child: _btn('拒绝', const Color(0xFF1A2338), const Color(0xFFAEB9CC),
                       () => widget.onChoice('deny')),
                 ),
                 const SizedBox(width: 8),
@@ -166,7 +166,7 @@ class _PermissionPanelState extends State<PermissionPanel> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _btn('始终允许', const Color(0xFFEAF1FE), AppColors.brand,
+                  child: _btn('始终允许', const Color(0xFF1E2A45), AppColors.brand,
                       () => widget.onChoice('always')),
                 ),
               ]),

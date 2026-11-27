@@ -101,19 +101,19 @@ class _ProvidersPageState extends State<ProvidersPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: v == null ? const Color(0xFFF1F4F8) : const Color(0xFFEAF1FE),
+          color: v == null ? const Color(0xFF1A2338) : const Color(0xFF1E2A45),
           borderRadius: BorderRadius.circular(9),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.account_balance_wallet_outlined,
-              size: 12, color: v == null ? const Color(0xFF94A3B8) : AppColors.brand),
+              size: 12, color: v == null ? const Color(0xFF7886A0) : AppColors.brand),
           const SizedBox(width: 4),
           Text(
             loading ? '…' : (v ?? '—'),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: v == null ? const Color(0xFF94A3B8) : AppColors.brand,
+              color: v == null ? const Color(0xFF7886A0) : AppColors.brand,
             ),
           ),
         ]),
@@ -165,7 +165,7 @@ class _ProvidersPageState extends State<ProvidersPage> {
                       Icon(
                         p.name == _active ? Icons.check_circle_rounded : Icons.cloud_outlined,
                         size: 20,
-                        color: p.name == _active ? AppColors.brand : const Color(0xFF94A3B8),
+                        color: p.name == _active ? AppColors.brand : const Color(0xFF7886A0),
                       ),
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -193,7 +193,7 @@ class _ProvidersPageState extends State<ProvidersPage> {
           );
     final addButton = IconButton(
       onPressed: () => _editProvider(null),
-      icon: const Icon(Icons.add_rounded, color: Color(0xFF334155)),
+      icon: const Icon(Icons.add_rounded, color: Color(0xFFD4DBE8)),
     );
     if (widget.embedded) {
       return embedShell(title: 'AI 供应商', actions: [addButton], body: body);
@@ -323,15 +323,15 @@ class _ProviderEditPageState extends State<ProviderEditPage> {
         height: 30,
         padding: const EdgeInsets.only(left: 9, right: 3),
         decoration: BoxDecoration(
-          color: on ? const Color(0xFFEFF5FF) : const Color(0xFFF7F9FC),
+          color: on ? const Color(0xFF1E2A45) : const Color(0xFF141B2E),
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: on ? const Color(0xFFC7DBFA) : const Color(0xFFE6EDF7)),
+          border: Border.all(color: on ? const Color(0xFF2A3A5E) : const Color(0xFF2A3550)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Text(m,
               style: TextStyle(
                 fontSize: 11.5,
-                color: on ? AppColors.brand : const Color(0xFF334155),
+                color: on ? AppColors.brand : const Color(0xFFD4DBE8),
                 fontWeight: on ? FontWeight.w600 : FontWeight.w400,
               )),
           const SizedBox(width: 3),
@@ -343,7 +343,7 @@ class _ProviderEditPageState extends State<ProviderEditPage> {
             borderRadius: BorderRadius.circular(20),
             child: const Padding(
               padding: EdgeInsets.all(4),
-              child: Icon(Icons.close_rounded, size: 12, color: Color(0xFF94A3B8)),
+              child: Icon(Icons.close_rounded, size: 12, color: Color(0xFF7886A0)),
             ),
           ),
         ]),
@@ -359,9 +359,9 @@ class _ProviderEditPageState extends State<ProviderEditPage> {
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFFBFDFF),
+          color: const Color(0xFF141B2E),
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: const Color(0xFFC7DBFA)),
+          border: Border.all(color: const Color(0xFF2A3A5E)),
         ),
         child: const Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.add_rounded, size: 13, color: AppColors.brand),
@@ -770,7 +770,7 @@ class _PromptPageState extends State<PromptPage> {
                         const SizedBox(width: 4),
                         IconButton(
                           onPressed: () => _edit(_list[i]),
-                          icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF94A3B8)),
+                          icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF7886A0)),
                         ),
                       ],
                     ),
@@ -787,9 +787,9 @@ class _PromptPageState extends State<PromptPage> {
       IconButton(
         tooltip: '恢复内置规则',
         onPressed: _restoreBuiltin,
-        icon: const Icon(Icons.settings_backup_restore_rounded, color: Color(0xFF334155)),
+        icon: const Icon(Icons.settings_backup_restore_rounded, color: Color(0xFFD4DBE8)),
       ),
-      IconButton(onPressed: () => _edit(), icon: const Icon(Icons.add_rounded, color: Color(0xFF334155))),
+      IconButton(onPressed: () => _edit(), icon: const Icon(Icons.add_rounded, color: Color(0xFFD4DBE8))),
     ];
     if (widget.embedded) {
       return embedShell(title: '提示词', actions: actions, body: body);
@@ -1133,7 +1133,7 @@ class _PowerPageState extends ConsumerState<PowerPage> {
         padding: const EdgeInsets.only(right: 16),
         margin: const EdgeInsets.only(bottom: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFFEF2F2),
+          color: const Color(0xFF2A1A1A),
           borderRadius: BorderRadius.circular(14),
         ),
         child: const Text('删除规则',

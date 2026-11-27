@@ -18,10 +18,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-    statusBarBrightness: Brightness.light,
-    systemNavigationBarColor: Colors.white,
-    systemNavigationBarIconBrightness: Brightness.dark,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: const Color(0xFF0B1020),
+    systemNavigationBarIconBrightness: Brightness.light,
   ));
   try {
     await initAudioService();
@@ -79,12 +79,12 @@ class RowanApp extends ConsumerWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: theme.accent,
-          brightness: Brightness.light,
-        ).copyWith(primary: theme.accent, surface: Colors.white),
+          brightness: Brightness.dark,
+        ).copyWith(primary: theme.accent, surface: AppColors.card),
         scaffoldBackgroundColor: AppColors.bg,
         splashFactory: InkSparkle.splashFactory,
         dialogTheme: DialogThemeData(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.card,
           surfaceTintColor: Colors.transparent,
           elevation: 18,
           insetPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 24),
@@ -95,7 +95,7 @@ class RowanApp extends ConsumerWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFFF4F6FA),
+          fillColor: const Color(0xFF1A2338),
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -112,7 +112,7 @@ class RowanApp extends ConsumerWidget {
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AppColors.brand,
-            backgroundColor: const Color(0xFFF1F4F8),
+            backgroundColor: const Color(0xFF1A2338),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),

@@ -57,7 +57,7 @@ class _MemoriesPageState extends ConsumerState<MemoriesPage> {
         elevation: 0,
         title: const Text('记忆', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         actions: [
-          IconButton(onPressed: _add, icon: const Icon(Icons.add_rounded, color: Color(0xFF334155))),
+          IconButton(onPressed: _add, icon: const Icon(Icons.add_rounded, color: Color(0xFFD4DBE8))),
         ],
       ),
       body: _items.isEmpty

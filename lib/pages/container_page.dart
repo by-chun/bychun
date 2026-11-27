@@ -225,7 +225,7 @@ class _ContainerPageState extends State<ContainerPage> {
                 child: Center(
                   child: Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                    decoration: BoxDecoration(color: const Color(0xFF141B2E), borderRadius: BorderRadius.circular(16)),
                     child: const Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -318,7 +318,7 @@ class _ContainerPageState extends State<ContainerPage> {
           IconButton(
             onPressed: () => _remove(name),
             icon: const Icon(Icons.delete_outline_rounded, size: 18),
-            color: const Color(0xFF94A3B8),
+            color: const Color(0xFF7886A0),
             visualDensity: VisualDensity.compact,
           ),
         ],

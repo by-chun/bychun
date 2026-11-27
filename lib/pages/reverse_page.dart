@@ -198,7 +198,7 @@ class _ApkFilesPageState extends State<_ApkFilesPage> {
         actions: [
           IconButton(
             tooltip: '解包导出到 Download',
-            icon: const Icon(Icons.unarchive_outlined, size: 20, color: Color(0xFF334155)),
+            icon: const Icon(Icons.unarchive_outlined, size: 20, color: Color(0xFFD4DBE8)),
             onPressed: () async {
               final name = widget.title.replaceAll(RegExp(r'[^\w\u4e00-\u9fa5]+'), '_');
               final dir = '/sdcard/Download/g_unpack/$name';
@@ -436,14 +436,14 @@ class _SoPageState extends State<_SoPage> with SingleTickerProviderStateMixin {
         elevation: 0,
         title: Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
         actions: [
-          IconButton(onPressed: _run, icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF334155))),
+          IconButton(onPressed: _run, icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFFD4DBE8))),
         ],
         bottom: TabBar(
           controller: _tc,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           labelColor: AppColors.brand,
-          unselectedLabelColor: const Color(0xFF94A3B8),
+          unselectedLabelColor: const Color(0xFF7886A0),
           indicatorColor: AppColors.brand,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
@@ -570,7 +570,7 @@ class _SoPageState extends State<_SoPage> with SingleTickerProviderStateMixin {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: SelectableText(_asmResult,
-                          style: const TextStyle(fontFamily: 'monospace', fontSize: 10.5, color: Color(0xFF475569))),
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 10.5, color: Color(0xFFAEB9CC))),
                     ),
                   ),
                 Expanded(child: _mono(_disasm)),

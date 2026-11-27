@@ -62,7 +62,7 @@ class _CaptureCardState extends State<CaptureCard> {
         title: const Text('上游 DNS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('自动获取失败时手动填一个能用的 DNS（如路由器 192.168.1.1、代理的 127.0.0.1）。',
-              style: TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.5)),
+              style: TextStyle(fontSize: 11, color: Color(0xFF9AA7C0), height: 1.5)),
           const SizedBox(height: 10),
           TextField(
             controller: ctrl,
@@ -107,7 +107,7 @@ class _CaptureCardState extends State<CaptureCard> {
                 const Text('抓包记录', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                 const SizedBox(width: 8),
                 Text('${_hits.length}',
-                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF7886A0), fontFamily: 'monospace')),
                 const Spacer(),
                 TextButton(onPressed: _clear, child: const Text('清空', style: TextStyle(fontSize: 12))),
               ]),
@@ -115,12 +115,12 @@ class _CaptureCardState extends State<CaptureCard> {
             Expanded(
               child: _hits.isEmpty
                   ? const Center(
-                      child: Text('还没有抓到记录', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+                      child: Text('还没有抓到记录', style: TextStyle(fontSize: 12, color: Color(0xFF7886A0))),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
                       itemCount: _hits.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFF1A2338)),
                       itemBuilder: (_, i) => _row(_hits[i], fontSize: 11.5),
                     ),
             ),
@@ -137,13 +137,13 @@ class _CaptureCardState extends State<CaptureCard> {
         SizedBox(
           width: 58,
           child: Text(h.time,
-              style: const TextStyle(fontSize: 9.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+              style: const TextStyle(fontSize: 9.5, color: Color(0xFF7886A0), fontFamily: 'monospace')),
         ),
         Expanded(
           child: Text(h.host,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: fontSize, fontFamily: 'monospace', color: const Color(0xFF334155))),
+              style: TextStyle(fontSize: fontSize, fontFamily: 'monospace', color: const Color(0xFFD4DBE8))),
         ),
         if (h.ips.isNotEmpty) ...[
           const SizedBox(width: 8),
@@ -164,7 +164,7 @@ class _CaptureCardState extends State<CaptureCard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE6EAF0)),
+        border: Border.all(color: const Color(0xFF2A3550)),
         boxShadow: const [BoxShadow(color: Color(0x140F172A), blurRadius: 16, offset: Offset(0, 6))],
       ),
       child: Column(
@@ -190,7 +190,7 @@ class _CaptureCardState extends State<CaptureCard> {
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
               const SizedBox(width: 8),
               Text('${_hits.length}',
-                  style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+                  style: const TextStyle(fontSize: 10.5, color: Color(0xFF7886A0), fontFamily: 'monospace')),
               const Spacer(),
               IconButton(
                 onPressed: widget.onStop,
@@ -204,16 +204,16 @@ class _CaptureCardState extends State<CaptureCard> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
               child: Row(children: [
-                const Text('上游 DNS', style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                const Text('上游 DNS', style: TextStyle(fontSize: 10.5, color: Color(0xFF9AA7C0))),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(_dns.isEmpty ? '未设置' : _dns,
-                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF0F172A), fontFamily: 'monospace')),
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFFEAF0FB), fontFamily: 'monospace')),
                 ),
                 if (_dns.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: const Color(0xFFEFF5FF), borderRadius: BorderRadius.circular(6)),
+                    decoration: BoxDecoration(color: const Color(0xFF1E2A45), borderRadius: BorderRadius.circular(6)),
                     child: Text(_auto ? '自动' : '手动',
                         style: const TextStyle(fontSize: 9, color: AppColors.brand)),
                   ),
@@ -226,7 +226,7 @@ class _CaptureCardState extends State<CaptureCard> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-              color: const Color(0xFFFFFBEB),
+              color: const Color(0xFF2A2412),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('自动获取上游 DNS 失败（系统 DNS 取不到），先手动填一个再抓包。',
                     style: TextStyle(fontSize: 10.5, color: Color(0xFFB45309), height: 1.5)),
@@ -248,7 +248,7 @@ class _CaptureCardState extends State<CaptureCard> {
             child: shown.isEmpty
                 ? Center(
                     child: Text(_needDns ? '填好上游 DNS 后，刷新一个网页就能看到记录' : '等待流量…',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF7886A0))),
                   )
                 : ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -260,11 +260,11 @@ class _CaptureCardState extends State<CaptureCard> {
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Row(children: [
               Expanded(
-                child: _btn('停止', const Color(0xFFFEF2F2), const Color(0xFFDC2626), widget.onStop),
+                child: _btn('停止', const Color(0xFF2A1A1A), const Color(0xFFDC2626), widget.onStop),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _btn('清空', const Color(0xFFF1F4F8), const Color(0xFF475569), _clear),
+                child: _btn('清空', const Color(0xFF1A2338), const Color(0xFFAEB9CC), _clear),
               ),
               const SizedBox(width: 8),
               Expanded(

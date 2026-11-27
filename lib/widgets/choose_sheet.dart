@@ -42,7 +42,7 @@ Future<void> showChooseSheet(
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
+                      color: const Color(0xFF2A3550),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -55,7 +55,7 @@ Future<void> showChooseSheet(
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
                   child: Text(multi ? '可以多选，选完点确认' : '点一项直接选，或写补充要求',
-                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF9AA7C0))),
                 ),
                 Flexible(
                   child: ListView.separated(
@@ -86,9 +86,9 @@ Future<void> showChooseSheet(
                         child: Container(
                           padding: const EdgeInsets.fromLTRB(13, 11, 12, 12),
                           decoration: BoxDecoration(
-                            color: on ? const Color(0xFFF2F7FF) : const Color(0xFFF8FAFC),
+                            color: on ? const Color(0xFF1E2A45) : const Color(0xFF141B2E),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: on ? const Color(0xFFC7DBFA) : const Color(0xFFEDF1F7)),
+                            border: Border.all(color: on ? const Color(0xFF2A3A5E) : const Color(0xFF1A2338)),
                           ),
                           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Expanded(
@@ -104,7 +104,7 @@ Future<void> showChooseSheet(
                                     padding: const EdgeInsets.only(top: 3),
                                     child: Text(d,
                                         style: const TextStyle(
-                                            fontSize: 10.5, color: Color(0xFF64748B), height: 1.5)),
+                                            fontSize: 10.5, color: Color(0xFF9AA7C0), height: 1.5)),
                                   ),
                               ]),
                             ),

@@ -121,7 +121,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
               child: Text(_state,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFD4DBE8))),
             ),
           ],
         ),
@@ -250,7 +250,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         constraints: const BoxConstraints(maxWidth: 260),
         decoration: BoxDecoration(
-          color: mine ? const Color(0xFFE8EFFD) : Colors.white.withValues(alpha: .62),
+          color: mine ? const Color(0xFF1E2A45) : Colors.white.withValues(alpha: .62),
           borderRadius: BorderRadius.circular(14),
           border: mine ? null : Border.all(color: Colors.white.withValues(alpha: .85)),
         ),

@@ -166,7 +166,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               child: Row(
                 children: [
                   const Text('Rowan',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFFEAF0FB))),
                   const Spacer(),
                   if (widget.onClose != null)
                     InkWell(
@@ -174,7 +174,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                       borderRadius: BorderRadius.circular(8),
                       child: const Padding(
                         padding: EdgeInsets.all(6),
-                        child: Icon(Icons.close_rounded, size: 18, color: Color(0xFF94A3B8)),
+                        child: Icon(Icons.close_rounded, size: 18, color: Color(0xFF7886A0)),
                       ),
                     ),
                 ],
@@ -193,14 +193,14 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                   ..._appChildren(),
                   const SizedBox(height: 6),
                   _card([
-                    _section('files', '文件', _typeIcon(Icons.folder_outlined, const Color(0xFF64748B))),
+                    _section('files', '文件', _typeIcon(Icons.folder_outlined, const Color(0xFF9AA7C0))),
                     if (_isOpen('files'))
                       _searchAdd('files', onAdd: () => _newSheet('/storage/emulated/0')),
                     if (_isOpen('files')) _dirChildren('files', '/storage/emulated/0', 1),
                   ]),
                   const SizedBox(height: 6),
                   _card([
-                    _section('plugins', '插件', _typeIcon(Icons.extension_outlined, const Color(0xFF64748B))),
+                    _section('plugins', '插件', _typeIcon(Icons.extension_outlined, const Color(0xFF9AA7C0))),
                     if (_isOpen('plugins'))
                       _searchAdd('plugins', onAdd: () => _newSheet('/storage/emulated/0/Rowan/plugins')),
                     if (_isOpen('plugins')) _dirChildren('plugins', '/storage/emulated/0/Rowan/plugins', 1),
@@ -246,7 +246,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             const SizedBox(width: 6),
             icon,
             const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFEAF0FB))),
             const Spacer(),
             if (key == 'apps' && _apps != null)
               Text('${_apps!.length}',
@@ -326,7 +326,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
           title: const Text('导入文件名', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
           content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('存到 $dir',
-                style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+                style: const TextStyle(fontSize: 10, color: Color(0xFF7886A0), fontFamily: 'monospace')),
             const SizedBox(height: 8),
             TextField(controller: c, autofocus: true),
           ]),
@@ -355,7 +355,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('在 $dir 下创建',
-              style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+              style: const TextStyle(fontSize: 10.5, color: Color(0xFF7886A0), fontFamily: 'monospace')),
           const SizedBox(height: 8),
           TextField(controller: c, autofocus: true),
           if (act == 'file')
@@ -404,13 +404,13 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               height: 32,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA),
+                color: const Color(0xFF141B2E),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFEEF2F7)),
+                border: Border.all(color: const Color(0xFF1A2338)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search_rounded, size: 13, color: Color(0xFF94A3B8)),
+                  const Icon(Icons.search_rounded, size: 13, color: Color(0xFF7886A0)),
                   const SizedBox(width: 6),
                   Expanded(
                     child: TextField(
@@ -420,7 +420,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                         isDense: true,
                         border: InputBorder.none,
                         hintText: '搜索',
-                        hintStyle: TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
+                        hintStyle: TextStyle(fontSize: 11.5, color: Color(0xFF7886A0)),
                       ),
                     ),
                   ),
@@ -457,7 +457,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
         if (list.isEmpty) {
           return const Padding(
             padding: EdgeInsets.fromLTRB(34, 4, 10, 10),
-            child: Text('（还没有会话）', style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+            child: Text('（还没有会话）', style: TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
           );
         }
         return Column(children: [
@@ -468,7 +468,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               background: Container(
                 alignment: Alignment.centerRight,
                 padding: const EdgeInsets.only(right: 16),
-                color: const Color(0xFFFEF2F2),
+                color: const Color(0xFF2A1A1A),
                 child: const Text('删除',
                     style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
               ),
@@ -500,7 +500,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 12,
-                            color: s.id == active ? const Color(0xFF2563EB) : const Color(0xFF334155)),
+                            color: s.id == active ? const Color(0xFF2563EB) : const Color(0xFFD4DBE8)),
                       ),
                     ),
                   ]),
@@ -613,7 +613,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500)),
               ),
-              const Icon(Icons.drag_handle_rounded, size: 14, color: Color(0xFFE2E8F0)),
+              const Icon(Icons.drag_handle_rounded, size: 14, color: Color(0xFF2A3550)),
             ],
           ),
           AnimatedSize(
@@ -649,7 +649,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               child: Text(v,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 9.5, color: Color(0xFF64748B), fontFamily: 'monospace')),
+                  style: const TextStyle(fontSize: 9.5, color: Color(0xFF9AA7C0), fontFamily: 'monospace')),
             ),
           ],
         ),
@@ -703,9 +703,9 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
                   size: 13, color: const Color(0xFFC3CCD8)),
               const SizedBox(width: 6),
-              const Icon(Icons.folder_zip_outlined, size: 14, color: Color(0xFF64748B)),
+              const Icon(Icons.folder_zip_outlined, size: 14, color: Color(0xFF9AA7C0)),
               const SizedBox(width: 6),
-              const Text('APK', style: TextStyle(fontSize: 11, color: Color(0xFF334155))),
+              const Text('APK', style: TextStyle(fontSize: 11, color: Color(0xFFD4DBE8))),
             ]),
           ),
         ),
@@ -714,16 +714,16 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             height: 240,
             margin: const EdgeInsets.only(top: 2, bottom: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F9FC),
+              color: const Color(0xFF141B2E),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFEEF2F7)),
+              border: Border.all(color: const Color(0xFF1A2338)),
             ),
             child: !_zipIndex.containsKey(apk)
                 ? const Center(child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)))
                 : (_zipIndex[apk]!.isEmpty
                     ? const Padding(
                         padding: EdgeInsets.all(10),
-                        child: Text('（读不到 APK 内容）', style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+                        child: Text('（读不到 APK 内容）', style: TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
                       )
                     : ListView(padding: const EdgeInsets.symmetric(vertical: 4), children: _zipLevel(apk, ''))),
           ),
@@ -752,7 +752,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                 ? (open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded)
                 : Icons.insert_drive_file_outlined,
             size: 12,
-            color: isDir ? const Color(0xFF94A3B8) : const Color(0xFFCBD5E1),
+            color: isDir ? const Color(0xFF7886A0) : const Color(0xFFCBD5E1),
           ),
           const SizedBox(width: 5),
           Expanded(
@@ -762,7 +762,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                 style: TextStyle(
                     fontSize: 10.5,
                     fontFamily: 'monospace',
-                    color: isDir ? const Color(0xFF334155) : const Color(0xFF64748B))),
+                    color: isDir ? const Color(0xFFD4DBE8) : const Color(0xFF9AA7C0))),
           ),
         ]),
       ),
@@ -800,7 +800,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
         if (list.isEmpty) {
           return const Padding(
             padding: EdgeInsets.fromLTRB(34, 6, 10, 12),
-            child: Text('（空）', style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+            child: Text('（空）', style: TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
           );
         }
         return Column(children: [
@@ -824,7 +824,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
+              color: const Color(0xFF2A1A1A),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text('删除',
@@ -875,7 +875,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                 Icon(
                   isDir ? Icons.folder_outlined : Icons.description_outlined,
                   size: 17,
-                  color: isDir ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                  color: isDir ? const Color(0xFF9AA7C0) : const Color(0xFF7886A0),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -890,11 +890,11 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                 if (ext == 'sh' || ext == 'py' || ext == 'js' || ext == 'json' || ext == 'yaml')
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(3)),
+                    decoration: BoxDecoration(color: const Color(0xFF12251C), borderRadius: BorderRadius.circular(3)),
                     child: Text(ext, style: const TextStyle(fontSize: 8, color: Color(0xFF16A34A), fontWeight: FontWeight.w700)),
                   ),
                 const SizedBox(width: 4),
-                const Icon(Icons.drag_handle_rounded, size: 14, color: Color(0xFFE2E8F0)),
+                const Icon(Icons.drag_handle_rounded, size: 14, color: Color(0xFF2A3550)),
               ],
             ),
           ),
@@ -915,7 +915,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFEEF2F7)),
+                        border: Border.all(color: const Color(0xFF1A2338)),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
@@ -994,7 +994,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                   child: Text(title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontFamily: 'monospace'))),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF7886A0), fontFamily: 'monospace'))),
             ]),
           ),
           if (onRename != null)
@@ -1094,7 +1094,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
       padding: const EdgeInsets.fromLTRB(30, 8, 12, 10),
       child: Row(
         children: [
-          const Text('主题', style: TextStyle(fontSize: 12.5, color: Color(0xFF334155))),
+          const Text('主题', style: TextStyle(fontSize: 12.5, color: Color(0xFFD4DBE8))),
           const SizedBox(width: 10),
           ...List.generate(rowanThemes.length, (i) {
             final t = rowanThemes[i];
@@ -1109,7 +1109,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                   gradient: t.gradient,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: active ? const Color(0xFF0F172A) : Colors.white,
+                    color: active ? const Color(0xFFEAF0FB) : Colors.white,
                     width: active ? 2 : 1.5,
                   ),
                 ),
@@ -1126,7 +1126,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFFCBD5E1)),
               ),
-              child: const Icon(Icons.add_photo_alternate_outlined, size: 13, color: Color(0xFF64748B)),
+              child: const Icon(Icons.add_photo_alternate_outlined, size: 13, color: Color(0xFF9AA7C0)),
             ),
           ),
         ],
@@ -1156,7 +1156,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
               Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
                   size: 13, color: const Color(0xFFC3CCD8)),
               const SizedBox(width: 6),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 12.5, color: Color(0xFF334155)))),
+              Expanded(child: Text(title, style: const TextStyle(fontSize: 12.5, color: Color(0xFFD4DBE8)))),
               const Icon(Icons.chevron_right_rounded, size: 15, color: Color(0xFFCBD5E1)),
             ]),
           ),

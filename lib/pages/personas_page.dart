@@ -179,7 +179,7 @@ class _PersonasPageState extends State<PersonasPage> {
                         const SizedBox(width: 4),
                         IconButton(
                           onPressed: () => _edit(_list[i]),
-                          icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF94A3B8)),
+                          icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF7886A0)),
                         ),
                       ],
                     ),
@@ -196,7 +196,7 @@ class _PersonasPageState extends State<PersonasPage> {
             );
     final addButton = IconButton(
       onPressed: () => _edit(),
-      icon: const Icon(Icons.add_rounded, color: Color(0xFF334155)),
+      icon: const Icon(Icons.add_rounded, color: Color(0xFFD4DBE8)),
     );
     if (widget.embedded) {
       return embedShell(title: 'AI 人物', actions: [addButton], body: body);

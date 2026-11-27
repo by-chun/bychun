@@ -21,7 +21,7 @@ class GlassSpec {
 
   const GlassSpec({
     this.blur = 22,
-    this.tint = 0.55,
+    this.tint = 0.14,
     this.edge = 0.9,
     this.radius = 20,
   });
@@ -88,7 +88,7 @@ class LiquidGlass extends ConsumerWidget {
     final r = radius ?? spec.radius;
     final br = BorderRadius.circular(r);
     final tint = tintColor ?? Colors.white;
-    final alpha = (spec.tint + (strong ? 0.12 : 0)).clamp(0.15, 0.92);
+    final alpha = (spec.tint + (strong ? 0.06 : 0)).clamp(0.06, 0.92);
     final e = spec.edge.clamp(0.0, 1.0);
 
     return ClipRRect(
@@ -117,7 +117,7 @@ class LiquidGlass extends ConsumerWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF0F172A).withValues(alpha: 0.06),
+                    color: const Color(0xFFEAF0FB).withValues(alpha: 0.06),
                     blurRadius: 18,
                     offset: const Offset(0, 6),
                   ),

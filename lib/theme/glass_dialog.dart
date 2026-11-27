@@ -26,9 +26,9 @@ Future<T?> showGlassDialog<T>({
           filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.96),
+              color: Colors.white.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
               boxShadow: const [BoxShadow(color: Color(0x1F0F172A), blurRadius: 30, offset: Offset(0, 12))],
             ),
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
@@ -42,7 +42,7 @@ Future<T?> showGlassDialog<T>({
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
+                      color: const Color(0xFF2A3550),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -119,7 +119,7 @@ class _Btn extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = danger ? const Color(0xFFEF4444) : AppColors.brand;
     return Material(
-      color: filled ? color : const Color(0xFFF1F4F8),
+      color: filled ? color : const Color(0xFF1A2338),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -132,7 +132,7 @@ class _Btn extends StatelessWidget {
             style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w700,
-              color: filled ? Colors.white : const Color(0xFF475569),
+              color: filled ? Colors.white : const Color(0xFFAEB9CC),
             ),
           ),
         ),

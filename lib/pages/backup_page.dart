@@ -62,7 +62,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
+                        color: const Color(0xFF2A3550),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),

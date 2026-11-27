@@ -104,7 +104,7 @@ class UserBubble extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   child: Text(text,
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.55)),
+                      style: const TextStyle(fontSize: 13, color: Color(0xFFD4DBE8), height: 1.55)),
                 ),
               ),
             ),
@@ -167,7 +167,7 @@ class AssistantBubble extends StatelessWidget {
                           listBullet: const TextStyle(fontSize: 12.5, color: AppColors.text, height: 1.6),
                           blockquote: const TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.6),
                           blockquoteDecoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: const Color(0xFF141B2E),
                             borderRadius: BorderRadius.circular(9),
                             border: const Border(left: BorderSide(color: AppColors.brand, width: 2)),
                           ),
@@ -175,21 +175,21 @@ class AssistantBubble extends StatelessWidget {
                           code: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 11.5,
-                            backgroundColor: Color(0xFFF1F4F8),
-                            color: Color(0xFF334155),
+                            backgroundColor: Color(0xFF1A2338),
+                            color: Color(0xFFD4DBE8),
                           ),
                           codeblockDecoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: const Color(0xFF141B2E),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFE6EAF0)),
+                            border: Border.all(color: const Color(0xFF2A3550)),
                           ),
                           codeblockPadding: const EdgeInsets.all(10),
                           horizontalRuleDecoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: Color(0xFFE6EAF0))),
+                            border: Border(top: BorderSide(color: Color(0xFF2A3550))),
                           ),
                           tableHead: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                           tableBody: const TextStyle(fontSize: 12),
-                          tableBorder: TableBorder.all(color: const Color(0xFFE6EAF0), width: 1),
+                          tableBorder: TableBorder.all(color: const Color(0xFF2A3550), width: 1),
                           blockSpacing: 7,
                           listIndent: 14,
                         ),
@@ -249,9 +249,9 @@ class CodeCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF141B2E),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE6EAF0)),
+        border: Border.all(color: const Color(0xFF2A3550)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -260,7 +260,7 @@ class CodeCard extends StatelessWidget {
             height: 36,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFEFF2F7))),
+              border: Border(bottom: BorderSide(color: Color(0xFF1A2338))),
             ),
             child: Row(children: [
               Text(lang, style: const TextStyle(fontSize: 10.5, color: AppColors.muted)),
@@ -500,26 +500,26 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
                   const SizedBox(width: 6),
                   Text(t.toolName ?? 'tool',
                       style: const TextStyle(
-                          fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+                          fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFFD4DBE8))),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(_cmdOf(t),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 10, color: Color(0xFF64748B), fontFamily: 'monospace')),
+                            fontSize: 10, color: Color(0xFF9AA7C0), fontFamily: 'monospace')),
                   ),
                   if (lines.isNotEmpty) ...[
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: const Color(0xFF1A2338),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text('${lines.length} 行',
                           style: const TextStyle(
-                              fontSize: 9, color: Color(0xFF94A3B8), fontFamily: 'monospace')),
+                              fontSize: 9, color: Color(0xFF7886A0), fontFamily: 'monospace')),
                     ),
                     const SizedBox(width: 4),
                     AnimatedRotation(
@@ -557,7 +557,7 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
                           ),
                         const Spacer(),
                         const Text('输出',
-                            style: TextStyle(fontSize: 9, color: Color(0xFF94A3B8))),
+                            style: TextStyle(fontSize: 9, color: Color(0xFF7886A0))),
                       ]),
                     ),
                     Container(

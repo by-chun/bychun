@@ -54,7 +54,7 @@ class _ContextRingPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
-        ..color = const Color(0xFFEEF2F7),
+        ..color = const Color(0xFF1A2338),
     );
     if (ratio <= 0) return;
     canvas.drawArc(
@@ -186,7 +186,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 
   Widget _menuBtn(BuildContext ctx, IconData icon, String label, Color color, String value) {
     return Material(
-      color: const Color(0xFFF4F6FA),
+      color: const Color(0xFF1A2338),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -340,12 +340,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         const Text('Rowan',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Color(0xFFEAF0FB))),
                         ListenableBuilder(
                           listenable: engine,
                           builder: (_, __) => Text(
                             engine.messages.isEmpty ? '新对话' : '${engine.messages.length} 条消息',
-                            style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8)),
+                            style: const TextStyle(fontSize: 9, color: Color(0xFF7886A0)),
                           ),
                         ),
                       ],
@@ -392,10 +392,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                           children: [
                             Text('想做什么？',
                                 style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                                    fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFFEAF0FB))),
                             SizedBox(height: 6),
                             Text('直接说，或者把文件、应用拖进来',
-                                style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+                                style: TextStyle(fontSize: 10.5, color: Color(0xFF7886A0))),
                           ],
                         ),
                       ),
@@ -551,7 +551,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       builder: (context, candidate, rejected) => AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         decoration: BoxDecoration(
-                          color: candidate.isNotEmpty ? const Color(0xFFEAF1FE) : Colors.transparent,
+                          color: candidate.isNotEmpty ? const Color(0xFF1E2A45) : Colors.transparent,
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: _inputRow(engine),
@@ -594,7 +594,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   const Text('运行日志', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
                   const SizedBox(width: 8),
                   Text('${logs.length} 条',
-                      style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF7886A0))),
                   const Spacer(),
                   if (engine.running)
                     const Row(mainAxisSize: MainAxisSize.min, children: [
@@ -608,7 +608,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 child: logs.isEmpty
                     ? const Center(
                         child: Text('还没有工具调用',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))))
+                            style: TextStyle(fontSize: 12, color: Color(0xFF7886A0))))
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
                         itemCount: logs.length,
@@ -668,7 +668,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   width: 38,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
+                    color: const Color(0xFF2A3550),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -692,7 +692,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               ]),
               const SizedBox(height: 12),
               const Text('点空白处或下滑关闭',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                  style: TextStyle(fontSize: 10, color: Color(0xFF7886A0))),
             ],
           ),
         ),
@@ -725,7 +725,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF5FF),
+              color: const Color(0xFF1E2A45),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 19, color: AppColors.brand),
@@ -734,7 +734,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           Text(title,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text)),
           const SizedBox(height: 3),
-          Text(desc, style: const TextStyle(fontSize: 9, color: Color(0xFF94A3B8))),
+          Text(desc, style: const TextStyle(fontSize: 9, color: Color(0xFF7886A0))),
         ]),
       ),
     );
@@ -833,7 +833,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
-  Widget _roundKey(IconData icon, VoidCallback onTap, {Color bg = const Color(0xFFF1F4F8), Color fg = const Color(0xFF64748B)}) {
+  Widget _roundKey(IconData icon, VoidCallback onTap, {Color bg = const Color(0xFF1A2338), Color fg = const Color(0xFF9AA7C0)}) {
     return ScaleOnTap(
       onTap: onTap,
       child: Container(
@@ -861,8 +861,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                 label: Text('${refs[i].label}·${refs[i].name}',
                     style: const TextStyle(fontSize: 10.5)),
                 onDeleted: () => ref.read(chatRefsProvider.notifier).removeAt(i),
-                deleteIconColor: const Color(0xFF94A3B8),
-                backgroundColor: const Color(0xFFEAF1FE),
+                deleteIconColor: const Color(0xFF7886A0),
+                backgroundColor: const Color(0xFF1E2A45),
                 side: BorderSide.none,
                 visualDensity: VisualDensity.compact,
               ),
@@ -883,7 +883,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F9FC),
+                color: const Color(0xFF141B2E),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
@@ -976,7 +976,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFEAF1FE),
+          color: const Color(0xFF1E2A45),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1018,7 +1018,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700,
-                        color: _mode == e.$1 ? AppColors.brand : const Color(0xFF0F172A))),
+                        color: _mode == e.$1 ? AppColors.brand : const Color(0xFFEAF0FB))),
                 if (_mode == e.$1) ...[
                   const SizedBox(width: 6),
                   const Icon(Icons.check_rounded, size: 15, color: AppColors.brand),
@@ -1048,7 +1048,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFE3EDFF),
+              color: const Color(0xFF1E2A45),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFC9DCFF), width: 0.9),
             ),
@@ -1084,9 +1084,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
+          color: const Color(0xFF141B2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0), width: 0.9),
+          border: Border.all(color: const Color(0xFF2A3550), width: 0.9),
         ),
         child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

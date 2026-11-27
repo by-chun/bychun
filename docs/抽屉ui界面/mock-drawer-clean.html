@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rowan · 抽屉（纯白卡片）</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{--brand:#2563EB;--ink:#0F172A;--mut:#64748B;--faint:#94A3B8;--line:#EEF1F6;--bg:#F5F7FA}
+  body{background:#0b1020;display:flex;justify-content:center;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+  .phone{width:390px;height:844px;background:#fff;border-radius:20px;overflow:hidden;position:relative}
+
+  /* 主界面（右半，占位） */
+  .main{position:absolute;right:0;top:0;bottom:0;width:180px;background:var(--bg);padding:18px 12px;display:flex;flex-direction:column;gap:10px}
+  .ph{height:40px;border-radius:12px;background:#fff;border:1px solid var(--line)}
+
+  /* 抽屉 */
+  .drawer{position:absolute;left:0;top:0;bottom:0;width:230px;background:#fff;padding:16px 12px 20px;overflow-y:auto;
+    border-right:1px solid var(--line);box-shadow:2px 0 12px rgba(15,23,42,.04)}
+  .head{display:flex;align-items:center;padding:2px 4px 14px}
+  .mark{width:28px;height:28px;border-radius:9px;flex:none;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+  .head .t{margin-left:9px;font-size:17px;font-weight:700;color:var(--ink)}
+  .head .x{margin-left:auto;color:var(--faint);font-size:16px;width:30px;text-align:center}
+
+  .card{margin-bottom:9px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.03);overflow:hidden}
+  .sec{display:flex;align-items:center;gap:9px;padding:12px 12px;cursor:pointer}
+  .sec .ic{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;background:#EFF6FF;border:1px solid #DBEAFE}
+  .sec .ic svg{width:17px;height:17px;fill:var(--brand)}
+  .sec .t{flex:1;min-width:0;font-size:13.5px;font-weight:600;color:var(--ink)}
+  .sec .n{font-size:10px;color:var(--mut);background:var(--bg);border-radius:9px;padding:1px 7px;flex:none}
+  .sec .chev{width:13px;height:13px;color:var(--faint);flex:none}
+  .body{border-top:1px solid var(--line)}
+  .row{display:flex;align-items:center;padding:10px 12px 10px 14px;font-size:12.5px;color:#334155;cursor:pointer;position:relative}
+  .row.act{background:#EFF6FF;color:var(--brand);font-weight:600}
+  .row.act::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;background:var(--brand);border-radius:0 2px 2px 0}
+  .row + .row{border-top:1px solid var(--line)}
+  .foot{display:flex;justify-content:space-between;padding:9px 12px;font-size:11px;border-top:1px solid var(--line)}
+  .foot .a{color:var(--brand);font-weight:600}
+  .foot .d{color:#DC2626}
+
+  .setrow{display:flex;align-items:center;gap:9px;padding:13px 12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.03);cursor:pointer}
+  .setrow .ic{width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;background:#EFF6FF;border:1px solid #DBEAFE}
+  .setrow .ic svg{width:17px;height:17px;fill:var(--brand)}
+  .setrow .t{flex:1;font-size:13.5px;font-weight:600;color:var(--ink)}
+  .setrow .chev{width:13px;height:13px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="main"><div class="ph"></div><div class="ph"></div><div class="ph" style="width:70%"></div></div>
+
+  <div class="drawer">
+    <div class="head"><div class="mark">R</div><span class="t">Rowan</span><span class="x">✕</span></div>
+
+    <div class="card">
+      <div class="sec"><span class="ic"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></span><span class="t">会话</span><span class="n">12</span><span class="chev">▾</span></div>
+      <div class="body">
+        <div class="row act">帮我分析 App</div>
+        <div class="row">内存扫描教程</div>
+        <div class="row">悬浮窗设计</div>
+        <div class="foot"><span class="a">＋ 新对话</span><span class="d">全删</span></div>
+      </div>
+    </div>
+
+    <div class="card"><div class="sec"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/></svg></span><span class="t">应用</span><span class="n">8</span><span class="chev">▸</span></div></div>
+    <div class="card"><div class="sec"><span class="ic"><svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span><span class="t">文件</span><span class="chev">▸</span></div></div>
+    <div class="card"><div class="sec"><span class="ic"><svg viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7v.5H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></svg></span><span class="t">插件</span><span class="n">6</span><span class="chev">▸</span></div></div>
+    <div class="setrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></span><span class="t">设置</span><span class="chev">▸</span></div>
+  </div>
+</div>
+</body>
+</html>

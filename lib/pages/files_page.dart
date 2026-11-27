@@ -69,7 +69,7 @@ class _FilesPageState extends State<FilesPage> {
         actions: [
           IconButton(
             onPressed: () => _load(_parent(_path)),
-            icon: const Icon(Icons.arrow_upward_rounded, size: 20, color: Color(0xFF334155)),
+            icon: const Icon(Icons.arrow_upward_rounded, size: 20, color: Color(0xFFD4DBE8)),
           ),
         ],
       ),
@@ -113,7 +113,7 @@ class _FilesPageState extends State<FilesPage> {
                               ),
                               child: Row(children: [
                               Icon(isDir ? Icons.folder_rounded : Icons.insert_drive_file_outlined,
-                                  size: 18, color: isDir ? AppColors.brand : const Color(0xFF94A3B8)),
+                                  size: 18, color: isDir ? AppColors.brand : const Color(0xFF7886A0)),
                               const SizedBox(width: 10),
                               Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 12.5))),

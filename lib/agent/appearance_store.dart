@@ -22,7 +22,7 @@ class Appearance {
     this.opacity = 60,
     this.blur = 4,
     this.glassBlur = 22,
-    this.glassTint = 0.55,
+    this.glassTint = 0.14,
     this.glassEdge = 0.9,
   });
 
@@ -94,7 +94,7 @@ class AppearanceStore {
         opacity: (m['opacity'] as num?)?.toDouble() ?? 60,
         blur: (m['blur'] as num?)?.toDouble() ?? 4,
         glassBlur: (m['glassBlur'] as num?)?.toDouble() ?? 22,
-        glassTint: (m['glassTint'] as num?)?.toDouble() ?? 0.55,
+        glassTint: (m['glassTint'] as num?)?.toDouble() ?? 0.14,
         glassEdge: (m['glassEdge'] as num?)?.toDouble() ?? 0.9,
       );
     } catch (_) {

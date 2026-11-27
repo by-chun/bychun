@@ -34,7 +34,7 @@ Future<void> showCatalogSheet(
             if (!landscape)
               GestureDetector(
                 onTap: () => Navigator.of(context).maybePop(),
-                child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF94A3B8)),
+                child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF7886A0)),
               ),
           ]),
         ),
@@ -43,9 +43,9 @@ Future<void> showCatalogSheet(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           height: 34,
           decoration: BoxDecoration(
-            color: const Color(0xFFF7F9FC),
+            color: const Color(0xFF141B2E),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE8EEF6)),
+            border: Border.all(color: const Color(0xFF1A2338)),
           ),
           child: Row(children: [
             Expanded(
@@ -104,21 +104,21 @@ Future<void> showCatalogSheet(
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  color: on ? const Color(0xFFF3F8FF) : Colors.white,
+                  color: on ? const Color(0xFF1E2A45) : Colors.white,
                   child: Row(children: [
                     Container(
                       width: 26,
                       height: 20,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: on ? AppColors.brand : const Color(0xFFF4F7FB),
+                        color: on ? AppColors.brand : const Color(0xFF1A2338),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text('${i + 1}',
                           style: TextStyle(
                               fontSize: 8.5,
                               fontFamily: 'monospace',
-                              color: on ? Colors.white : const Color(0xFF94A3B8))),
+                              color: on ? Colors.white : const Color(0xFF7886A0))),
                     ),
                     const SizedBox(width: 9),
                     Expanded(
@@ -128,7 +128,7 @@ Future<void> showCatalogSheet(
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 11.5,
-                            color: on ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
+                            color: on ? const Color(0xFF1D4ED8) : const Color(0xFFAEB9CC),
                             fontWeight: on ? FontWeight.w700 : FontWeight.w400),
                       ),
                     ),

@@ -128,7 +128,7 @@ class _McpPageState extends State<McpPage> {
                       },
                     ),
                   ),
-                  IconButton(onPressed: () => _edit(s), icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF94A3B8))),
+                  IconButton(onPressed: () => _edit(s), icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF7886A0))),
                 ]),
                 ),
               ),
@@ -138,7 +138,7 @@ class _McpPageState extends State<McpPage> {
       );
     final addButton = IconButton(
       onPressed: () => _edit(),
-      icon: const Icon(Icons.add_rounded, color: Color(0xFF334155)),
+      icon: const Icon(Icons.add_rounded, color: Color(0xFFD4DBE8)),
     );
     if (widget.embedded) {
       return embedShell(title: 'MCP', actions: [addButton], body: body);

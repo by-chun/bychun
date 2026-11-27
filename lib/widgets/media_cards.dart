@@ -254,7 +254,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F9FC),
+          color: const Color(0xFF141B2E),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -275,7 +275,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF1FE),
+                  color: const Color(0xFF1E2A45),
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child: const Text('让 AI 重新解析这一集', style: TextStyle(fontSize: 10, color: AppColors.brand)),
@@ -348,9 +348,9 @@ class _VideoViewCardState extends State<VideoViewCard> {
         height: 132,
         margin: const EdgeInsets.only(top: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFFBFCFE),
+          color: const Color(0xFF141B2E),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFF1F5F9)),
+          border: Border.all(color: const Color(0xFF1A2338)),
         ),
         child: ListView.builder(
           itemCount: _eps.length,
@@ -360,21 +360,21 @@ class _VideoViewCardState extends State<VideoViewCard> {
               onTap: () => _playEpisode(i),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                color: on ? const Color(0xFFF3F8FF) : Colors.transparent,
+                color: on ? const Color(0xFF1E2A45) : Colors.transparent,
                 child: Row(children: [
                   Container(
                     width: 34,
                     height: 20,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: on ? AppColors.brand : const Color(0xFFF1F5F9),
+                      color: on ? AppColors.brand : const Color(0xFF1A2338),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('EP${(i + 1).toString().padLeft(2, '0')}',
                         style: TextStyle(
                             fontSize: 8,
                             fontFamily: 'monospace',
-                            color: on ? Colors.white : const Color(0xFF94A3B8))),
+                            color: on ? Colors.white : const Color(0xFF7886A0))),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -383,7 +383,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 10.5,
-                            color: on ? const Color(0xFF1D4ED8) : const Color(0xFF475569),
+                            color: on ? const Color(0xFF1D4ED8) : const Color(0xFFAEB9CC),
                             fontWeight: on ? FontWeight.w700 : FontWeight.w400)),
                   ),
                   if (on) const Icon(Icons.play_arrow_rounded, size: 14, color: AppColors.brand),
@@ -396,7 +396,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
       Padding(
         padding: const EdgeInsets.only(top: 6),
         child: Row(children: [
-          const Text('自动连播', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+          const Text('自动连播', style: TextStyle(fontSize: 10, color: Color(0xFF9AA7C0))),
           const SizedBox(width: 6),
           Transform.scale(
             scale: 0.7,
@@ -439,7 +439,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
                 child: Text(_epTitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFD4DBE8))),
               ),
             ),
           _player(),
@@ -714,7 +714,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                               style: TextStyle(
                                   fontSize: 9,
                                   fontFamily: 'monospace',
-                                  color: on ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8))),
+                                  color: on ? const Color(0xFF60A5FA) : const Color(0xFF7886A0))),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(_eps[i]['title'] ?? '',
@@ -830,7 +830,7 @@ class _AudioViewCardState extends State<AudioViewCard> {
                     value: val,
                     max: max,
                     activeColor: AppColors.brand,
-                    inactiveColor: const Color(0xFFE2E8F0),
+                    inactiveColor: const Color(0xFF2A3550),
                     onChanged: (v) =>
                         AudioService.instance.seek(Duration(milliseconds: v.round())),
                   ),
@@ -1094,12 +1094,12 @@ class _ReaderFullscreenState extends State<_ReaderFullscreen> {
         margin: const EdgeInsets.only(left: 6),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: on ? AppColors.brand : const Color(0xFFF4F7FB),
+          color: on ? AppColors.brand : const Color(0xFF1A2338),
           borderRadius: BorderRadius.circular(7),
         ),
         child: Text(label,
             style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w600, color: on ? Colors.white : const Color(0xFF64748B))),
+                fontSize: 10, fontWeight: FontWeight.w600, color: on ? Colors.white : const Color(0xFF9AA7C0))),
       ),
     );
   }
@@ -1175,7 +1175,7 @@ class _ReaderFullscreenState extends State<_ReaderFullscreen> {
                 _orientBtn('landscape', '横'),
               ]),
             ),
-            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+            const Divider(height: 1, color: Color(0xFF1A2338)),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
@@ -1346,7 +1346,7 @@ class _ComicViewCardState extends State<ComicViewCard> {
 
   Widget _image(String path) {
     Widget err(_, __, ___) => const Center(
-          child: Text('图片加载失败', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+          child: Text('图片加载失败', style: TextStyle(fontSize: 11, color: Color(0xFF7886A0))),
         );
     if (path.startsWith('http')) {
       return Image.network(path, fit: BoxFit.contain, errorBuilder: err);
@@ -1395,8 +1395,8 @@ class _ComicViewCardState extends State<ComicViewCard> {
     final footer = Container(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
       decoration: const BoxDecoration(
-        color: Color(0xFFFBFCFE),
-        border: Border(top: BorderSide(color: Color(0xFFF5F8FC))),
+        color: Color(0xFF141B2E),
+        border: Border(top: BorderSide(color: Color(0xFF1A2338))),
       ),
       child: Row(children: [
         _cbtn('<', _prevPage),
@@ -1405,7 +1405,7 @@ class _ComicViewCardState extends State<ComicViewCard> {
             onTap: _openCatalog,
             child: Column(children: [
               Text('第 ${_page + 1} / ${pages.length} 页',
-                  style: const TextStyle(fontSize: 10.5, fontFamily: 'monospace', color: Color(0xFF64748B))),
+                  style: const TextStyle(fontSize: 10.5, fontFamily: 'monospace', color: Color(0xFF9AA7C0))),
               const SizedBox(height: 2),
               const Text('左右滑动翻页 · 双指缩放', style: TextStyle(fontSize: 8.5, color: Color(0xFFB6C0CD))),
             ]),
@@ -1433,9 +1433,9 @@ class _ComicViewCardState extends State<ComicViewCard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE7EDF5)),
+          border: Border.all(color: const Color(0xFF1A2338)),
         ),
-        child: Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+        child: Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFFAEB9CC))),
       ),
     );
   }
@@ -1630,8 +1630,8 @@ class _PaginatedReaderState extends State<PaginatedReader> {
     final footer = Container(
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
       decoration: const BoxDecoration(
-        color: Color(0xFFFBFCFE),
-        border: Border(top: BorderSide(color: Color(0xFFF5F8FC))),
+        color: Color(0xFF141B2E),
+        border: Border(top: BorderSide(color: Color(0xFF1A2338))),
       ),
       child: Row(children: [
         _btn('<', _page > 0 ? () => _goto(_page - 1) : null),
@@ -1641,7 +1641,7 @@ class _PaginatedReaderState extends State<PaginatedReader> {
             child: Column(children: [
               Text('第 ' + (_page + 1).toString() + ' / ' + total.toString() + ' 页',
                   style: const TextStyle(
-                      fontSize: 10.5, fontFamily: 'monospace', color: Color(0xFF64748B))),
+                      fontSize: 10.5, fontFamily: 'monospace', color: Color(0xFF9AA7C0))),
               const SizedBox(height: 2),
               const Text('左右滑动翻页', style: TextStyle(fontSize: 8.5, color: Color(0xFFB6C0CD))),
             ]),
@@ -1663,7 +1663,7 @@ class _PaginatedReaderState extends State<PaginatedReader> {
     final Widget pageView;
     if (_pages.isEmpty) {
       pageView = const Center(
-        child: Text('（没有正文）', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+        child: Text('（没有正文）', style: TextStyle(fontSize: 12, color: Color(0xFF7886A0))),
       );
     } else {
       pageView = PageView.builder(
@@ -1704,12 +1704,12 @@ class _PaginatedReaderState extends State<PaginatedReader> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE7EDF5)),
+          border: Border.all(color: const Color(0xFF1A2338)),
         ),
         child: Text(label,
             style: TextStyle(
                 fontSize: 12,
-                color: onTap == null ? const Color(0xFFCBD5E1) : const Color(0xFF475569))),
+                color: onTap == null ? const Color(0xFFCBD5E1) : const Color(0xFFAEB9CC))),
       ),
     );
   }
