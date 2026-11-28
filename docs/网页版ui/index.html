@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rowan · 网页版 UI 原型</title>
+<style>
+  :root{
+    --bg:#0A1210; --bg2:#0E1715; --surface:#13201C; --surface2:#182823; --surface3:#1E2F29;
+    --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.12);
+    --text:#E7F0EA; --muted:#82968D; --dim:#5B6D64;
+    --accent:#4ADE80; --accent2:#2DD4BF; --accentSoft:rgba(74,222,128,.13);
+    --danger:#F87171; --warn:#FBBF24; --blue:#60A5FA;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1200px 800px at 20% -10%, #12231D 0%, #070C0A 55%);
+    color:var(--text); min-height:100vh; overflow-x:hidden;
+  }
+  .stage{display:flex;gap:28px;justify-content:center;align-items:flex-start;padding:32px 20px;max-width:1180px;margin:0 auto}
+
+  /* ---------- 左侧导航 ---------- */
+  .side{width:230px;position:sticky;top:32px;display:flex;flex-direction:column;gap:10px}
+  .side h1{font-size:17px;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;gap:9px}
+  .side .dot{width:10px;height:10px;border-radius:3px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 14px var(--accentSoft)}
+  .side .sub{font-size:11.5px;color:var(--dim);line-height:1.6;margin-bottom:6px}
+  .side .grp{font-size:10.5px;color:var(--dim);letter-spacing:1px;margin:6px 0 2px}
+  .side button{
+    display:flex;align-items:center;gap:9px;text-align:left;background:var(--surface);border:1px solid var(--border);
+    color:var(--muted);padding:9px 11px;border-radius:10px;font-size:12.5px;cursor:pointer;transition:.16s;
+  }
+  .side button:hover{border-color:var(--accent);color:var(--text);transform:translateX(2px)}
+  .side button.on{border-color:var(--accent);color:var(--text);background:var(--accentSoft)}
+  .side button .ic{width:16px;height:16px;flex:none;opacity:.85}
+
+  /* ---------- 手机框 ---------- */
+  .phone{
+    width:392px;height:812px;flex:none;background:var(--bg);border-radius:44px;position:relative;overflow:hidden;
+    border:1px solid var(--border2);box-shadow:0 30px 90px -20px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:12.5px;color:var(--text);font-weight:600}
+  .statusbar .sb-r{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--muted)}
+  .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:20px;z-index:60}
+
+  /* ---------- 顶栏 ---------- */
+  .topbar{height:50px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border);background:rgba(10,18,16,.7);backdrop-filter:blur(14px)}
+  .iconbtn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);cursor:pointer;color:var(--muted);transition:.15s}
+  .iconbtn:hover{color:var(--text);border-color:var(--border2)}
+  .iconbtn svg{width:17px;height:17px}
+  .topbar .title{font-size:14.5px;font-weight:700;flex:1;margin-left:2px}
+  .topbar .sub{font-size:10px;color:var(--dim);margin-top:1px}
+
+  /* ---------- 消息区 ---------- */
+  .msgs{position:absolute;top:94px;bottom:128px;left:0;right:0;overflow-y:auto;padding:14px 14px 10px;scroll-behavior:smooth}
+  .msgs::-webkit-scrollbar{width:0}
+  .row{display:flex;margin-bottom:13px;animation:pop .28s cubic-bezier(.2,.8,.3,1)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .avatar{width:26px;height:26px;border-radius:8px;flex:none;margin-right:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#04220F;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .bubble{max-width:78%;border-radius:16px;padding:11px 13px;font-size:13px;line-height:1.62;word-break:break-word}
+  .assist .bubble{background:var(--surface);border:1px solid var(--border);border-top-left-radius:5px}
+  .user{justify-content:flex-end}
+  .user .bubble{background:linear-gradient(135deg,#1E3A2C,#163026);border:1px solid rgba(74,222,128,.16);border-top-right-radius:5px}
+  .bubble .meta{font-size:10px;color:var(--dim);margin-bottom:3px}
+  .bubble code{background:rgba(0,0,0,.35);padding:1px 5px;border-radius:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--accent)}
+  .bubble pre{background:#0B1411;border:1px solid var(--border);border-radius:10px;padding:9px 10px;overflow-x:auto;margin:7px 0;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:#BFE3CD}
+
+  /* 工具行 */
+  .tool{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;padding:7px 9px;background:rgba(255,255,255,.02);border:1px dashed var(--border2);border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
+  .tool .t-ic{color:var(--accent);font-size:12px;line-height:1.4}
+  .tool .err{color:var(--danger)}
+
+  /* 思考点 */
+  .dots{display:flex;gap:3.5px;align-items:center;height:20px}
+  .dots span{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.2s infinite}
+  .dots span:nth-child(2){animation-delay:.18s}.dots span:nth-child(3){animation-delay:.36s}
+  @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+
+  /* 视图卡 */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:15px;margin:0 0 11px;overflow:hidden;animation:pop .3s ease}
+  .card-h{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border)}
+  .card-h .ci{width:24px;height:24px;border-radius:7px;background:var(--accentSoft);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:12px}
+  .card-h .ct{font-size:12px;font-weight:700;flex:1}
+  .card-h .csub{font-size:10px;color:var(--dim)}
+  .card-b{padding:11px 12px;font-size:12px}
+  .list-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--border)}
+  .list-item:last-child{border-bottom:none}
+  .li-t{font-size:12px;font-weight:600}.li-s{font-size:10px;color:var(--dim);margin-top:2px}
+  .badge{font-size:9px;color:var(--accent);background:var(--accentSoft);padding:2px 7px;border-radius:6px;font-weight:600}
+  .term{background:#0B1411;border-radius:10px;padding:9px 11px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#BFE3CD;line-height:1.7;margin-top:8px}
+  .term .t-head{display:flex;gap:4px;margin-bottom:6px}
+  .term .t-head i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .term .ok{color:var(--accent)}.term .warn{color:var(--warn)}
+
+  /* 音频卡 */
+  .audio{display:flex;align-items:center;gap:9px;padding:11px 12px}
+  .audio .art{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;color:#04220F;font-size:16px}
+  .audio .bars{display:flex;align-items:flex-end;gap:2px;height:16px}
+  .audio .bars i{width:3px;background:var(--accent);border-radius:2px;animation:eq 1s infinite ease-in-out}
+  .audio .bars i:nth-child(1){height:6px}.audio .bars i:nth-child(2){height:13px;animation-delay:.1s}.audio .bars i:nth-child(3){height:9px;animation-delay:.2s}.audio .bars i:nth-child(4){height:15px;animation-delay:.3s}
+  @keyframes eq{0%,100%{transform:scaleY(.6)}50%{transform:scaleY(1)}}
+  .prog{flex:1;height:4px;background:var(--surface3);border-radius:3px;position:relative;overflow:hidden}
+  .prog i{position:absolute;left:0;top:0;bottom:0;width:56%;background:var(--accent);border-radius:3px}
+
+  /* ---------- 底部输入区 ---------- */
+  .composer{position:absolute;bottom:0;left:0;right:0;padding:9px 12px 16px;background:linear-gradient(transparent,rgba(10,18,16,.9) 30%);backdrop-filter:blur(8px)}
+  .chips{display:flex;gap:6px;margin-bottom:9px;overflow-x:auto;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-size:10.5px;color:var(--muted);cursor:pointer;transition:.15s}
+  .chip.on{border-color:var(--accent);color:var(--accent);background:var(--accentSoft)}
+  .chip .cd{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+  .inputrow{display:flex;align-items:flex-end;gap:8px}
+  .plusbtn{width:40px;height:40px;border-radius:13px;flex:none;background:var(--surface);border:1px solid var(--border2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:.15s}
+  .plusbtn:hover{color:var(--accent);border-color:var(--accent)}
+  .field{flex:1;min-height:40px;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid var(--border2);padding:10px 13px;font-size:13px;color:var(--text);outline:none;resize:none;line-height:1.5}
+  .field::placeholder{color:var(--dim)}
+  .send{width:40px;height:40px;border-radius:13px;flex:none;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#04220F;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;box-shadow:0 6px 18px -6px rgba(74,222,128,.5)}
+  .send:hover{transform:translateY(-1px)}
+  .send svg{width:18px;height:18px}
+
+  /* ---------- 抽屉 ---------- */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.25s;z-index:20}
+  .scrim.show{opacity:1;pointer-events:auto}
+  .drawer{position:absolute;top:0;bottom:0;left:0;width:300px;background:var(--bg2);border-right:1px solid var(--border2);z-index:30;transform:translateX(-105%);transition:transform .28s cubic-bezier(.2,.8,.3,1);display:flex;flex-direction:column}
+  .drawer.show{transform:none}
+  .drawer-h{display:flex;align-items:center;justify-content:space-between;padding:52px 16px 12px}
+  .drawer-h .t{font-size:16px;font-weight:800}
+  .drawer-b{flex:1;overflow-y:auto;padding:6px 10px 20px}
+  .drawer-b::-webkit-scrollbar{width:0}
+  .dsec{margin-bottom:7px;border-radius:13px;background:var(--surface);border:1px solid var(--border);overflow:hidden}
+  .dsec-h{display:flex;align-items:center;gap:9px;padding:11px 12px;cursor:pointer;font-size:12.5px;font-weight:700}
+  .dsec-h .di{width:28px;height:28px;border-radius:8px;background:var(--accentSoft);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:13px}
+  .dsec-h .chev{margin-left:auto;color:var(--dim);transition:.2s;font-size:12px}
+  .dsec.open .chev{transform:rotate(90deg)}
+  .dsec-c{display:none;padding:2px 0 8px}
+  .dsec.open .dsec-c{display:block}
+  .drow{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 24px;font-size:12px;color:var(--muted);cursor:pointer;transition:.12s}
+  .drow:hover{color:var(--text)}
+  .drow.on{color:var(--accent);background:var(--accentSoft);border-left:2px solid var(--accent)}
+  .drow .tag{margin-left:auto;font-size:9px;color:var(--dim)}
+  .drow .drag-h{margin-left:auto;color:var(--dim);cursor:grab;font-size:12px;padding:2px 4px;touch-action:none;user-select:none}
+  .drow .drag-h:active{cursor:grabbing}
+  .pcard{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border)}
+  .pcard:last-child{border-bottom:none}
+  .pcard .pi{width:30px;height:30px;border-radius:8px;background:var(--accentSoft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex:none}
+  .pcard .pm{flex:1;min-width:0}
+  .pcard .pt{font-size:12px;font-weight:600;font-family:ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pcard .pd{font-size:10px;color:var(--dim);margin-top:2px}
+  .ghost{position:fixed;z-index:999;padding:8px 12px;background:var(--accent);color:#04220F;border-radius:10px;font-size:12px;font-weight:700;pointer-events:none;box-shadow:0 10px 26px -6px rgba(74,222,128,.5);transform:translate(-50%,-110%)}
+
+  /* ---------- 底部弹层 ---------- */
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg2);border-top:1px solid var(--border2);border-radius:22px 22px 0 0;z-index:40;transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.3,1);max-height:82%;display:flex;flex-direction:column}
+  .sheet.show{transform:none}
+  .sheet .grab{width:40px;height:4px;border-radius:3px;background:rgba(255,255,255,.14);margin:9px auto 4px}
+  .sheet .st{font-size:13.5px;font-weight:800;padding:4px 18px 12px}
+  .sheet .sb{flex:1;overflow-y:auto;padding:0 14px 22px}
+  .sheet .sb::-webkit-scrollbar{width:0}
+  .opt{display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:12px;cursor:pointer;transition:.14s;margin-bottom:2px}
+  .opt:hover{background:var(--surface)}
+  .opt .oi{width:36px;height:36px;border-radius:10px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:16px}
+  .opt .ot{font-size:13px;font-weight:600}.opt .od{font-size:10.5px;color:var(--dim);margin-top:2px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .gcell{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:.15s}
+  .gcell:hover{border-color:var(--accent)}
+  .gcell .gi{font-size:22px;margin-bottom:7px}
+  .gcell .gt{font-size:12.5px;font-weight:700}.gcell .gd{font-size:10px;color:var(--dim);margin-top:3px}
+
+  /* ---------- 悬浮窗 ---------- */
+  .float{position:absolute;right:10px;bottom:90px;width:210px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;z-index:50;box-shadow:0 18px 40px -12px rgba(0,0,0,.6);display:none;overflow:hidden}
+  .float.show{display:block;animation:pop .25s ease}
+  .float .fh{display:flex;align-items:center;gap:7px;padding:9px 11px;background:var(--accentSoft);font-size:11px;font-weight:700;color:var(--accent)}
+  .float .fh .drag{cursor:grab}
+  .float .fb{padding:9px 11px;font-size:11px;color:var(--muted);line-height:1.5;max-height:110px;overflow-y:auto}
+  .float .fi{display:flex;border-top:1px solid var(--border)}
+  .float .fi input{flex:1;background:transparent;border:none;outline:none;color:var(--text);padding:9px 11px;font-size:11px}
+
+  /* 权限卡 */
+  .perm{background:#1C1408;border:1px solid rgba(251,191,36,.4);border-radius:15px;margin:0 0 11px;padding:12px;animation:pop .3s ease}
+  .perm .ph{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:var(--warn)}
+  .perm .pc{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--muted);margin:8px 0;background:#131008;padding:8px 10px;border-radius:8px}
+  .perm .pa{display:flex;gap:7px}
+  .perm .pa button{flex:1;padding:8px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-size:11px;cursor:pointer}
+  .perm .pa .allow{background:var(--warn);border-color:var(--warn);color:#1C1408;font-weight:700}
+
+  .hint{text-align:center;color:var(--dim);font-size:10px;padding:14px}
+  .cursor{display:inline-block;width:2px;height:14px;background:var(--accent);vertical-align:-2px;animation:blink .8s infinite;margin-left:1px}
+
+  /* ---- 手机端：铺满屏幕 + 屏幕切换 ---- */
+  .switchbtn{display:none;position:absolute;left:12px;bottom:156px;z-index:60;width:38px;height:38px;border-radius:12px;background:var(--surface);border:1px solid var(--border2);color:var(--muted);align-items:center;justify-content:center;font-size:16px;cursor:pointer}
+  .switcher{position:absolute;inset:0;z-index:70;background:var(--bg);display:none;flex-direction:column;padding:56px 18px 30px;overflow-y:auto}
+  .switcher.show{display:flex}
+  .switcher .st{font-size:14px;font-weight:800;margin-bottom:12px}
+  .switcher .sg{font-size:10.5px;color:var(--dim);letter-spacing:1px;margin:10px 0 6px}
+  .switcher .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+  .switcher .row button{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:8px 12px;border-radius:10px;font-size:12px;cursor:pointer}
+  .switcher .row button.on{border-color:var(--accent);color:var(--accent);background:var(--accentSoft)}
+  .switcher .close{position:absolute;top:50px;right:20px;font-size:18px;color:var(--dim);cursor:pointer}
+  @media (max-width: 860px){
+    body{background:var(--bg);height:100dvh;overflow:hidden}
+    .stage{display:block;padding:0}
+    .side{display:none}
+    .phone{width:100vw;height:100vh;height:100dvh;border-radius:0;border:none;box-shadow:none}
+    .switchbtn{display:flex}
+  }
+
+  /* ---- 悬浮球 ---- */
+  .ball{position:absolute;right:16px;bottom:210px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));z-index:55;cursor:grab;display:flex;align-items:center;justify-content:center;font-size:23px;color:#04220F;box-shadow:0 10px 26px -8px rgba(74,222,128,.6);transition:transform .2s;user-select:none;touch-action:none}
+  .ball:active{cursor:grabbing;transform:scale(.93)}
+  .ball .pulse{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.55);opacity:0}}
+
+  /* ---- 设置详情 ---- */
+  .detail-h{display:flex;align-items:center;gap:8px;padding:0 4px 12px;font-size:14px;font-weight:800}
+  .detail-h .back{cursor:pointer;color:var(--accent);font-size:18px;padding:0 4px}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border-bottom:1px solid var(--border)}
+  .toggle-row .tt{font-size:12.5px;font-weight:600}
+  .toggle-row .td{font-size:10px;color:var(--dim);margin-top:2px}
+  .switch{width:42px;height:24px;border-radius:14px;background:var(--surface3);position:relative;cursor:pointer;transition:.2s;flex:none}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .switch.on::after{left:21px}
+  .frm{display:flex;flex-direction:column;gap:10px}
+  .frm label{font-size:10.5px;color:var(--dim)}
+  .frm input,.frm textarea{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;color:var(--text);font-size:12.5px;outline:none;font-family:ui-monospace,Menlo,monospace}
+  .frm textarea{min-height:90px;resize:none;line-height:1.6}
+  .frm .save{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:11px;padding:11px;color:#04220F;font-weight:700;font-size:12.5px;cursor:pointer}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+  .btnrow button{flex:1;min-width:100px;padding:11px;border-radius:11px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer}
+  .btnrow button.danger{color:var(--danger);border-color:rgba(248,113,113,.4)}
+  .btnrow button.primary{background:var(--accentSoft);color:var(--accent);border-color:var(--accent)}
+
+  /* ---- 视频卡 / 运行中 ---- */
+  .video{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:8px 0}
+  .video .play{width:52px;height:52px;border-radius:50%;background:rgba(74,222,128,.92);display:flex;align-items:center;justify-content:center;color:#04220F;font-size:20px;cursor:pointer}
+  .video .vbar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.2)}
+  .video .vbar i{display:block;height:100%;width:38%;background:var(--accent)}
+  .vctrl{display:flex;align-items:center;gap:8px;margin:6px 0 2px;font-size:10px;color:var(--dim)}
+  .vctrl .spd{color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:2px 8px;cursor:pointer}
+  .spin{width:13px;height:13px;border:2px solid var(--accentSoft);border-top-color:var(--accent);border-radius:50%;animation:rot .8s linear infinite;flex:none}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .live-tag{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;color:var(--accent)}
+  .kv{display:flex;padding:7px 12px;border-bottom:1px solid var(--border)}
+  .kv:last-child{border-bottom:none}
+  .kv .k{width:88px;flex:none;font-size:10.5px;color:var(--dim);font-family:ui-monospace,Menlo,monospace}
+  .kv .v{flex:1;font-size:11.5px;color:var(--text);font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+  .tabs{display:flex;gap:6px;margin-bottom:9px}
+  .tabs span{padding:6px 12px;border-radius:9px;font-size:11px;color:var(--muted);background:var(--surface);cursor:pointer;border:1px solid var(--border)}
+  .tabs span.on{color:var(--accent);border-color:var(--accent);background:var(--accentSoft)}
+  .toast{position:absolute;left:50%;bottom:180px;transform:translateX(-50%) translateY(16px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 16px;border-radius:12px;font-size:12px;z-index:80;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .fab{position:absolute;right:16px;bottom:16px;width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04220F;font-size:24px;font-weight:700;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:45;box-shadow:0 8px 22px -6px rgba(74,222,128,.55)}
+  .fab.show{display:flex}
+
+  /* 思考 / 运行 步骤时间线 */
+  .steps{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:5px 0;margin-bottom:10px;animation:pop .3s ease}
+  .steps-head{font-size:10px;color:var(--dim);padding:5px 12px 6px;text-align:right}
+  .step{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;cursor:pointer;transition:.12s}
+  .step:hover{background:rgba(255,255,255,.03)}
+  .step .s-ic{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+  .step .s-ic.think{color:var(--accent)}
+  .step .s-ic.run{color:var(--blue)}
+  .step .s-body{flex:1;min-width:0}
+  .step .s-label{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .step .s-label b{font-weight:700}
+  .step .s-label.think b{color:var(--accent)}
+  .step .s-label.run b{color:var(--blue)}
+  .step .s-more{display:none;font-size:10.5px;color:var(--dim);margin-top:4px;line-height:1.55;font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap}
+  .step.open .s-more{display:block}
+  .step .s-chev{color:var(--dim);font-size:10px;transition:.2s;margin-top:2px}
+  .step.open .s-chev{transform:rotate(180deg)}
+  .thinking-line{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:11.5px;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <!-- 左侧导航 -->
+  <aside class="side">
+    <h1><span class="dot"></span>Rowan 原型</h1>
+    <div class="sub">手机里的界面全都在这里，点左边任意一项就能切过去看。绿色是重做后的新配色。</div>
+    <div id="sideBody"></div>
+  </aside>
+
+  <!-- 手机 -->
+  <div class="phone">
+    <div class="island"></div>
+    <div class="statusbar"><span>9:41</span><span class="sb-r">▮▮▮ 📶 🔋</span></div>
+
+    <!-- 顶栏 -->
+    <div class="topbar">
+      <div class="iconbtn" id="btnMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+      <div><div class="title" id="topTitle">Rowan</div><div class="sub" id="topSub">新对话</div></div>
+      <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg></div>
+      <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+      <div class="iconbtn" id="btnAdd" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></div>
+      <div class="iconbtn" id="btnFloat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8"/></svg></div>
+    </div>
+
+    <!-- 消息区 -->
+    <div class="msgs" id="msgs"></div>
+
+    <!-- 底部输入 -->
+    <div class="composer">
+      <div class="chips">
+        <div class="chip on" id="modeChip"><span class="cd"></span>执行</div>
+        <div class="chip">📁 Rowan</div>
+        <div class="chip">✨ 总结</div>
+        <div class="chip">📎 引用剪贴板</div>
+      </div>
+      <div class="inputrow">
+        <button class="plusbtn" id="plusBtn">＋</button>
+        <textarea class="field" id="field" placeholder="发消息…" rows="1"></textarea>
+        <button class="send" id="sendBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+      </div>
+    </div>
+
+    <!-- 抽屉 -->
+    <div class="scrim" id="scrim"></div>
+    <aside class="drawer" id="drawer">
+      <div class="drawer-h"><span class="t">Rowan</span><span id="drawerClose" style="cursor:pointer;color:var(--dim);font-size:18px">✕</span></div>
+      <div class="drawer-b" id="drawerBody"></div>
+    </aside>
+
+    <!-- 加号弹层 -->
+    <div class="sheet" id="sheetAdd">
+      <div class="grab"></div>
+      <div class="st">添加内容</div>
+      <div class="sb">
+        <div class="grid2">
+          <div class="gcell"><div class="gi">🖼️</div><div class="gt">照片</div><div class="gd">从相册选</div></div>
+          <div class="gcell"><div class="gi">📄</div><div class="gt">文件</div><div class="gd">任意文件</div></div>
+          <div class="gcell"><div class="gi">🧠</div><div class="gt">切换模型</div><div class="gd">选这次用哪个</div></div>
+          <div class="gcell"><div class="gi">📡</div><div class="gt">抓包</div><div class="gd">DNS 域名</div></div>
+        </div>
+        <div class="hint">点空白处或下滑关闭</div>
+      </div>
+    </div>
+
+    <!-- 设置弹层 -->
+    <div class="sheet" id="sheetSettings">
+      <div class="grab"></div>
+      <div class="st" id="settingsTitle">设置</div>
+      <div class="sb" id="settingsBody"></div>
+      <button class="fab" id="settingsFab">＋</button>
+    </div>
+
+    <!-- 悬浮窗 -->
+    <div class="float show" id="float">
+      <div class="fh"><span class="drag">⠿</span>Rowan AI</div>
+      <div class="fb">我在这里，操作其他 App 时也能继续对话。</div>
+      <div class="fi"><input placeholder="对 AI 说…"></div>
+    </div>
+
+    <!-- 手机端屏幕切换 -->
+    <button class="switchbtn" id="switchBtn">☰</button>
+
+    <!-- 悬浮球 -->
+    <div class="ball" id="ball"><span class="pulse"></span>✦</div>
+
+    <div class="switcher" id="switcher">
+      <div class="st">切换界面</div>
+      <span class="close" id="switcherClose">✕</span>
+      <div id="switcherBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $=s=>document.querySelector(s);
+  /* 统一线性图标（去掉 emoji） */
+  const ICONS={
+    chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    folder:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+    spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/>',
+    tool:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+    list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    doc:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+    term:'<path d="M4 17l6-6-6-6M12 19h8"/>',
+    clock:'<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z"/><path d="M12 6v6l4 2"/>',
+    edit:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>',
+    play:'<path d="M5 3l14 9-14 9V3z"/>',
+    music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    cpu:'<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>',
+    user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    box:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>',
+    plug:'<path d="M9 2v6M15 2v6M6 8h12v2a6 6 0 0 1-12 0V8zM12 16v6"/>',
+    shrink:'<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>',
+    save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+    image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+    radio:'<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>',
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+    file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+  };
+  const ic=(n,s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||ICONS.chat}</svg>`;
+  const msgs=$('#msgs'), field=$('#field'), topSub=$('#topSub');
+
+  /* ---------- 消息渲染 ---------- */
+  function addMsg(type, html, meta){
+    const row=document.createElement('div');
+    row.className='row '+type;
+    if(type==='user'){row.innerHTML=`<div class="bubble">${html}</div>`;}
+    else if(type==='tool'){row.innerHTML=`<div class="tool"><span class="t-ic ${meta&&meta.err?'err':''}">${meta&&meta.err?'✕':'✓'}</span><div>${html}</div></div>`;}
+    else if(type==='think'){row.innerHTML=`<div class="avatar">AI</div><div class="dots"><span></span><span></span><span></span></div>`;}
+    else {row.innerHTML=`<div class="avatar">AI</div><div class="bubble">${html}</div>`;}
+    msgs.appendChild(row); msgs.scrollTop=msgs.scrollHeight; return row;
+  }
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  /* ---------- 视图卡 ---------- */
+  function listCard(title, items, sub){ return `<div class="card"><div class="card-h"><span class="ci">${ic('list',14)}</span><span class="ct">${esc(title)}</span><span class="csub">${sub||items.length+' 项'}</span></div>${items.map(i=>`<div class="list-item"><div><div class="li-t">${esc(i.t)}</div><div class="li-s">${esc(i.s||'')}</div></div>${i.b?`<span class="badge">${esc(i.b)}</span>`:''}</div>`).join('')}</div>`; }
+  function streamCard(title, lines){ return `<div class="card"><div class="card-h"><span class="ci">${ic('term',14)}</span><span class="ct">${esc(title)}</span><span class="csub">完成</span></div><div class="card-b"><div class="term"><div class="t-head"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>${lines.map(l=>`<div><span class="${l.startsWith('[exit')?'warn':'ok'}">${l.startsWith('$')||l.startsWith('[')?'':'· '}</span>${esc(l)}</div>`).join('')}</div></div></div>`; }
+  function audioCard(title){ return `<div class="card"><div class="card-h"><span class="ci">${ic('music',14)}</span><span class="ct">${esc(title)}</span><span class="csub">音乐</span></div><div class="audio"><div class="art">${ic('music',18)}</div><div style="flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:6px">${esc(title)}</div><div class="prog"><i></i></div><div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:5px"><span>1:24</span><span>2:31</span></div></div><div class="bars"><i></i><i></i><i></i><i></i></div></div></div>`; }
+  function permCard(tool, cmd){ return `<div class="perm"><div class="ph">⚠️ 高危操作</div><div class="pc">${esc(cmd)}</div><div class="pa"><button>拒绝</button><button class="allow">允许一次</button><button>始终允许</button></div></div>`; }
+  function detailCard(title, tabs){ const first=tabs[0]; return `<div class="card"><div class="card-h"><span class="ci">${ic('doc',14)}</span><span class="ct">${esc(title)}</span></div><div class="card-b"><div class="tabs">${tabs.map((t,i)=>`<span class="${i===0?'on':''}">${t.name}</span>`).join('')}</div>${first.rows.map(r=>`<div class="kv"><span class="k">${esc(r.k)}</span><span class="v">${esc(r.v)}</span></div>`).join('')}</div></div>`; }
+  function formCard(title, fields){ return `<div class="card"><div class="card-h"><span class="ci">${ic('edit',14)}</span><span class="ct">${esc(title)}</span></div><div class="card-b"><div class="frm">${fields.map(f=>`<label>${f[0]}</label><input placeholder="${f[1]}">`).join('')}<button class="save">提交</button></div></div></div>`; }
+  function videoCard(title){ return `<div class="card"><div class="card-h"><span class="ci">${ic('play',14)}</span><span class="ct">${esc(title)}</span><span class="csub">第 3 集</span></div><div class="card-b"><div class="video"><div class="play">${ic('play',18)}</div><div class="vbar"><i></i></div></div><div class="vctrl"><span>12:34 / 30:00</span><span class="spd">1.5x</span><span>自动连播</span></div></div></div>`; }
+  function runningStreamCard(title, lines){ return `<div class="card"><div class="card-h"><span class="ci"><span class="spin"></span></span><span class="ct">${esc(title)}</span><span class="live-tag"><span class="spin"></span>运行中</span></div><div class="card-b"><div class="term"><div class="t-head"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>${lines.map(l=>`<div>${esc(l)}</div>`).join('')}</div></div></div>`; }
+  function stepsCard(steps, meta){
+    const chev='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
+    return `<div class="steps"><div class="steps-head">${meta||''} <span style="display:inline-block;transform:rotate(-90deg);vertical-align:-1px">${chev}</span></div>${steps.map(s=>`<div class="step" onclick="this.classList.toggle('open')"><span class="s-ic ${s.k}">${s.k==='think'?ic('spark',13):ic('term',13)}</span><div class="s-body"><div class="s-label ${s.k}"><b>${s.k==='think'?'思考':'运行'}</b> · ${esc(s.t)}</div><div class="s-more">${esc(s.full||s.t)}</div></div><span class="s-chev">${chev}</span></div>`).join('')}</div>`;
+  }
+
+  /* ---------- 抽屉内容 ---------- */
+  const plugins=[
+    {name:'local-hello',desc:'示例插件',on:true},
+    {name:'capture-block.sh',desc:'屏蔽脚本',on:true},
+    {name:'translate',desc:'翻译 API',on:false},
+  ];
+  function renderDrawer(){
+    const secs=[
+      {icon:'chat',name:'会话',rows:[{t:'群聊',tag:'3'},{t:'逆向某游戏',tag:''},{t:'写个抓包脚本',tag:''}],add:'＋ 新对话'},
+      {icon:'grid',name:'应用',rows:[{t:'微信',tag:'APK'},{t:'哔哩哔哩',tag:'APK'},{t:'原神',tag:'APK'},{t:'抖音',tag:'APK'}],drag:true},
+      {icon:'folder',name:'文件',rows:[{t:'Rowan/',tag:''},{t:'Downloads/',tag:''},{t:'scripts/',tag:''}],drag:true},
+    ];
+    let html=secs.map(s=>`
+      <div class="dsec">
+        <div class="dsec-h"><span class="di">${ic(s.icon,14)}</span>${s.name}<span class="tag">${s.rows.length}</span></div>
+        ${s.rows.map(r=>`<div class="drow">${r.t}${r.tag?`<span class="tag">${r.tag}</span>`:''}${s.drag?`<span class="drag-h">⠿</span>`:''}</div>`).join('')}
+        ${s.add?`<div class="drow add">${s.add}</div>`:''}
+      </div>`).join('');
+    html+=`<div class="dsec">
+      <div class="dsec-h"><span class="di">${ic('box',14)}</span>插件<span class="tag">${plugins.length}</span></div>
+      ${plugins.map(p=>`<div class="pcard"><span class="pi">${ic(p.on?'plug':'grid',14)}</span><div class="pm"><div class="pt">${p.name}</div><div class="pd">${p.desc}</div></div><div class="switch ${p.on?'on':''}" onclick="this.classList.toggle('on')"></div></div>`).join('')}
+    </div>`;
+    html+=`<div class="dsec"><div class="dsec-h" data-s="settings"><span class="di">${ic('sliders',14)}</span>设置<span class="chev">›</span></div></div>`;
+    $('#drawerBody').innerHTML=html;
+    document.querySelectorAll('.dsec-h[data-s]').forEach(h=>h.addEventListener('click',()=>openSettings()));
+    // 应用 / 文件 / 插件可拖动
+    document.querySelectorAll('.drag-h').forEach(h=>{
+      h.addEventListener('mousedown',e=>startDrag(e,h));
+      h.addEventListener('touchstart',e=>startDrag(e,h),{passive:false});
+    });
+  }
+  renderDrawer();
+
+  /* 拖动：手指/鼠标按住 ⠿ 会出现悬浮标签，松手即“拖入对话” */
+  let ghost=null,dragName='';
+  function startDrag(e,h){
+    const row=h.closest('.drow')||h.closest('.pcard');
+    dragName=(row.querySelector('.pt')||row.childNodes[0]).textContent.trim();
+    ghost=document.createElement('div'); ghost.className='ghost'; ghost.textContent=dragName;
+    document.body.appendChild(ghost); moveGhost(e); e.preventDefault();
+  }
+  function moveGhost(e){
+    if(!ghost)return;
+    const x=e.touches?e.touches[0].clientX:e.clientX, y=e.touches?e.touches[0].clientY:e.clientY;
+    ghost.style.left=x+'px'; ghost.style.top=y+'px';
+  }
+  document.addEventListener('mousemove',moveGhost);
+  document.addEventListener('touchmove',moveGhost,{passive:false});
+  function endDrag(){
+    if(!ghost)return; ghost.remove(); ghost=null;
+    if(dragName){ showToast('已拖入：'+dragName); dragName=''; }
+  }
+  document.addEventListener('mouseup',endDrag);
+  document.addEventListener('touchend',endDrag);
+
+  /* ---------- 设置项 ---------- */
+  const settings=[
+    {i:'cpu',t:'AI 供应商',d:'模型 / Key / 地址'},{i:'user',t:'人物',d:'角色设定'},
+    {i:'users',t:'子代理',d:'多角色协作'},{i:'users',t:'群成员',d:'群聊各干各的'},
+    {i:'edit',t:'提示词',d:'内置规则'},{i:'box',t:'容器',d:'chroot / PRoot'},
+    {i:'shield',t:'权限',d:'root / 悬浮窗 / VPN'},{i:'plug',t:'MCP 服务器',d:'外部工具接入'},
+    {i:'shrink',t:'上下文压缩',d:'超出自动压缩'},{i:'save',t:'备份与恢复',d:'导出 / 导入'},
+  ];
+  function openSettings(){
+    $('#settingsBody').innerHTML=settings.map(s=>`<div class="opt" onclick="renderSettingDetail('${s.t}')"><span class="oi">${ic(s.i,16)}</span><div><div class="ot">${s.t}</div><div class="od">${s.d}</div></div><span style="margin-left:auto;color:var(--dim);font-size:16px">›</span></div>`).join('');
+    $('#settingsTitle').textContent='设置';
+    $('#settingsFab').classList.remove('show');
+    show('sheetSettings');
+  }
+  const DETAILS={
+    'AI 供应商':{kind:'form',fields:[['Base URL','https://api.openai.com'],['API Key','sk-••••••••••'],['模型','gpt-4o']]},
+    '人物':{kind:'area',ph:'人设 · 说话风格…'},
+    '子代理':{kind:'list',items:[{t:'技术员',s:'代码 / 逆向',b:'启用'},{t:'情报员',s:'搜索 / 整理',b:'启用'},{t:'写手',s:'文案',b:''}]},
+    '群成员':{kind:'toggle',items:[{t:'成员A',d:'模型 gpt-4o',on:1},{t:'成员B',d:'模型 claude',on:1},{t:'成员C',d:'模型 deepseek',on:0}]},
+    '提示词':{kind:'area',ph:'内置规则 v21…'},
+    '容器':{kind:'list',items:[{t:'alpine',s:'chroot · 45 MB',b:'当前'},{t:'ubuntu',s:'proot · 1.2 GB',b:''}]},
+    '权限':{kind:'toggle',items:[{t:'Root',d:'高危操作',on:1},{t:'悬浮窗',d:'小窗对话',on:1},{t:'VPN',d:'抓包',on:0},{t:'Shizuku',d:'免 root shell',on:0}]},
+    'MCP 服务器':{kind:'list',items:[{t:'filesystem',s:'本地文件',b:'启用'},{t:'github',s:'远程',b:''}]},
+    '上下文压缩':{kind:'toggle',items:[{t:'自动压缩',d:'超出阈值自动摘要',on:1},{t:'保留最近 8 条',on:1}]},
+    '备份与恢复':{kind:'btns',items:['导出配置','导入配置','恢复默认']},
+  };
+  function renderSettingDetail(title){
+    const d=DETAILS[title]||{kind:'list',items:[]};
+    let body=`<div class="detail-h"><span class="back" onclick="openSettings()">‹</span>${title}</div>`;
+    if(d.kind==='form') body+=`<div class="frm">${d.fields.map(f=>`<label>${f[0]}</label><input value="${f[1]}">`).join('')}<button class="save">保存</button></div>`;
+    else if(d.kind==='area') body+=`<div class="frm"><label>内容</label><textarea placeholder="${d.ph||''}"></textarea><button class="save">保存</button></div>`;
+    else if(d.kind==='list') body+=d.items.map(it=>`<div class="list-item"><div><div class="li-t">${it.t}</div><div class="li-s">${it.s}</div></div>${it.b?`<span class="badge">${it.b}</span>`:''}</div>`).join('');
+    else if(d.kind==='toggle') body+=d.items.map(it=>`<div class="toggle-row"><div><div class="tt">${it.t}</div><div class="td">${it.d||''}</div></div><div class="switch ${it.on?'on':''}" onclick="this.classList.toggle('on')"></div></div>`).join('');
+    else if(d.kind==='btns') body+=`<div class="btnrow">${d.items.map((b,i)=>`<button class="${i===0?'primary':''}">${b}</button>`).join('')}</div>`;
+    $('#settingsBody').innerHTML=body;
+    $('#settingsTitle').textContent=title;
+    $('#settingsFab').classList.add('show');
+  }
+
+  /* ---------- 弹层控制 ---------- */
+  function show(id){ $('#'+id).classList.add('show'); if(id==='sheetAdd'||id==='sheetSettings')$('#scrim').classList.add('show'); }
+  function hide(id){ $('#'+id).classList.remove('show'); if(id==='sheetAdd'||id==='sheetSettings')$('#scrim').classList.remove('show'); }
+  $('#scrim').addEventListener('click',()=>{hide('sheetAdd');hide('sheetSettings');$('#drawer').classList.remove('show');});
+  $('#btnMenu').onclick=()=>{$('#drawer').classList.add('show');$('#scrim').classList.add('show');};
+  $('#drawerClose').onclick=()=>{$('#drawer').classList.remove('show');$('#scrim').classList.remove('show');};
+  $('#plusBtn').onclick=()=>show('sheetAdd');
+  $('#btnAdd').onclick=()=>show('sheetAdd');
+  $('#btnFloat').onclick=()=>$('#float').classList.toggle('show');
+  $('#modeChip').onclick=function(){const m=['执行','规划','自动'];const c=this.textContent.trim();this.textContent=' '+m[(m.indexOf(c)+1)%3];};
+
+  /* ---------- 发送 & 模拟 AI ---------- */
+  function send(){
+    const t=field.value.trim(); if(!t)return; field.value=''; field.style.height='auto';
+    addMsg('user',esc(t).replace(/\n/g,'<br>'));
+    topSub.textContent='正在思考…';
+    setTimeout(()=>{ const th=addMsg('think'); th.scrollIntoView({behavior:'smooth',block:'end'});
+      setTimeout(()=>{
+        th.remove();
+        const reply=aiReply(t);
+        msgs.insertAdjacentHTML('beforeend', stepsCard([
+          {k:'think',t:'The user wants me to handle this request ...',full:'The user wants me to handle this request in the Rowan workspace. Let me inspect the environment first.'},
+          {k:'run',t:'timeout 25 ls /data/adb/modules',full:'timeout 25 ls /data/adb/modules'},
+          {k:'think',t:'Zygisk module found. Preparing hook script ...',full:'Zygisk module found. Preparing hook script and adding the target package to config.json.'},
+        ], '1:28 · 3 步 · 42K tokens'));
+        addMsg('assist',reply);
+        topSub.textContent='4 条消息';
+        if(/列表|应用|文件/.test(t)){ setTimeout(()=>{msgs.insertAdjacentHTML('beforeend', listCard('已安装应用',[{t:'微信',s:'com.tencent.mm',b:'用户'},{t:'哔哩哔哩',s:'tv.danmaku.bili',b:'用户'},{t:'抖音',s:'com.ss.android.ugc.aweme',b:'用户'}])); msgs.scrollTop=msgs.scrollHeight;},350); }
+        else if(/终端|命令|下载/.test(t)){ setTimeout(()=>{msgs.insertAdjacentHTML('beforeend', streamCard('终端 · apt install',['$ apk add --no-cache python3','fetch http://...','(1/3) Installing python3...','(2/3) Installing python3-libs...','OK: 45 MiB in 12 packages','[exit 0]'])); msgs.scrollTop=msgs.scrollHeight;},350); }
+      },700);
+    },250);
+  }
+  function aiReply(t){
+    if(/游戏|逆向|原神|抓包/.test(t)) return `### 🔍 逆向分析\n\n我先探测目标，再决定走哪条路：\n\n- 有 Zygisk → 写 <code>scripts/</code> 无痕 hook\n- 有 LSPosed → 写 <code>xposed_scripts.json</code>\n- 都没有 → <code>memScan</code> 内存修改\n\n先跑一条 <code>ls /data/adb/modules</code> 确认环境。`;
+    if(/列表|应用/.test(t)) return `已列出安装的应用，见下方窗口。需要看某个 APK 的内部文件树，点抽屉里的「应用」也能展开。`;
+    if(/终端|命令|下载|安装/.test(t)) return `好的，在容器里执行，进度会实时显示在下面的终端窗口里。`;
+    if(/音乐|歌|播放/.test(t)) return `已为你播放，列表循环模式已开，下一首会自动接上。`;
+    return `收到。我这边能直接调 <code>shell</code> / <code>containerShell</code> / <code>rootShell</code> 和一堆工具，你说做什么，我来判断用哪个。`;
+  }
+  function __makeCard(html){const d=document.createElement('div');d.innerHTML=html;return d;}
+  $('#sendBtn').onclick=send;
+  field.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} });
+  field.addEventListener('input',()=>{field.style.height='auto';field.style.height=Math.min(field.scrollHeight,120)+'px';});
+
+  /* ---------- 左侧导航切换（演示各界面） ---------- */
+  function resetMsgs(html){ msgs.innerHTML=html; msgs.scrollTop=msgs.scrollHeight; topSub.textContent='演示界面'; }
+  function switchScreen(s){
+    hide('sheetAdd');hide('sheetSettings');$('#drawer').classList.remove('show');$('#scrim').classList.remove('show');$('#float').classList.remove('show');
+    document.querySelectorAll('.side button').forEach(x=>x.classList.toggle('on', x.dataset.s===s));
+    document.querySelectorAll('#switcherBody button').forEach(x=>x.classList.toggle('on', x.dataset.s===s));
+    topSub.textContent=''; $('#topTitle').textContent='Rowan';
+    switch(s){
+      case 'chat': resetMsgs(''); topSub.textContent='新对话'; break;
+      case 'drawer': resetMsgs('<div class="hint" style="padding-top:40px">← 点左上角菜单，或这里已经帮你打开抽屉</div>'); $('#drawer').classList.add('show');$('#scrim').classList.add('show'); break;
+      case 'add': resetMsgs('<div class="hint" style="padding-top:40px">点底部 ＋ 号弹出添加菜单</div>'); show('sheetAdd'); break;
+      case 'settings': resetMsgs('<div class="hint" style="padding-top:40px">设置面板从底部弹出</div>'); openSettings(); break;
+      case 'float': resetMsgs('<div class="hint" style="padding-top:40px">右下角是悬浮窗，点顶栏 ▣ 或这里</div>'); $('#float').classList.add('show'); break;
+      case 'list': resetMsgs(listCard('抓包 · 域名',[{t:'api.weixin.qq.com',s:'22:03:09 · 183.47.1.2',b:'DNS'},{t:'api.bilibili.com',s:'22:03:10 · 119.23.4.5',b:'DNS'},{t:'game.ys.com',s:'22:03:12 · 47.90.1.8',b:'DNS'}])); break;
+      case 'stream': resetMsgs(streamCard('终端 · 云端构建',['$ sh build-apk.sh trigger','workflow dispatch...','status: queued','status: in_progress','[exit 0]'])); break;
+      case 'audio': resetMsgs(audioCard('夜曲 · 肖邦')); break;
+      case 'perm': resetMsgs(permCard('rootShell','rm -rf /data/local/tmp/*')); break;
+      case 'group': resetMsgs(`<div class="row assist"><div class="avatar">A</div><div class="bubble"><div class="meta">技术员</div>先查版本再动手。</div></div><div class="row assist"><div class="avatar" style="background:#2DD4BF">B</div><div class="bubble"><div class="meta">情报员</div>已找到入口，等你确认。</div></div>`); break;
+      case 'detail': resetMsgs(detailCard('抓包 · 请求详情',[{name:'概览',rows:[{k:'URL',v:'https://api.example.com/v1/login'},{k:'方法',v:'POST'},{k:'状态',v:'200'},{k:'耗时',v:'38 ms'}]},{name:'请求',rows:[{k:'Content-Type',v:'application/json'},{k:'Body',v:'{"user":"a","pwd":"***"}'}]},{name:'响应',rows:[{k:'Body',v:'{"token":"eyJhbGci...","uid":1001}'}]}])); break;
+      case 'run': resetMsgs(runningStreamCard('工具 · httpRequest',['$ curl -s https://api.example.com','正在连接 api.example.com…','HTTP 200'])); break;
+      case 'form': resetMsgs(formCard('云端构建配置',[['仓库 owner','by-chun'],['仓库名 repo','rowan'],['分支','main'],['Token','ghp_••••••']])); break;
+      case 'video': resetMsgs(videoCard('某动画 · 第3集')); break;
+      case 'tool': resetMsgs(`<div class="tool"><span class="t-ic">✓</span><div>调用 shell · apk add python3</div></div>`+runningStreamCard('终端 · apk add python3',['fetch http://...','(1/3) Installing python3...','(2/3) Installing python3-libs...','OK: 45 MiB in 12 packages'])); break;
+      case 'steps': resetMsgs(stepsCard([
+        {k:'think',t:'The user wants me to install a plugin from ...',full:'The user wants me to install a plugin from github.com/kingcharleslzy-ai/dsh-purge, and explicitly said not to inspect its contents for privacy.'},
+        {k:'run',t:'timeout 25 git ls-remote https://gith...',full:'timeout 25 git ls-remote https://github.com/kingcharleslzy-ai/dsh-purge'},
+        {k:'think',t:'Repo exists and is reachable. Branch name ...',full:'Repo exists and is reachable. Branch name: main.'},
+        {k:'run',t:'rm -rf /tmp/dsh-purge && timeout 120 ...',full:'rm -rf /tmp/dsh-purge && timeout 120 git clone --depth 1 https://github.com/kingcharleslzy-ai/dsh-purge /tmp/dsh-purge'},
+        {k:'think',t:"It's a real dsh-go plugin project with cordis...",full:"It's a real dsh-go plugin project with cordis.patch.yml and package.json — not a plain script."},
+        {k:'run',t:'timeout 30 dsh plugin --help 2>&1 | h...',full:'timeout 30 dsh plugin --help 2>&1 | head -40'},
+        {k:'think',t:'So `dsh plugin --profile web add <spec>` fe...',full:'So `dsh plugin --profile web add <spec>` fetches and installs the plugin into the web profile.'},
+      ], '1:28 · 7 步 · 275K tokens')); break;
+    }
+  }
+  // 屏幕清单（含图标名），同时生成左侧导航和手机切换面板
+  const SCREENS=[
+    {grp:'主界面',items:[['chat','对话 / 气泡','chat'],['drawer','抽屉','folder'],['add','加号菜单','plus'],['settings','设置','sliders'],['float','悬浮窗','spark'],['tool','工具运行输出','tool']]},
+    {grp:'视图卡（AI 输出）',items:[['steps','思考/运行步骤','clock'],['list','列表卡','list'],['detail','详情卡','doc'],['stream','终端流卡','term'],['run','运行中的流','clock'],['form','表单卡','edit'],['video','视频卡','play'],['audio','音频卡','music'],['perm','权限确认卡','shield'],['group','群聊','users']]},
+  ];
+  $('#sideBody').innerHTML=SCREENS.map(g=>`<div class="grp">${g.grp}</div>${g.items.map(([s,t,icn])=>`<button data-s="${s}"><span class="ic">${ic(icn)}</span>${t}</button>`).join('')}`).join('');
+  document.querySelectorAll('#sideBody button').forEach(b=>b.addEventListener('click',()=>switchScreen(b.dataset.s)));
+  $('#switcherBody').innerHTML=SCREENS.map(g=>`<div class="sg">${g.grp}</div><div class="row">${g.items.map(([s,t])=>`<button data-s="${s}">${t}</button>`).join('')}</div>`).join('');
+  document.querySelectorAll('#switcherBody button').forEach(b=>b.addEventListener('click',()=>{switchScreen(b.dataset.s);$('#switcher').classList.remove('show');}));
+  $('#switchBtn').onclick=()=>$('#switcher').classList.add('show');
+  $('#switcherClose').onclick=()=>$('#switcher').classList.remove('show');
+
+  /* ---------- 悬浮窗拖动 ---------- */
+  const fl=$('#float');let dragging=false,ox=0,oy=0;
+  document.querySelector('.float .drag').addEventListener('mousedown',e=>{dragging=true;ox=e.clientX-fl.offsetLeft;oy=e.clientY-fl.offsetTop;});
+  document.addEventListener('mousemove',e=>{ if(!dragging)return; fl.style.left=(e.clientX-ox)+'px'; fl.style.top=(e.clientY-oy)+'px'; fl.style.right='auto';fl.style.bottom='auto'; });
+  document.addEventListener('mouseup',()=>dragging=false);
+
+  /* ---------- 悬浮球：拖动 + 点按展开 ---------- */
+  const ball=$('#ball');let bd=false,bx=0,by=0,bmoved=0;
+  ball.addEventListener('mousedown',e=>{bd=true;bx=e.clientX;by=e.clientY;bmoved=0;});
+  ball.addEventListener('touchstart',e=>{const t=e.touches[0];bd=true;bx=t.clientX;by=t.clientY;bmoved=0;},{passive:true});
+  document.addEventListener('mousemove',e=>{ if(!bd)return; const dx=e.clientX-bx,dy=e.clientY-by; bmoved+=Math.abs(dx)+Math.abs(dy); ball.style.left=(ball.offsetLeft+dx)+'px'; ball.style.top=(ball.offsetTop+dy)+'px'; ball.style.right='auto';ball.style.bottom='auto'; bx=e.clientX;by=e.clientY; });
+  document.addEventListener('touchmove',e=>{ if(!bd)return; const t=e.touches[0]; const dx=t.clientX-bx,dy=t.clientY-by; bmoved+=Math.abs(dx)+Math.abs(dy); ball.style.left=(ball.offsetLeft+dx)+'px'; ball.style.top=(ball.offsetTop+dy)+'px'; ball.style.right='auto';ball.style.bottom='auto'; bx=t.clientX;by=t.clientY; },{passive:true});
+  function ballEnd(){ if(!bd)return; bd=false; if(bmoved<6){ $('#float').classList.toggle('show'); } }
+  document.addEventListener('mouseup',ballEnd);
+  document.addEventListener('touchend',ballEnd);
+
+  /* 首屏欢迎 */
+  resetMsgs(`<div style="padding:6px 2px 14px"><div style="font-size:16px;font-weight:800">想做什么？</div><div style="font-size:11px;color:var(--dim);margin-top:5px">直接说，或者把文件、应用拖进来</div></div>`);
+
+  /* 提示条 */
+  let toastTimer=null;
+  function showToast(msg){
+    let t=document.querySelector('.toast');
+    if(!t){ t=document.createElement('div'); t.className='toast'; document.querySelector('.phone').appendChild(t); }
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
+  }
+
+  /* 剩余 emoji / 符号 → 线性图标 */
+  const GI={'🖼️':'image','📄':'file','🧠':'cpu','📡':'radio'};
+  document.querySelectorAll('.gi').forEach(g=>{const k=g.textContent.trim(); if(GI[k]) g.innerHTML=ic(GI[k],22);});
+  document.querySelector('#ball').innerHTML=`<span class="pulse"></span>${ic('spark',20)}`;
+  const sb=document.querySelector('.sb-r'); if(sb) sb.innerHTML=`▮▮▮ ${ic('radio',13)} <span style="opacity:.7">100%</span>`;
+  document.querySelectorAll('.chip').forEach(c=>{ c.innerHTML=c.innerHTML.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]+/gu,'').trim(); });
+  const swb=document.querySelector('#switchBtn'); if(swb) swb.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+  document.querySelectorAll('.perm .ph').forEach(p=>{ p.innerHTML=`${ic('shield',14)} 高危操作`; });
+</script>
+</body>
+</html>
