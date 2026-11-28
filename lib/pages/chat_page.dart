@@ -178,7 +178,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       AssistantItem a => AssistantBubble(
           text: a.msg.text, typing: a.typing, elapsedMs: a.msg.elapsedMs, time: a.msg.time, sender: a.msg.sender),
       ThinkingItem _ => _thinkingRow(),
-      ToolGroupItem g => ToolGroupTile(tools: g.tools, outputs: g.outputs),
+      ToolGroupItem g => ToolGroupTile(tools: g.tools, outputs: g.outputs, reasoning: g.reasoning),
       ViewItem v => v.msg.view == 'capture'
           ? CaptureCard(onStop: () => engine.stopCapture())
           : ViewCard(

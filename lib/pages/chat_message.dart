@@ -33,7 +33,9 @@ class ToolGroupItem extends ChatItem {
   final List<ChatMsg> tools;
   /// 与 tools 按顺序对应的输出卡片（stream 视图）；数量可能少于 tools。
   final List<ChatMsg> outputs;
-  ToolGroupItem(this.tools, {this.outputs = const []});
+  /// 工具执行前的「思考」文本（AI 的自言自语），显示在时间线顶部。
+  final String? reasoning;
+  ToolGroupItem(this.tools, {this.outputs = const [], this.reasoning});
 }
 
 /// 工具返回的可视化卡片（由通用渲染器画）。
@@ -57,6 +59,12 @@ List<ChatItem> buildChatItems(List<ChatMsg> msgs, {bool typingLast = false}) {
       // 否则 tool / stream 交替会把分组切成好几段
       final group = <ChatMsg>[];
       final outputs = <ChatMsg>[];
+      // 把工具前那条 assistant「思考」也归进来，展示成时间线顶部一行
+      String? reasoning;
+      if (out.isNotEmpty && out.last is AssistantItem) {
+        final a = out.removeLast() as AssistantItem;
+        if (a.msg.text.trim().isNotEmpty) reasoning = a.msg.text.trim();
+      }
       while (i < msgs.length) {
         final mm = msgs[i];
         if (mm.role == 'tool') {
@@ -71,7 +79,7 @@ List<ChatItem> buildChatItems(List<ChatMsg> msgs, {bool typingLast = false}) {
         }
         break;
       }
-      out.add(ToolGroupItem(group, outputs: outputs));
+      out.add(ToolGroupItem(group, outputs: outputs, reasoning: reasoning));
       continue;
     }
     if (m.role == 'view') {
@@ -394,7 +402,8 @@ class _ThinkingDotsState extends State<ThinkingDots> with SingleTickerProviderSt
 class ToolGroupTile extends StatefulWidget {
   final List<ChatMsg> tools;
   final List<ChatMsg> outputs;
-  const ToolGroupTile({super.key, required this.tools, this.outputs = const []});
+  final String? reasoning;
+  const ToolGroupTile({super.key, required this.tools, this.outputs = const [], this.reasoning});
   @override
   State<ToolGroupTile> createState() => _ToolGroupTileState();
 }
@@ -422,16 +431,57 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
     if (n == 1) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
-        child: _rowCard(0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _reasoningRow(),
+            _rowCard(0),
+          ],
+        ),
       );
     }
 
-    // 多个工具：直接逐条平铺，不再套折叠组卡
+    // 多个工具：逐条平铺，顶部先显示「思考」那行
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [for (var k = 0; k < widget.tools.length; k++) _rowCard(k)],
+        children: [
+          _reasoningRow(),
+          for (var k = 0; k < widget.tools.length; k++) _rowCard(k),
+        ],
+      ),
+    );
+  }
+
+  /// 「思考」行：AI 在跑工具前的自言自语，展示成时间线顶部一行。
+  Widget _reasoningRow() {
+    final r = widget.reasoning;
+    if (r == null || r.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.brandSoft,
+          borderRadius: BorderRadius.circular(11),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(9, 7, 9, 7),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.lightbulb_outline_rounded, size: 12, color: AppColors.brand),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(r,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
