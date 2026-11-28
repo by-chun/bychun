@@ -52,18 +52,24 @@ class MusicHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
       final same = mediaItem.value?.id == url;
       final t = title ?? url.split('/').last;
       mediaItem.add(MediaItem(id: url, title: t));
-      // 网络加载可能很慢：不要在工具里等它，否则对话窗口要等加载完才出现
+      // 先同步构造 source（能立刻发现非法 URL/本地文件），再后台加载播放，避免拖慢对话
+      final source = url.startsWith('http')
+          ? AudioSource.uri(Uri.parse(url))
+          : AudioSource.file(url);
       unawaited(() async {
         try {
           if (!same) {
-            final d = await _player.setAudioSource(url.startsWith('http')
-                ? AudioSource.uri(Uri.parse(url))
-                : AudioSource.file(url));
+            final d = await _player.setAudioSource(source);
             final cur = mediaItem.value;
             if (cur != null) mediaItem.add(cur.copyWith(duration: d));
           }
           await _player.play();
-        } catch (_) {}
+        } catch (e) {
+          playbackState.add(playbackState.value.copyWith(
+            processingState: AudioProcessingState.idle,
+            playing: false,
+          ));
+        }
       }());
       return '开始播放${title == null ? '' : '：$title'}';
     } catch (e) {
@@ -78,6 +84,7 @@ class MusicHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> stop() async {
     await _player.stop();
+    mediaItem.add(null);
     await super.stop();
   }
 

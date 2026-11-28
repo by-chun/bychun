@@ -58,8 +58,11 @@ class Gmem {
     }
   }
 
+  /// 把用户输入安全地包成单个 shell 参数（防止空格/特殊字符截断）。
+  static String _sq(String s) => "'${s.replaceAll("'", "'\\''")}'";
+
   static Future<List<String>?> scan(int pid, String value, {String type = 'i32', String region = 'all', int max = 200}) async {
-    final r = await _run('scan $pid $type $value $max $region');
+    final r = await _run('scan $pid ${_sq(type)} ${_sq(value)} $max ${_sq(region)}');
     if (r == null || r['ok'] != true) return null;
     return ((r['hits'] as List?) ?? const []).map((e) => e.toString()).toList();
   }

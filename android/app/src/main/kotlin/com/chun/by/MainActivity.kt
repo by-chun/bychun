@@ -1203,15 +1203,18 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
             vpnPending = null
             if (resultCode == RESULT_OK) {
                 startVpnService()
-                r?.success(mapOf(
-                    "ok" to true,
-                    "running" to DnsVpnService.runningNow,
-                    "dns" to DnsVpnService.upstreamDns,
-                    "auto" to DnsVpnService.autoDetected,
-                    "needDns" to DnsVpnService.noDns,
-                ))
+                // 服务异步启动，稍等再读状态（否则 running 还是 false，会误报失败）
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    r?.success(mapOf(
+                        "ok" to true,
+                        "running" to DnsVpnService.runningNow,
+                        "dns" to DnsVpnService.upstreamDns,
+                        "auto" to DnsVpnService.autoDetected,
+                        "needDns" to DnsVpnService.noDns,
+                    ))
+                }, 700)
             } else {
-                r?.success(false)
+                r?.success(mapOf("ok" to false, "error" to "用户取消了 VPN 授权"))
             }
             return
         }

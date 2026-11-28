@@ -19,6 +19,8 @@ import 'tools_extra.dart';
 import 'tools_form.dart';
 import 'tools_config.dart';
 import 'tools_capture.dart';
+import 'tools_ca.dart';
+import 'tools_vpn.dart';
 import 'tools_mcp.dart';
 import 'tools_workspace.dart';
 import 'tools_system.dart';
@@ -402,6 +404,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     // 各 tools_*.dart 自带注册函数
     registerAudioTools(registry);
     registerCaptureTools(registry);
+    registerCaTools(registry);
+    registerVpnTools(registry);
     registerConfigTools(registry);
     registerExtraTools(registry);
     registerMemTools(registry);
@@ -617,7 +621,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     switch (text) {
       case '/tools':
         _add(ChatMsg('assistant', '工具：\n${registry.describe()}'));
-        return;
         return;
       case '/subagents':
         _add(ChatMsg('assistant', '子代理：\n${_subsText.isEmpty ? '（暂无）' : _subsText}'));

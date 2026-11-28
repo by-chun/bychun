@@ -188,7 +188,9 @@ class _VideoViewCardState extends State<VideoViewCard> {
   Future<void> _playEpisode(int i) async {
     if (_eps.isEmpty || i < 0 || i >= _eps.length) return;
     final old = _c;
-    _savedMs['${widget.title}|$_epTitle'] = old?.value.position.inMilliseconds ?? 0;
+    if (old != null && old.value.isInitialized && old.value.position.inMilliseconds > 0) {
+      _savedMs['${widget.title}|$_epTitle'] = old.value.position.inMilliseconds;
+    }
     _c = null;
     await old?.dispose();
     if (!mounted) return;
@@ -207,9 +209,12 @@ class _VideoViewCardState extends State<VideoViewCard> {
 
   @override
   void dispose() {
-    _savedMs['${widget.title}|$_epTitle'] = _c?.value.position.inMilliseconds ?? 0;
+    final c = _c;
+    if (c != null && c.value.isInitialized && c.value.position.inMilliseconds > 0) {
+      _savedMs['${widget.title}|$_epTitle'] = c.value.position.inMilliseconds;
+    }
     _persistPositions();
-    _c?.dispose();
+    c?.dispose();
     super.dispose();
   }
 
@@ -1604,6 +1609,7 @@ class _PaginatedReaderState extends State<PaginatedReader> {
       ),
     );
     if (ok == true) _goto((int.tryParse(c.text.trim()) ?? 1) - 1);
+    c.dispose();
   }
 
   Widget _buildSized(BoxConstraints cons) {

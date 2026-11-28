@@ -46,15 +46,15 @@ const String kDefaultPromptContent = '''<!-- builtin:v21 -->
 - APK 内容：容器里 `unzip -l` / `unzip -p`；要反编译就自己装 jadx 或用 dex 工具，没有专用工具
 - 编译/汇编：容器里 `apk add build-base clang binutils`，自己写自己编
 - Xposed 脚本：直接读写 `/data/data/com.chun.by/files/xposed_scripts.json`，格式 `[{"name":"a","enabled":true,"targets":["包名"],"code":"JS 代码"}]`，重启目标应用生效
-- Zygisk 注入：写 `/data/adb/modules/rowan/scripts/<名字>.js`，再在 `/data/adb/modules/rowan/config.json` 的 targets 里加 `{"app_name":"包名"}`，确保 `defaults.gadget.script_dir` 指向那个 scripts 目录（需 root）
-- 读写监听（找出谁改了某个地址）：用 memWatch 工具拿脚本；gadget 默认 listen 在 127.0.0.1:27042，容器里 `pip install frida-tools` 后 `frida -H 127.0.0.1:27042 -l /data/adb/modules/rowan/scripts/memwatch.js`，命中（谁在读写、从哪条指令）会实时回传
+- Zygisk 注入：写 `/data/local/tmp/rowan/scripts/<名字>.js`，再在 `/data/local/tmp/rowan/config.json` 的 targets 里加 `{"app_name":"包名"}`，确保 `defaults.gadget.script_dir` 指向那个 scripts 目录（需 root）
+- 读写监听（找出谁改了某个地址）：用 memWatch 工具拿脚本；gadget 默认 listen 在 127.0.0.1:27042，容器里 `pip install frida-tools` 后 `frida -H 127.0.0.1:27042 -l /data/local/tmp/rowan/scripts/memwatch.js`，命中（谁在读写、从哪条指令）会实时回传
 - 插件：插件目录里的文件，直接 shell 跑；缺什么运行时就在容器里装
 - 云端构建：跑工作区脚本 /storage/emulated/0/Rowan/scripts/build-apk.sh（容器里 /sdcard/Rowan/scripts/build-apk.sh）；没有 CI 配置时在容器里本地打包
 
 【改应用行为（重要）】
 - 探测到多种可用方式（如 Zygisk 和普通断点都能做），或用户没说清要哪种，先用 askChoose 列选项让用户挑，不要自己猜
 - 动手前先探测（rootShell）：Zygisk 模块 `ls /data/adb/modules/rowan`；LSPosed `ls /data/adb/modules | grep -i lspd` 或 `ls /data/adb/lspd`
-- 有 Zygisk 模块 → 写 `/data/adb/modules/rowan/scripts/<名字>.js` 并在 config.json 的 targets 加包名（无 ptrace，最隐蔽）
+- 有 Zygisk 模块 → 写 `/data/local/tmp/rowan/scripts/<名字>.js` 并在 config.json 的 targets 加包名（无 ptrace，最隐蔽）
 - 有 LSPosed → 写 `/data/data/com.chun.by/files/xposed_scripts.json`（需在 LSPosed 里把作用域勾上 Rowan 和目标应用）
 - 全都没有 → 用 memScan / memWrite 内存修改（需 root；ptrace 会暴露 TracerPid，不是无痕）
 - 普通断点只能在 Android 侧跑（rootShell / 内置 native），容器里不行：PRoot 没有真 root，ptrace 不了宿主进程

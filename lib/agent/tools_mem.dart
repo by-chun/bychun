@@ -36,12 +36,12 @@ class MemWatchTool extends AgentTool {
     final js = _script(addr, size, mode);
     final b64 = base64Encode(utf8.encode(js));
 
-    // 把脚本写到模块 scripts 目录（供 gadget 或 frida 直接加载），失败也不阻断
+    // 把脚本写到运行时 scripts 目录（供 gadget 或 frida 直接加载），失败也不阻断
     String? scriptPath;
     final w = await NativeBridge.rootExec(
-        "mkdir -p /data/adb/modules/rowan/scripts && echo '$b64' | base64 -d > /data/adb/modules/rowan/scripts/memwatch.js && echo WROTE");
+        "mkdir -p /data/local/tmp/rowan/scripts && echo '$b64' | base64 -d > /data/local/tmp/rowan/scripts/memwatch.js && echo WROTE");
     if ((w.stdout).contains('WROTE')) {
-      scriptPath = '/data/adb/modules/rowan/scripts/memwatch.js';
+      scriptPath = '/data/local/tmp/rowan/scripts/memwatch.js';
     }
 
     return ToolResult(

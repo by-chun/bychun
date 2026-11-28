@@ -67,7 +67,7 @@ object CaptureServer {
             val input = BufferedInputStream(sock.getInputStream())
             val out = sock.getOutputStream()
 
-            // 读头部
+            // 读头部：读到 \r\n\r\n 结束
             val headBuf = StringBuilder()
             var last4 = 0
             while (true) {
@@ -75,11 +75,12 @@ object CaptureServer {
                 if (b < 0) break
                 headBuf.append(b.toChar())
                 last4 = (last4 shl 8) or b
-                if ((last4 and 0xFFFF) == 0x0D0A && (last4 and 0xFFFFFF) == 0x0D0A0D) break
+                if (last4 == 0x0D0A0D0A) break
                 if (headBuf.length > 16384) break
             }
             val head = headBuf.toString()
-            val len = Regex("(?i)content-length:\\s*(\\d+)").find(head)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val len = (Regex("(?i)content-length:\\s*(\\d+)").find(head)?.groupValues?.get(1)?.toIntOrNull() ?: 0)
+                .coerceAtMost(256 * 1024)
             val body = ByteArray(len)
             var read = 0
             while (read < len) {
@@ -95,7 +96,7 @@ object CaptureServer {
                 val bytes = resp.toByteArray()
                 out.write(
                     ("HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\n" +
-                        "Content-Length: ${bytes.size}\r\nAccess-Control-Allow-Origin: *\r\n\r\n").toByteArray()
+                        "Content-Length: ${bytes.size}\r\n\r\n").toByteArray()
                 )
                 out.write(bytes)
             } else {

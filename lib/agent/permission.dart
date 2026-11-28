@@ -34,6 +34,9 @@ class PermissionPolicy {
     'install_container',
     'runPlugin',
     'stop_tasks',
+    'ca_install',
+    'capture_read',
+    'memWatch',
   };
 
   static bool isHighRisk(String tool) => highRisk.contains(tool) || tool.startsWith('root');
@@ -47,6 +50,9 @@ class PermissionPolicy {
     'listPlugins',
     'captureList',
     'captureLog',
+    'capture_read',
+    'ca_status',
+    'vpn_list_nodes',
     'mcpList',
     'webSearch',
     'fetchPage',

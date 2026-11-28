@@ -1,6 +1,17 @@
+import 'dart:convert';
+
 import 'tool.dart';
 import 'tool_registry.dart';
 import '../native/native_bridge.dart';
+
+/// 把内容（base64）写入用户可见工作区文件，返回是否成功。
+Future<bool> _writeWorkspaceFile(String path, String content) async {
+  final b64 = base64Encode(utf8.encode(content));
+  final dir = path.contains('/') ? path.substring(0, path.lastIndexOf('/')) : '/storage/emulated/0/Rowan';
+  final r = await NativeBridge.exec(
+      "mkdir -p '$dir' && printf %s '$b64' | base64 -d > '$path' && echo OK");
+  return r.stdout.contains('OK');
+}
 
 /// 抓包相关工具：开始 / 停止 / 列出已抓到的域名。
 /// 列出结果带 view=list，聊天里会渲染成卡片。
@@ -157,11 +168,156 @@ class StopTasksTool extends AgentTool {
   }
 }
 
+/// 读取抓包明文记录（HTTP 请求/响应，来自抓包代理上报），返回 detail 视图。
+/// 明文可能含 Token/Cookie，交给 AI 前必须弹确认（在权限层处理，属高危）。
+class CaptureReadTool extends AgentTool {
+  @override
+  String get name => 'capture_read';
+
+  @override
+  String get description =>
+      '读取抓包明文记录（方法/URL/状态码/请求体/响应体）。'
+      '内容是抓包代理上报的 HTTP 明文，可能含 Token/Cookie，返回前会让你确认。'
+      '若还没有明文记录（没跑代理），用 capture_list 看 DNS 域名列表。';
+
+  @override
+  Map<String, String> get parameters => {'limit': '可选：条数，默认 20'};
+
+  @override
+  Future<ToolResult> execute(Map<String, String> args) async {
+    final limit = int.tryParse((args['limit'] ?? '20').trim()) ?? 20;
+    final raw = await NativeBridge.captureLog(limit.clamp(1, 100));
+    if (raw == null || raw.trim().isEmpty) {
+      return const ToolResult(true, '还没有抓包明文记录。先让代理（mitmproxy/PCAPd）跑起来并上报。');
+    }
+    Map<String, dynamic> obj;
+    try {
+      obj = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return ToolResult(false, '抓包明文数据格式异常');
+    }
+    final items = (obj['items'] as List?) ?? const [];
+    final total = (obj['total'] as num?)?.toInt() ?? items.length;
+    if (items.isEmpty) {
+      return const ToolResult(true, '还没有抓包明文记录。');
+    }
+    final tabs = <Map<String, dynamic>>[
+      {
+        'name': '概览',
+        'rows': [
+          {'k': '明文条数', 'v': '$total'},
+          {'k': '返回条数', 'v': '${items.length}'},
+          {'k': '提示', 'v': '内容可能含 Token/Cookie，请勿外发'},
+        ],
+      },
+    ];
+    var n = 0;
+    for (final rawItem in items) {
+      if (n++ >= 20) break;
+      final h = Map<String, dynamic>.from(rawItem as Map);
+      final method = (h['method'] ?? '?').toString();
+      final url = (h['url'] ?? '').toString();
+      final status = (h['status'] ?? 0).toString();
+      String clip(String s, int max) => s.length <= max ? s : '${s.substring(0, max)}\n…（截断）';
+      tabs.add({
+        'name': '$method $status',
+        'rows': [
+          {'k': 'URL', 'v': url.isEmpty ? '—' : url},
+          {'k': '状态', 'v': status},
+          {'k': '请求', 'v': clip((h['req'] ?? '').toString(), 800)},
+          {'k': '响应', 'v': clip((h['res'] ?? '').toString(), 800)},
+        ],
+      });
+    }
+    return ToolResult(
+      true,
+      '共 $total 条抓包明文（已列明细）',
+      view: 'detail',
+      title: '抓包 · 明文',
+      viewData: {'tabs': tabs},
+    );
+  }
+}
+
+/// 把抓到的域名转成可复用脚本：写到工作区 plugins 目录，下次拖进来或用 shell 跑。
+class CaptureToScriptTool extends AgentTool {
+  @override
+  String get name => 'capture_to_script';
+
+  @override
+  String get description =>
+      '把已抓到的域名（去重）存成脚本：生成 capture-domains.json（域名清单）与 capture-block.sh（屏蔽脚本，需 root）。'
+      '文件写到 /storage/emulated/0/Rowan/plugins/，可复用或交给注入模块。';
+
+  @override
+  Map<String, String> get parameters => {'filter': '可选：只导出匹配此域名/IP 的记录'};
+
+  @override
+  Future<ToolResult> execute(Map<String, String> args) async {
+    final filter = (args['filter'] ?? '').trim();
+    final raw = await NativeBridge.vpnLog();
+    if (raw.trim().isEmpty) {
+      return const ToolResult(true, '还没有抓到记录，没有可导出的域名。');
+    }
+    final domains = <String>{};
+    for (final line in raw.split('\n')) {
+      final t = line.trim();
+      if (t.isEmpty) continue;
+      final idx = t.indexOf(' ');
+      if (idx <= 0) continue;
+      final rest = t.substring(idx + 1);
+      final arrow = rest.indexOf(' -> ');
+      if (arrow <= 0) continue;
+      final host = rest.substring(0, arrow).trim();
+      if (host.isEmpty || host == '?') continue;
+      if (filter.isNotEmpty && !host.contains(filter)) continue;
+      domains.add(host);
+    }
+    if (domains.isEmpty) return const ToolResult(true, '没有匹配的域名可导出。');
+    final list = domains.toList()..sort();
+
+    final jsonBody = jsonEncode({
+      'generated': DateTime.now().millisecondsSinceEpoch,
+      'count': list.length,
+      'domains': list,
+    });
+    final sh = StringBuffer('#!/bin/sh\n# Rowan 抓包 -> 屏蔽脚本（生成自 capture_to_script）\n'
+        '# 用法：sh 本文件  （需 root，会往 /etc/hosts 追加条目）\n'
+        '# 撤销：手动编辑 /etc/hosts 删除 0.0.0.0 开头对应行\n'
+        'cp /etc/hosts /etc/hosts.rowan.bak 2>/dev/null\n');
+    for (final d in list) {
+      sh.writeln('grep -q "0.0.0.0 $d" /etc/hosts || echo "0.0.0.0 $d" >> /etc/hosts');
+    }
+
+    const dir = '/storage/emulated/0/Rowan/plugins';
+    final okJson = await _writeWorkspaceFile('$dir/capture-domains.json', jsonBody);
+    final okSh = await _writeWorkspaceFile('$dir/capture-block.sh', sh.toString());
+    final paths = <String>[
+      if (okJson) '$dir/capture-domains.json',
+      if (okSh) '$dir/capture-block.sh',
+    ];
+    if (paths.isEmpty) return const ToolResult(false, '写入失败（检查存储权限）');
+    return ToolResult(
+      true,
+      '已导出 ${list.length} 个域名到：\n${paths.join('\n')}',
+      view: 'list',
+      title: '抓包 · 导出脚本',
+      viewData: {
+        'items': [
+          for (final p in paths) {'title': p, 'subtitle': '可复用脚本', 'badge': 'file'},
+        ],
+      },
+    );
+  }
+}
+
 void registerCaptureTools(ToolRegistry reg) {
   reg.register(CaptureStartTool());
   reg.register(VpnSetDnsTool());
   reg.register(CaptureStopTool());
   reg.register(CaptureRecordClearTool());
   reg.register(CaptureListTool());
+  reg.register(CaptureReadTool());
+  reg.register(CaptureToScriptTool());
   reg.register(StopTasksTool());
 }
