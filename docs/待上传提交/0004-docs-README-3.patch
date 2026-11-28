@@ -1,0 +1,36 @@
+From f8d349aedc0f013b1fe003141eeb66481078bf04 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 22:20:03 +0800
+Subject: [PATCH 4/8] =?UTF-8?q?docs:=20=E5=BE=85=E4=B8=8A=E4=BC=A0?=
+ =?UTF-8?q?=E6=8F=90=E4=BA=A4=20README=20=E8=A1=A5=E7=AC=AC=203=20?=
+ =?UTF-8?q?=E4=B8=AA=E5=AD=98=E6=A1=A3=E6=8F=90=E4=BA=A4?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../README.md"                                                 | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git "a/docs/\345\276\205\344\270\212\344\274\240\346\217\220\344\272\244/README.md" "b/docs/\345\276\205\344\270\212\344\274\240\346\217\220\344\272\244/README.md"
+index 68e00e3..ccadaab 100644
+--- "a/docs/\345\276\205\344\270\212\344\274\240\346\217\220\344\272\244/README.md"
++++ "b/docs/\345\276\205\344\270\212\344\274\240\346\217\220\344\272\244/README.md"
+@@ -2,12 +2,13 @@
+ 
+ 已本地提交、**尚未推送**的改动。用户说「上传」时才推送，推完清空本目录。
+ 
+-当前状态：**2 个提交待推送**（基于 `origin/main`）
++当前状态：**3 个提交待推送**（基于 `origin/main`，最后一个是本存档提交）
+ 
+ | # | 提交 | 内容 | 涉及文件 |
+ |---|---|---|---|
+ | 1 | `0dc7721` | 编译错误修复：补 ToolRegistry import、Map 类型 cast、去 const 插值、_resultOf 去 static、_ThinkingDots 改名 | `agent_engine.dart`、`chat_page.dart`、`chat_message.dart` 等 |
+ | 2 | `794408c` | 补 CA/抓包/VPN 工具 + 修原生抓包与内存/媒体/路径若干 bug：新增 `ca_install`/`ca_status`、`capture_read`/`capture_to_script`、`vpn_import_sub`/`vpn_list_nodes`/`vpn_update_sub`；修 CaptureServer 头解析、vpnStart 授权时序、gmem 注入、memWatch 路径与确认、媒体进度清零/控制器泄漏、播放静默失败、Zygisk 路径对齐 | `tools_ca.dart`(新)、`tools_vpn.dart`(新)、`tools_capture.dart`、`agent_engine.dart`、`permission.dart`、`CaptureServer.kt`、`MainActivity.kt`、`gmem.dart`、`tools_mem.dart`、`default_prompt.dart`、`media_cards.dart`、`music_handler.dart` |
++| 3 | `50586f1` | docs：待上传提交存档 | `docs/待上传提交/` |
+ 
+ ## 上传步骤
+ 
+-- 
+2.43.0
+
