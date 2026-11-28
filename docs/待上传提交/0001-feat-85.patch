@@ -1,0 +1,786 @@
+From f4b977cbc73c1ed5ce6a73e584ffb693f8c1a544 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Fri, 27 Nov 2026 13:07:33 +0800
+Subject: [PATCH] =?UTF-8?q?feat:=20=E6=82=AC=E6=B5=AE=E7=AA=97=E5=AF=B9?=
+ =?UTF-8?q?=E8=AF=9D=E5=90=8C=E6=AD=A5+=E6=8B=96=E5=8A=A8=E8=8A=82?=
+ =?UTF-8?q?=E6=B5=81=EF=BC=9B=E6=80=9D=E8=80=83=E4=B8=AD=E6=8F=90=E7=A4=BA?=
+ =?UTF-8?q?=EF=BC=9B=E6=B0=94=E6=B3=A1=E5=8F=98=E7=AA=84=EF=BC=9B=E5=B7=A5?=
+ =?UTF-8?q?=E5=85=B7=E8=A1=8C=E7=8E=BB=E7=92=83=E5=8C=96/=E5=B9=B3?=
+ =?UTF-8?q?=E9=93=BA=EF=BC=9B=E6=A3=AE=E6=9E=97=E7=BB=BF=E8=83=8C=E6=99=AF?=
+ =?UTF-8?q?+=E7=81=B0=E8=BE=B9=E6=A1=86=EF=BC=9B=E7=8E=BB=E7=92=8385%?=
+ =?UTF-8?q?=E9=80=8F=E6=98=8E+=E5=85=A8=E5=B1=80=E6=BB=91=E6=9D=86?=
+ =?UTF-8?q?=EF=BC=9B=E5=8E=BB=E4=B8=BB=E9=A2=98=E8=89=B2=E9=80=89=E6=8B=A9?=
+ =?UTF-8?q?=E7=95=99=E8=87=AA=E5=AE=9A=E4=B9=89=E8=83=8C=E6=99=AF=EF=BC=9B?=
+ =?UTF-8?q?=E8=BE=93=E5=85=A5=E6=A1=86=E8=A3=81=E5=88=87?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ lib/agent/agent_engine.dart         |  15 ++
+ lib/agent/appearance_store.dart     |   4 +-
+ lib/floating/floating_chat_app.dart |  32 ++++-
+ lib/main.dart                       |   2 +-
+ lib/pages/chat_message.dart         | 214 ++--------------------------
+ lib/pages/chat_page.dart            |  29 ++++
+ lib/theme/app_theme.dart            |  21 +--
+ lib/theme/glass_kit.dart            |   6 +-
+ lib/theme/liquid_glass.dart         |   9 +-
+ lib/widgets/tree_drawer.dart        | 101 ++++++++-----
+ 10 files changed, 168 insertions(+), 265 deletions(-)
+
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index ac0bcbc..f8ac32e 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -207,6 +207,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     if (!_running && pendingPermission == null) return;
+     _stopRequested = true;
+     _stopping = true;
++    thinking = false;
+     // 关键：卡在等授权时，不解除就永远停不下来
+     final p = pendingPermission;
+     pendingPermission = null;
+@@ -242,6 +243,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+   /// 流式输出状态：正在逐字到达的文本（UI 把它当临时消息渲染）。
+   bool streaming = false;
+   String streamingText = '';
++  /// 思考中：已发出请求、还没收到第一个字
++  bool thinking = false;
+ 
+   /// 抓包是否进行中：为 true 时对话里常驻抓包窗口。
+   bool captureActive = false;
+@@ -573,6 +576,13 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+       db.addMessage(sid, msg.role, msg.text, sender: msg.sender);
+     }
+     notifyListeners();
++    // 同步给悬浮窗：用户消息和 AI 文本回复都要在小窗里显示
++    if (msg.role == 'user' || msg.role == 'assistant') {
++      if (msg.text.trim().isNotEmpty) {
++        final t = msg.sender.isEmpty ? msg.text : '[${msg.sender}] ${msg.text}';
++        NativeBridge.chatOverlayPush(msg.role, t.length > 2000 ? '${t.substring(0, 2000)}…' : t);
++      }
++    }
+   }
+ 
+   Future<void> setProvider(LlmConfig cfg) async {
+@@ -737,6 +747,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+ 
+     final gen = ++_runGen;
+     _running = true;
++    thinking = true;
+     _stopRequested = false;
+     _stopping = false;
+     _aborted = false;
+@@ -746,6 +757,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     } finally {
+       if (_runGen == gen) {
+         _running = false;
++        thinking = false;
+         _stopping = false;
+         notifyListeners();
+       }
+@@ -816,6 +828,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+       final a = args.entries.map((e) => '${e.key}: ${e.value}').join('\n').trim();
+       if (a.isNotEmpty) pushLive(a.length > 300 ? '${a.substring(0, 300)}…' : a);
+     }
++    thinking = true;
++    notifyListeners();
+     ToolResult r;
+     try {
+       r = await tool.execute(args).timeout(
+@@ -853,6 +867,7 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+         return;
+       }
+       streaming = true;
++      thinking = false;
+       streamingText = '';
+       notifyListeners();
+       final t0 = DateTime.now();
+diff --git a/lib/agent/appearance_store.dart b/lib/agent/appearance_store.dart
+index 9bc80ec..9da4467 100644
+--- a/lib/agent/appearance_store.dart
++++ b/lib/agent/appearance_store.dart
+@@ -22,7 +22,7 @@ class Appearance {
+     this.opacity = 60,
+     this.blur = 4,
+     this.glassBlur = 22,
+-    this.glassTint = 0.14,
++    this.glassTint = 0.15,
+     this.glassEdge = 0.9,
+   });
+ 
+@@ -94,7 +94,7 @@ class AppearanceStore {
+         opacity: (m['opacity'] as num?)?.toDouble() ?? 60,
+         blur: (m['blur'] as num?)?.toDouble() ?? 4,
+         glassBlur: (m['glassBlur'] as num?)?.toDouble() ?? 22,
+-        glassTint: (m['glassTint'] as num?)?.toDouble() ?? 0.14,
++        glassTint: (m['glassTint'] as num?)?.toDouble() ?? 0.15,
+         glassEdge: (m['glassEdge'] as num?)?.toDouble() ?? 0.9,
+       );
+     } catch (_) {
+diff --git a/lib/floating/floating_chat_app.dart b/lib/floating/floating_chat_app.dart
+index 2f58f6a..151286e 100644
+--- a/lib/floating/floating_chat_app.dart
++++ b/lib/floating/floating_chat_app.dart
+@@ -23,6 +23,8 @@ class _FloatingChatAppState extends State<FloatingChatApp>
+   dynamic _view;
+   final TextEditingController _input = TextEditingController();
+   bool _pillDragged = false;
++  Offset _dragAcc = Offset.zero;
++  DateTime _lastFlush = DateTime.fromMillisecondsSinceEpoch(0);
+ 
+   @override
+   void initState() {
+@@ -75,6 +77,8 @@ class _FloatingChatAppState extends State<FloatingChatApp>
+   void _send() {
+     final t = _input.text.trim();
+     if (t.isEmpty) return;
++    // 本地先显示，再发给主引擎
++    setState(() => _msgs.add({'role': 'user', 'text': t}));
+     floatingChannel.invokeMethod('send', {'text': t});
+     _input.clear();
+   }
+@@ -113,16 +117,30 @@ class _FloatingChatAppState extends State<FloatingChatApp>
+   Widget _pill() {
+     return GestureDetector(
+       behavior: HitTestBehavior.opaque,
+-      onPanStart: (_) => _pillDragged = false,
++      onPanStart: (_) {
++        _pillDragged = false;
++        _dragAcc = Offset.zero;
++        _lastFlush = DateTime.fromMillisecondsSinceEpoch(0);
++      },
+       onPanUpdate: (d) {
+         if (d.delta.distance > 0.5) _pillDragged = true;
+-        // 逻辑像素 → 原生物理像素
+-        floatingChannel.invokeMethod('move', {'dx': d.delta.dx, 'dy': d.delta.dy});
++        _dragAcc += d.delta;
++        // 节流：每 ~50ms 把累计位移刷给原生一次，既跟手又不抖
++        final now = DateTime.now();
++        if (now.difference(_lastFlush).inMilliseconds >= 50) {
++          _lastFlush = now;
++          floatingChannel.invokeMethod('move', {'dx': _dragAcc.dx, 'dy': _dragAcc.dy});
++          _dragAcc = Offset.zero;
++        }
+       },
+       onPanEnd: (_) {
+-        if (!_pillDragged) _toggle();
++        if (!_pillDragged) {
++          _toggle();
++        } else if (_dragAcc != Offset.zero) {
++          floatingChannel.invokeMethod('move', {'dx': _dragAcc.dx, 'dy': _dragAcc.dy});
++          _dragAcc = Offset.zero;
++        }
+       },
+-      onTap: _toggle,
+       child: Container(
+         height: 34,
+         padding: const EdgeInsets.symmetric(horizontal: 13),
+@@ -241,10 +259,11 @@ class _FloatingChatAppState extends State<FloatingChatApp>
+   }
+ 
+   Widget _body() {
++    // reverse：新消息在底部自动可见，不用手动滚
+     return ListView(
++      reverse: true,
+       padding: const EdgeInsets.all(11),
+       children: [
+-        for (final m in _msgs) _bubble(m),
+         if (_view != null)
+           Padding(
+             padding: const EdgeInsets.only(top: 4),
+@@ -252,6 +271,7 @@ class _FloatingChatAppState extends State<FloatingChatApp>
+               floatingChannel.invokeMethod('action', {'action': a, 'args': args});
+             }),
+           ),
++        for (final m in _msgs.reversed) _bubble(m),
+       ],
+     );
+   }
+diff --git a/lib/main.dart b/lib/main.dart
+index be2e551..42b469c 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -95,7 +95,7 @@ class RowanApp extends ConsumerWidget {
+         ),
+         inputDecorationTheme: InputDecorationTheme(
+           filled: true,
+-          fillColor: const Color(0xFF1A2338),
++          fillColor: AppColors.card,
+           isDense: true,
+           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+           border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+diff --git a/lib/pages/chat_message.dart b/lib/pages/chat_message.dart
+index 5e2aeb5..2e9b370 100644
+--- a/lib/pages/chat_message.dart
++++ b/lib/pages/chat_message.dart
+@@ -26,6 +26,9 @@ class AssistantItem extends ChatItem {
+   AssistantItem(this.msg, this.index, {this.typing = false});
+ }
+ 
++/// 思考中占位：请求已发、还没收到第一个字，或正在执行工具。
++class ThinkingItem extends ChatItem {}
++
+ class ToolGroupItem extends ChatItem {
+   final List<ChatMsg> tools;
+   /// 与 tools 按顺序对应的输出卡片（stream 视图）；数量可能少于 tools。
+@@ -99,7 +102,7 @@ class UserBubble extends StatelessWidget {
+         Align(
+           alignment: Alignment.centerRight,
+           child: ConstrainedBox(
+-            constraints: const BoxConstraints(maxWidth: 290),
++            constraints: const BoxConstraints(maxWidth: 240),
+             child: Padding(
+               padding: const EdgeInsets.only(top: 6, bottom: 2, left: 48),
+               child: Consumer(
+@@ -340,13 +343,14 @@ class CodeCard extends StatelessWidget {
+ 
+ // ---------------- 打字机 ----------------
+ /// 思考中：三个点循环微跳动，避免看起来像卡住。
+-class _ThinkingDots extends StatefulWidget {
+-  const _ThinkingDots();
++class ThinkingDots extends StatefulWidget {
++  final String? label;
++  const ThinkingDots({super.key, this.label});
+   @override
+-  State<_ThinkingDots> createState() => _ThinkingDotsState();
++  State<ThinkingDots> createState() => _ThinkingDotsState();
+ }
+ 
+-class _ThinkingDotsState extends State<_ThinkingDots> with SingleTickerProviderStateMixin {
++class _ThinkingDotsState extends State<ThinkingDots> with SingleTickerProviderStateMixin {
+   late final AnimationController _c =
+       AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat();
+ 
+@@ -422,207 +426,15 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
+       );
+     }
+ 
+-    final failed = widget.tools.any((t) => !t.ok);
+-    final fails = widget.tools.where((t) => !t.ok).toList();
+-    String errLine = '';
+-    for (final t in widget.tools) {
+-      if (t.ok) continue;
+-      final s = t.text.trim();
+-      if (s.isEmpty || s.startsWith('调用 ')) continue;
+-      errLine = s.split('\n').first;
+-      break;
+-    }
+-    if (errLine.isEmpty && fails.isNotEmpty) errLine = fails.first.text.trim();
+-    final counts = <String, int>{};
+-    for (final t in widget.tools) {
+-      final k = t.toolName ?? 'tool';
+-      counts[k] = (counts[k] ?? 0) + 1;
+-    }
+-    final stat = '${counts.entries.map((e) => '${e.key}×${e.value}').join(' · ')}'
+-        '${fails.isEmpty ? '' : ' · 失败 ${fails.length}'}';
+-
++    // 多个工具：直接逐条平铺，不再套折叠组卡
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 6),
+-      child: GlassContainer.card(
+-        child: Column(
++      child: Column(
+         crossAxisAlignment: CrossAxisAlignment.stretch,
+-        children: [
+-          InkWell(
+-            onTap: () => setState(() => _open = !_open),
+-            borderRadius: BorderRadius.circular(16),
+-            child: Padding(
+-              padding: const EdgeInsets.fromLTRB(13, 11, 12, 11),
+-              child: Row(children: [
+-                Icon(failed ? Icons.cancel_rounded : Icons.check_circle_rounded,
+-                    size: 14, color: failed ? AppColors.red : const Color(0xFF10B981)),
+-                const SizedBox(width: 8),
+-                Text('$n 次工具调用',
+-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text)),
+-                const SizedBox(width: 8),
+-                Expanded(
+-                  child: Column(
+-                    crossAxisAlignment: CrossAxisAlignment.start,
+-                    children: [
+-                      Text(stat,
+-                          maxLines: 1,
+-                          overflow: TextOverflow.ellipsis,
+-                          style: const TextStyle(
+-                              fontSize: 9.5, color: Color(0xFFB6C2D3), fontFamily: 'monospace')),
+-                      if (errLine.isNotEmpty)
+-                        Padding(
+-                          padding: const EdgeInsets.only(top: 2),
+-                          child: Text(
+-                            '失败：${errLine.length > 90 ? '${errLine.substring(0, 90)}…' : errLine}',
+-                            maxLines: 1,
+-                            overflow: TextOverflow.ellipsis,
+-                            style: const TextStyle(fontSize: 9, color: Color(0xFFDC2626)),
+-                          ),
+-                        ),
+-                    ],
+-                  ),
+-                ),
+-                AnimatedRotation(
+-                  turns: _open ? 0.5 : 0,
+-                  duration: const Duration(milliseconds: 200),
+-                  curve: Curves.easeOutCubic,
+-                  child: const Icon(Icons.expand_more_rounded, size: 16, color: Color(0xFFCBD5E1)),
+-                ),
+-              ]),
+-            ),
+-          ),
+-          AnimatedSize(
+-            duration: const Duration(milliseconds: 220),
+-            curve: Curves.easeOutCubic,
+-            alignment: Alignment.topCenter,
+-            child: !_open
+-                ? const SizedBox(width: double.infinity)
+-                : Padding(
+-                    padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+-                    child: Column(
+-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+-                      children: [for (var k = 0; k < widget.tools.length; k++) _rowCard(k)],
+-                    ),
+-                  ),
+-          ),
+-        ],
+-      ),
+-    ),
+-  );
+-  }
+-
+-  Widget _rowCard(int k) {
+-    final t = widget.tools[k];
+-    final out = k < widget.outputs.length ? widget.outputs[k] : null;
+-    final lines = _linesOf(out);
+-    final open = _expanded.contains(k);
+-    return Padding(
+-      padding: const EdgeInsets.only(bottom: 4),
+-      child: Container(
+-        decoration: BoxDecoration(
+-          color: Colors.white.withValues(alpha: 0.5),
+-          borderRadius: BorderRadius.circular(11),
+-          border: Border.all(color: Colors.white.withValues(alpha: 0.55)),
+-        ),
+-        child: Column(
+-          crossAxisAlignment: CrossAxisAlignment.stretch,
+-          children: [
+-            InkWell(
+-              onTap: lines.isEmpty ? null : () => setState(() {
+-                    if (open) {
+-                      _expanded.remove(k);
+-                    } else {
+-                      _expanded.add(k);
+-                    }
+-                  }),
+-              borderRadius: BorderRadius.circular(11),
+-              child: Padding(
+-                padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
+-                child: Row(children: [
+-                  Icon(t.ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
+-                      size: 12, color: t.ok ? const Color(0xFF10B981) : AppColors.red),
+-                  const SizedBox(width: 6),
+-                  Text(t.toolName ?? 'tool',
+-                      style: const TextStyle(
+-                          fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFFD4DBE8))),
+-                  const SizedBox(width: 8),
+-                  Expanded(
+-                    child: Text(_cmdOf(t),
+-                        maxLines: 1,
+-                        overflow: TextOverflow.ellipsis,
+-                        style: const TextStyle(
+-                            fontSize: 10, color: Color(0xFF9AA7C0), fontFamily: 'monospace')),
+-                  ),
+-                  if (lines.isNotEmpty) ...[
+-                    const SizedBox(width: 6),
+-                    Container(
+-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+-                      decoration: BoxDecoration(
+-                        color: const Color(0xFF1A2338),
+-                        borderRadius: BorderRadius.circular(6),
+-                      ),
+-                      child: Text('${lines.length} 行',
+-                          style: const TextStyle(
+-                              fontSize: 9, color: Color(0xFF7886A0), fontFamily: 'monospace')),
+-                    ),
+-                    const SizedBox(width: 4),
+-                    AnimatedRotation(
+-                      turns: open ? 0.5 : 0,
+-                      duration: const Duration(milliseconds: 180),
+-                      child: const Icon(Icons.expand_more_rounded, size: 13, color: Color(0xFFCBD5E1)),
+-                    ),
+-                  ],
+-                ]),
+-              ),
+-            ),
+-            if (open && lines.isNotEmpty)
+-              Container(
+-                margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+-                decoration: BoxDecoration(
+-                  color: const Color(0xFF0B1220),
+-                  borderRadius: BorderRadius.circular(9),
+-                ),
+-                child: Column(
+-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+-                  children: [
+-                    Container(
+-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+-                      decoration: const BoxDecoration(
+-                        color: Color(0xFF1E293B),
+-                        borderRadius: BorderRadius.vertical(top: Radius.circular(9)),
+-                      ),
+-                      child: Row(children: [
+-                        for (final c in const [Color(0xFFFF5F57), Color(0xFFFEBC2E), Color(0xFF28C840)])
+-                          Padding(
+-                            padding: const EdgeInsets.only(right: 4),
+-                            child: Container(
+-                                width: 8, height: 8,
+-                                decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+-                          ),
+-                        const Spacer(),
+-                        const Text('输出',
+-                            style: TextStyle(fontSize: 9, color: Color(0xFF7886A0))),
+-                      ]),
+-                    ),
+-                    Container(
+-                      padding: const EdgeInsets.all(9),
+-                      constraints: const BoxConstraints(maxHeight: 150),
+-                      child: SingleChildScrollView(
+-                        child: Text(
+-                          lines.length > 40 ? lines.sublist(lines.length - 40).join('\n') : lines.join('\n'),
+-                          style: const TextStyle(
+-                              fontFamily: 'monospace', fontSize: 9.5, color: Color(0xFFCBD5E1), height: 1.55),
+-                        ),
+-                      ),
+-                    ),
+-                  ],
+-                ),
+-              ),
+-          ],
+-        ),
++        children: [for (var k = 0; k < widget.tools.length; k++) _rowCard(k)],
+       ),
+     );
+-  }
+-}
++  }}
+ 
+ /// 轻量 Markdown：**粗体** / *斜体* / `行内代码` / 行首 - 列表 / # 标题。
+ 
+diff --git a/lib/pages/chat_page.dart b/lib/pages/chat_page.dart
+index 3d57040..62d578f 100644
+--- a/lib/pages/chat_page.dart
++++ b/lib/pages/chat_page.dart
+@@ -151,11 +151,32 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+     if (at != _atBottom) setState(() => _atBottom = at);
+   }
+ 
++  /// 思考中一行：左侧 AI 头像 + 三个跳动点 + 「思考中」。
++  Widget _thinkingRow() {
++    return Padding(
++      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
++      child: Row(children: [
++        Container(
++          width: 26, height: 26,
++          alignment: Alignment.center,
++          decoration: BoxDecoration(
++            gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, Color.lerp(Theme.of(context).colorScheme.primary, const Color(0xFF8A6BFF), 0.5)!]),
++            borderRadius: BorderRadius.circular(8),
++          ),
++          child: const Text('AI', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Colors.white)),
++        ),
++        const SizedBox(width: 8),
++        const ThinkingDots(),
++      ]),
++    );
++  }
++
+   Widget _renderItem(ChatItem item, AgentEngine engine) {
+     final w = switch (item) {
+       UserItem u => UserBubble(text: u.msg.text, time: u.msg.time),
+       AssistantItem a => AssistantBubble(
+           text: a.msg.text, typing: a.typing, elapsedMs: a.msg.elapsedMs, time: a.msg.time, sender: a.msg.sender),
++      ThinkingItem _ => _thinkingRow(),
+       ToolGroupItem g => ToolGroupTile(tools: g.tools, outputs: g.outputs),
+       ViewItem v => v.msg.view == 'capture'
+           ? CaptureCard(onStop: () => engine.stopCapture())
+@@ -512,6 +533,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+                     }
+                   }
+                   final items = buildChatItems(msgs, typingLast: engine.streaming);
++                  // 思考中：追加到列表末尾（不替换整页）
++                  if (engine.thinking && !engine.streaming && !engine.liveActive) {
++                    items.add(ThinkingItem());
++                  }
+                   // 打开会话/重启后直接停在最新一条，不要回到开头
+                   if (!_jumpedToBottom && items.isNotEmpty) {
+                     _jumpedToBottom = true;
+@@ -901,9 +926,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+                   constraints: const BoxConstraints(minHeight: 40),
+                   decoration: BoxDecoration(
+                     color: Colors.white.withValues(alpha: 0.10),
++                    // 圆角 14 = 高度 40 的标准胶囊感，多行时也服帖
+                     borderRadius: BorderRadius.circular(14),
+                     border: Border.all(color: AppColors.border),
+                   ),
++                  // 多行时裁切跟随圆角，内容不会顶出弧形
++                  clipBehavior: Clip.antiAlias,
+                   child: TextField(
+                     controller: _input,
+                     minLines: 1,
+@@ -912,6 +940,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
+                     decoration: const InputDecoration(
+                       border: InputBorder.none,
+                       isDense: true,
++                      // 上下对称 11，单行高 ≈ 40，与圆角对齐
+                       contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                       hintText: '发消息…',
+                       hintStyle: TextStyle(fontSize: 13, color: AppColors.muted),
+diff --git a/lib/theme/app_theme.dart b/lib/theme/app_theme.dart
+index 9d465c7..655189a 100644
+--- a/lib/theme/app_theme.dart
++++ b/lib/theme/app_theme.dart
+@@ -5,14 +5,15 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+ import 'package:flutter/material.dart';
+ 
+ class AppColors {
+-  static const brand = Color(0xFF4D7CFE);
+-  static const brandSoft = Color(0xFF1E2A45);
+-  static const bg = Color(0xFF0B1020);
+-  static const card = Color(0xFF141B2E);
++  static const brand = Color(0xFF4ADE80);
++  static const brandSoft = Color(0xFF15302A);
++  static const bg = Color(0xFF0A1512);
++  static const card = Color(0xFF11201B);
+   static const text = Color(0xFFEAF0FB);
+   static const muted = Color(0xFF9AA7C0);
+-  static const border = Color(0xFF2A3550);
+-  static const green = Color(0xFF34D399);
++  // 边框：灰色（不要黑色）
++  static const border = Color(0xFF6B7280);
++  static const green = Color(0xFF4ADE80);
+   static const orange = Color(0xFFF59E0B);
+   static const red = Color(0xFFF87171);
+ }
+@@ -40,10 +41,10 @@ BoxDecoration glassBackground({String? image}) {
+       begin: Alignment.topLeft,
+       end: Alignment.bottomRight,
+       colors: [
+-        Color(0xFF101A36),
+-        Color(0xFF0A0F20),
+-        Color(0xFF141033),
+-        Color(0xFF0A1226),
++        Color(0xFF1B3A2E),
++        Color(0xFF0D1F19),
++        Color(0xFF14301F),
++        Color(0xFF081410),
+       ],
+       stops: [0.0, 0.42, 0.78, 1.0],
+     ),
+diff --git a/lib/theme/glass_kit.dart b/lib/theme/glass_kit.dart
+index 20fab4c..dcd3295 100644
+--- a/lib/theme/glass_kit.dart
++++ b/lib/theme/glass_kit.dart
+@@ -22,7 +22,7 @@ class LiquidPanel extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final a = strong ? 0.16 : 0.10;
++    final a = strong ? 0.20 : 0.15;
+     return Container(
+       margin: margin,
+       padding: padding,
+@@ -31,7 +31,7 @@ class LiquidPanel extends StatelessWidget {
+         gradient: LinearGradient(
+           begin: Alignment.topLeft,
+           end: Alignment.bottomRight,
+-          colors: [Colors.white.withValues(alpha: a + 0.04), Colors.white.withValues(alpha: a - 0.04)],
++          colors: [AppColors.card.withValues(alpha: a + 0.04), AppColors.card.withValues(alpha: a - 0.04)],
+         ),
+         borderRadius: BorderRadius.circular(radius),
+         border: Border.all(color: AppColors.border),
+@@ -319,7 +319,7 @@ Future<T?> showGlassSheet<T>(
+               gradient: LinearGradient(
+                 begin: Alignment.topLeft,
+                 end: Alignment.bottomRight,
+-                colors: [Colors.white.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0.06)],
++                colors: [AppColors.card.withValues(alpha: 0.85), AppColors.card.withValues(alpha: 0.75)],
+               ),
+               border: Border(top: BorderSide(color: AppColors.border)),
+             ),
+diff --git a/lib/theme/liquid_glass.dart b/lib/theme/liquid_glass.dart
+index 4010604..2f675c8 100644
+--- a/lib/theme/liquid_glass.dart
++++ b/lib/theme/liquid_glass.dart
+@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../agent/appearance_store.dart';
++import 'app_theme.dart';
+ 
+ /// 液态玻璃外观参数（可在 设置 → 外观 里调）。
+ class GlassSpec {
+@@ -21,7 +22,7 @@ class GlassSpec {
+ 
+   const GlassSpec({
+     this.blur = 22,
+-    this.tint = 0.14,
++    this.tint = 0.15,
+     this.edge = 0.9,
+     this.radius = 20,
+   });
+@@ -87,8 +88,8 @@ class LiquidGlass extends ConsumerWidget {
+     final spec = ref.watch(glassSpecProvider);
+     final r = radius ?? spec.radius;
+     final br = BorderRadius.circular(r);
+-    final tint = tintColor ?? Colors.white;
+-    final alpha = (spec.tint + (strong ? 0.06 : 0)).clamp(0.06, 0.92);
++    final tint = tintColor ?? AppColors.card;
++    final alpha = (spec.tint + (strong ? 0.05 : 0)).clamp(0.05, 0.95);
+     final e = spec.edge.clamp(0.0, 1.0);
+ 
+     return ClipRRect(
+@@ -112,7 +113,7 @@ class LiquidGlass extends ConsumerWidget {
+                 ),
+                 // 边缘那一圈折射高光
+                 border: Border.all(
+-                  color: Colors.white.withValues(alpha: 0.35 + e * 0.45),
++                  color: AppColors.border.withValues(alpha: 0.6 + e * 0.3),
+                   width: 1.1,
+                 ),
+                 boxShadow: [
+diff --git a/lib/widgets/tree_drawer.dart b/lib/widgets/tree_drawer.dart
+index 9286284..db8237c 100644
+--- a/lib/widgets/tree_drawer.dart
++++ b/lib/widgets/tree_drawer.dart
+@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
+ 
+ import '../theme/app_theme.dart';
+ import '../theme/glass_kit.dart';
++import '../theme/liquid_glass.dart';
+ import '../theme/toast.dart';
+ import '../state/drawer_ctrl.dart';
+ import '../state/theme_controller.dart';
+@@ -1194,52 +1195,75 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+     return const SizedBox.shrink();
+   }
+ 
+-  /// 7 套主题色板 + 自定义背景图按钮（原型：主题行）。用 Consumer 取 ref，放进 sheet 也能用。
++  /// 背景行：只保留自定义背景图（不再选主题色）。
+   Widget _themeRow() {
+     return Consumer(
+       builder: (context, ref, _) {
+-        final cur = ref.watch(themeColorProvider);
+         return Padding(
+           padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
+-          child: Row(
+-            children: [
+-              const Text('主题', style: TextStyle(fontSize: 12.5, color: AppColors.text)),
+-              const SizedBox(width: 10),
+-              for (var i = 0; i < rowanThemes.length; i++)
+-                GestureDetector(
+-                  onTap: () => ref.read(themeColorProvider.notifier).set(i),
+-                  child: Container(
+-                    width: 22,
+-                    height: 22,
+-                    margin: const EdgeInsets.only(right: 7),
+-                    decoration: BoxDecoration(
+-                      gradient: rowanThemes[i].gradient,
+-                      shape: BoxShape.circle,
+-                      border: Border.all(
+-                        color: cur.accent == rowanThemes[i].accent ? Colors.white : AppColors.border,
+-                        width: cur.accent == rowanThemes[i].accent ? 2 : 1.5,
+-                      ),
+-                    ),
+-                  ),
++          child: Row(children: [
++            const Text('背景', style: TextStyle(fontSize: 12.5, color: AppColors.text)),
++            const SizedBox(width: 10),
++            GestureDetector(
++              onTap: () async {
++                final x = await ImagePicker().pickImage(source: ImageSource.gallery);
++                if (x == null) return;
++                await ref.read(appearanceProvider.notifier).setImage(x.path);
++              },
++              child: Container(
++                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
++                decoration: BoxDecoration(
++                  color: Colors.white.withValues(alpha: 0.10),
++                  borderRadius: BorderRadius.circular(999),
++                  border: Border.all(color: AppColors.border),
+                 ),
+-              GestureDetector(
+-                onTap: () async {
+-                  final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+-                  if (x == null) return;
+-                  await ref.read(appearanceProvider.notifier).setImage(x.path);
++                child: const Row(mainAxisSize: MainAxisSize.min, children: [
++                  Icon(Icons.add_photo_alternate_outlined, size: 13, color: AppColors.muted),
++                  SizedBox(width: 5),
++                  Text('自定义背景', style: TextStyle(fontSize: 10.5, color: AppColors.muted)),
++                ]),
++              ),
++            ),
++            const SizedBox(width: 8),
++            GestureDetector(
++              onTap: () => ref.read(appearanceProvider.notifier).removeImage(),
++              child: const Text('恢复默认', style: TextStyle(fontSize: 10.5, color: AppColors.muted)),
++            ),
++          ]),
++        );
++      },
++    );
++  }
++
++  /// 全局玻璃透明度滑杆：存 appearance.glassTint（底色不透明度），显示为「透明度」。
++  Widget _glassOpacityRow() {
++    return Consumer(
++      builder: (context, ref, _) {
++        final spec = ref.watch(glassSpecProvider);
++        final opacityPct = ((1 - spec.tint) * 100).round(); // tint 越低越透明
++        return Padding(
++          padding: const EdgeInsets.fromLTRB(2, 0, 2, 14),
++          child: Row(children: [
++            const Text('透明度', style: TextStyle(fontSize: 12.5, color: AppColors.text)),
++            Expanded(
++              child: Slider(
++                value: opacityPct.clamp(20, 95).toDouble(),
++                min: 20,
++                max: 95,
++                divisions: 15,
++                activeColor: AppColors.brand,
++                inactiveColor: Colors.white.withValues(alpha: 0.12),
++                label: '$opacityPct%',
++                onChanged: (v) {
++                  ref.read(glassSpecProvider.notifier).update(spec.copyWith(tint: 1 - v / 100));
+                 },
+-                child: Container(
+-                  width: 22,
+-                  height: 22,
+-                  decoration: const BoxDecoration(
+-                    color: Color(0xFF1A2338),
+-                    shape: BoxShape.circle,
+-                  ),
+-                  child: const Icon(Icons.add_photo_alternate_outlined, size: 13, color: AppColors.muted),
+-                ),
+               ),
+-            ],
+-          ),
++            ),
++            SizedBox(
++              width: 38,
++              child: Text('$opacityPct%', textAlign: TextAlign.right, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
++            ),
++          ]),
+         );
+       },
+     );
+@@ -1263,6 +1287,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
+           padding: EdgeInsets.zero,
+           children: [
+             _themeRow(),
++            _glassOpacityRow(),
+             for (final e in _settingsEntries)
+               GlassOptionRow(
+                 icon: e.$1,
+-- 
+2.43.0
+

@@ -1,31 +1,26 @@
-# 待上传提交（本地未推送）
+# 待上传提交
 
-用户要求：这些改动还没上传，怕上传错，所以按顺序存档补丁。
-上传前先核对本目录与 `git log`，确认无误再 `git push`。
+已本地提交、**尚未推送**的改动。用户说「上传」时才推送，推完清空本目录。
 
-## 当前待上传（按时间顺序，先推前面的）
+当前状态：**3 个提交待推送**（基于 `origin/main`）
 
-| # | 提交 | 内容 |
-|---|---|---|
-| 1 | `78ddbe5` | 悬浮窗胶囊去掉 BackdropFilter，修黑色一坨 |
-| 2 | `c5db2ea` | 悬浮窗黑底改 TextureView 透明模式 + 透明主题 |
-| 3 | `eb0013a` | 悬浮窗补关闭/上传按钮、右下角拖拽缩放（新增 attach 通道） |
-| 4 | `5cee5cb` | 7 套主题配色（accent+accent2）+ 液态玻璃双层边框/边缘色散 |
-| 5 | `67ab070` | 发送按钮接入主题色渐变（主聊天 + 悬浮窗） |
-| 6 | `fbb2149` | 修缩放把手遮挡 + 删未用 import + 抽屉加 7 套主题选择器 |
-| 7 | `c86d225` | 悬浮窗上传接入：选文件后作为附件发给 AI |
-| 8 | `99e563e` | 悬浮窗标题栏改为单个「缩回胶囊」按钮（下箭头） |
+| # | 提交 | 内容 | 涉及文件 |
+|---|---|---|---|
+| 1 | `f4b977c` | 悬浮窗对话同步 + 拖动节流；思考中提示；气泡变窄；工具行玻璃化/平铺；森林绿背景 + 灰边框；玻璃 85% 透明 + 全局滑杆；去掉主题色选择只留自定义背景；输入框裁切 | `chat_page.dart`、`chat_message.dart`、`floating_chat_app.dart`、`tree_drawer.dart`、`app_theme.dart`、`glass_kit.dart`、`liquid_glass.dart`、`main.dart`、`agent_engine.dart`、`appearance_store.dart` |
+| 2 | `fef33bb` | DSH 式插件系统：`plugin.json` 声明清单、AI 工具 `plugin_create`/`list`/`toggle`/`delete`、输入框上方插件胶囊、示例插件 `local-hello`；工具调用行显示耗时 ms | `plugins_store.dart`(新)、`tools_rowan_plugin.dart`(新)、`chat_page.dart`、`chat_message.dart`、`agent_engine.dart` |
+| 3 | `31bd415` | 容器双模式：有 root 自动用内核原生 chroot（零 ptrace、uid=0 是真 root），无 root 回退 PRoot；终端与 AI 工具共用；失败自动降级 | `ChrootLauncher.kt`(新)、`ProotLauncher.kt`、`TerminalActivity.kt`、`MainActivity.kt`、`tools_mcp.dart` |
 
-对应补丁：`0001-…patch` ~ `0008-…patch`（按序号先推前面的），可离线 `git am` 恢复。
+## 上传步骤
 
-## 已推送（不用再管）
+```bash
+git log origin/main..HEAD --oneline        # 核对与上表一致
+git push origin main
+```
 
-- `origin/main`（`5101b66` 及更早）已包含之前的全部改动；原来的 44 个旧补丁对应的内容早已合并进 origin/main，旧补丁已按用户要求清除。
+推完把本目录的 `.patch` 删掉，上表标记为「已上传」。
 
-## 上传与维护规则
+## 这几项的关键验证点
 
-1. 新提交如果还没上传，用单个提交导出，避免误带历史：
-   `git format-patch -1 <sha> -o docs/待上传提交/ --start-number N`
-2. 每次新增/调整后更新本表格。
-3. 用户说「上传」之前，不要 push。
-4. 上传完成后清空本目录、表格标记「已上传」。
+- 群聊：新建时选「群聊」，设置 → 群成员 加人（开关控制参与）
+- 插件：对 AI 说「做个插件…」，胶囊会出现在输入框上方
+- chroot：终端标签标题显示 `chroot:<env>`；没有 root 时显示普通 env 名（PRoot）
