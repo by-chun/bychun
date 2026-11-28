@@ -26,6 +26,7 @@ import '../pages/container_page.dart';
 import '../pages/compact_page.dart';
 import '../pages/backup_page.dart';
 import '../pages/mcp_page.dart';
+import '../agent/plugins_store.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 /// 抽屉里的树状工作区：应用 / 文件 / 插件 / 设置，逐级向下展开。
@@ -50,7 +51,9 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
   void initState() {
     super.initState();
     DrawerCtrl.openNode.addListener(_onOpenNode);
-    // 恢复上次展开的节点，重启后抽屉不会全部折回去
+    // 平铺显示：应用列表直接预加载，不再靠展开触发
+    _ensure('apps');
+    // 恢复上次展开的节点（平铺后仅作记录，不再控制展开）
     UiStateStore.drawerOpen().then((list) {
       if (!mounted || list.isEmpty) return;
       setState(() => _open.addAll(list));
@@ -223,7 +226,7 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
                       _section('plugins', '插件', _typeIcon(Icons.extension_outlined, AppColors.muted)),
                       _groupBody('plugins', Column(children: [
                         _searchAdd('plugins', onAdd: () => _newSheet('/storage/emulated/0/Rowan/plugins')),
-                        _dirChildren('plugins', '/storage/emulated/0/Rowan/plugins', 1),
+                        _pluginCards(),
                       ])),
                     ]),
                   ),
@@ -239,25 +242,9 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
         );
   }
 
-  /// 分组展开区：收起时高度归零 + 淡出；展开时高度撑开 + 淡入。
-  /// 同组内条目切换由子组件自身的 AnimatedSlide 处理（180ms），
-  /// 这里不做任何位移动画，所以不会跨组长距离滑动。
+  /// 分组展开区：用户要求「像设置面板一样平铺」，不再按组展开收起，直接显示。
   Widget _groupBody(String key, Widget child) {
-    final open = _isOpen(key);
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 180),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        // 用 key 区分开/关两态：只做淡入淡出，不做位移
-        child: open
-            ? KeyedSubtree(key: ValueKey('$key:open'), child: child)
-            : const SizedBox.shrink(key: ValueKey('closed')),
-      ),
-    );
+    return child;
   }
 
   Widget _card(List<Widget> children) {
@@ -281,32 +268,21 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
       );
 
   Widget _section(String key, String title, Widget icon) {
-    final open = _isOpen(key);
-    final row = InkWell(
-      onTap: () => _toggle(key),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 10,
-              child: Icon(open ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
-                  size: 14, color: AppColors.muted),
-            ),
-            const SizedBox(width: 6),
-            icon,
-            const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
-            const Spacer(),
-            if (key == 'apps' && _apps != null)
-              Text('${_apps!.length}',
-                  style: const TextStyle(fontSize: 10, color: AppColors.muted, fontFamily: 'monospace')),
-            const SizedBox(width: 4),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+      child: Row(
+        children: [
+          icon,
+          const SizedBox(width: 8),
+          Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
+          const Spacer(),
+          if (key == 'apps' && _apps != null)
+            Text('${_apps!.length}',
+                style: const TextStyle(fontSize: 10, color: AppColors.muted, fontFamily: 'monospace')),
+          const SizedBox(width: 4),
+        ],
       ),
     );
-    return row;
   }
 
   /// ＋ 号：新建文件夹 / 新建文件（自由命名）/ 导入 / 安装内置插件。
@@ -442,6 +418,54 @@ class _TreeDrawerState extends ConsumerState<TreeDrawer> {
   void _toast(String msg) {
     if (!mounted) return;
     showToast(context, msg);
+  }
+
+  /// 插件卡片：每个插件一张卡（图标 + 名称 + 开关），平铺显示。
+  Widget _pluginCards() {
+    final plugins = ref.watch(pluginsProvider);
+    if (plugins.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.fromLTRB(24, 4, 16, 12),
+        child: Text('还没有插件，点 ＋ 或让 AI 装',
+            style: TextStyle(fontSize: 11, color: AppColors.muted)),
+      );
+    }
+    return Column(
+      children: [
+        for (final p in plugins)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 3, 12, 3),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.brandSoft,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.extension_rounded, size: 15, color: AppColors.brand),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(p.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+                Switch(
+                  value: p.enabled,
+                  activeThumbColor: AppColors.brand,
+                  onChanged: (v) {
+                    PluginsNotifier.setEnabled(p.dir, v)
+                        .then((_) => ref.invalidate(pluginsProvider));
+                  },
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _searchAdd(String key, {VoidCallback? onAdd}) {
