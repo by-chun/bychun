@@ -280,6 +280,23 @@
   .mem-item .mk{font-size:13px;font-weight:700}
   .mem-item .mv{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;word-break:break-word}
   .mem-empty{padding:22px 14px;text-align:center;color:var(--dim);font-size:11.5px;line-height:1.7}
+
+  /* 弹窗（对话框） */
+  .modal{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:90;display:none;align-items:center;justify-content:center;padding:26px;backdrop-filter:blur(2px)}
+  .modal.show{display:flex}
+  .modal-card{background:var(--surface2);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:320px;padding:17px;box-shadow:0 24px 70px -14px rgba(0,0,0,.8);animation:pop .2s ease}
+  .modal-title{font-size:14px;font-weight:800;margin-bottom:6px}
+  .modal-body{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+  .modal-field{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--text);outline:none;width:100%;margin-bottom:9px;font-family:ui-monospace,Menlo,monospace;display:block}
+  .modal-field::placeholder{color:var(--dim)}
+  textarea.modal-field{min-height:70px;resize:none;line-height:1.6}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+  .modal-actions button{padding:9px 15px;border-radius:10px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer}
+  .modal-actions .primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04220F;border:none;font-weight:700}
+  .modal-actions .danger{background:var(--danger);color:#fff;border:none;font-weight:700}
+  .modal-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+  .modal-list .ml{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:12px;cursor:pointer}
+  .modal-list .ml.on{border-color:var(--accent);color:var(--accent);background:var(--accentSoft)}
 </style>
 </head>
 <body>
@@ -366,6 +383,9 @@
 
     <!-- 悬浮球 -->
     <div class="ball" id="ball"><span class="pulse"></span>✦</div>
+
+    <!-- 弹窗 -->
+    <div class="modal" id="modal" onclick="if(event.target===this)hideModal()"><div class="modal-card" id="modalCard"></div></div>
 
     <div class="switcher" id="switcher">
       <div class="st">切换界面</div>
@@ -629,11 +649,12 @@
       ], '1:28 · 7 步 · 275K tokens')); break;
       case 'install': resetMsgs(`<div class="hint" style="padding-top:18px">对 AI 发一个 GitHub 网址，就会像这样装：</div>`+installCard('github.com/kingcharleslzy/dsh-purge')); runInstallAnimate(); break;
       case 'mem': resetMsgs(memoryCard([{k:'我的名字',v:'小明',on:true},{k:'喜欢的语言',v:'Dart / Kotlin',on:true},{k:'工作区路径',v:'/sdcard/工作区',on:false}])); break;
+      case 'dialog': resetMsgs(`<div style="padding:4px 2px 12px;font-size:12px;color:var(--dim)">点下面任意一个，看看对应的弹窗：</div><div style="display:flex;flex-direction:column;gap:8px">${[['mem','添加记忆'],['edit','编辑消息'],['del','删除确认'],['newfile','新建文件'],['model','切换模型'],['jump','跳页'],['perm','权限确认']].map(([k,t])=>`<button style="padding:13px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:12.5px;cursor:pointer;text-align:left" onclick="showModal(dialogs.${k})">${t}</button>`).join('')}</div>`); break;
     }
   }
   // 屏幕清单（含图标名），同时生成左侧导航和手机切换面板
   const SCREENS=[
-    {grp:'主界面',items:[['chat','对话 / 气泡','chat'],['drawer','抽屉','folder'],['add','加号菜单','plus'],['settings','设置','sliders'],['float','悬浮窗','spark'],['tool','工具运行输出','tool'],['install','装插件','plug'],['mem','记忆','save']]},
+    {grp:'主界面',items:[['chat','对话 / 气泡','chat'],['drawer','抽屉','folder'],['add','加号菜单','plus'],['settings','设置','sliders'],['float','悬浮窗','spark'],['tool','工具运行输出','tool'],['install','装插件','plug'],['mem','记忆','save'],['dialog','弹窗','edit']]},
     {grp:'视图卡（AI 输出）',items:[['steps','思考/运行步骤','clock'],['list','列表卡','list'],['detail','详情卡','doc'],['stream','终端流卡','term'],['run','运行中的流','clock'],['form','表单卡','edit'],['video','视频卡','play'],['audio','音频卡','music'],['perm','权限确认卡','shield'],['group','群聊','users']]},
   ];
   $('#sideBody').innerHTML=SCREENS.map(g=>`<div class="grp">${g.grp}</div>${g.items.map(([s,t,icn])=>`<button data-s="${s}"><span class="ic">${ic(icn)}</span>${t}</button>`).join('')}`).join('');
@@ -670,6 +691,19 @@
     t.textContent=msg; t.classList.add('show');
     clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
   }
+
+  /* 弹窗 */
+  function showModal(html){ $('#modalCard').innerHTML=html; $('#modal').classList.add('show'); }
+  function hideModal(){ $('#modal').classList.remove('show'); }
+  const dialogs={
+    mem:'<div class="modal-title">添加记忆</div><input class="modal-field" placeholder="词（比如：我的名字）"><textarea class="modal-field" placeholder="记住的内容"></textarea><div class="modal-actions"><button onclick="hideModal()">取消</button><button class="primary" onclick="hideModal();showToast(\'已保存\')">保存</button></div>',
+    edit:'<div class="modal-title">编辑消息</div><textarea class="modal-field">原来的消息内容…</textarea><div class="modal-actions"><button onclick="hideModal()">取消</button><button class="primary" onclick="hideModal();showToast(\'已保存\')">保存</button></div>',
+    del:'<div class="modal-title">删除全部会话？</div><div class="modal-body">所有对话记录会被删除，无法恢复。</div><div class="modal-actions"><button onclick="hideModal()">取消</button><button class="danger" onclick="hideModal();showToast(\'已删除\')">全部删除</button></div>',
+    newfile:'<div class="modal-title">新建文件</div><input class="modal-field" placeholder="文件名，后缀随意 .sh .py .js .json"><div class="modal-actions"><button onclick="hideModal()">取消</button><button class="primary" onclick="hideModal();showToast(\'已创建\')">创建</button></div>',
+    model:'<div class="modal-title">切换模型</div><div class="modal-list"><div class="ml on">gpt-4o</div><div class="ml">claude-sonnet</div><div class="ml">deepseek-chat</div></div><div class="modal-actions"><button onclick="hideModal()">取消</button></div>',
+    jump:'<div class="modal-title">跳页</div><input class="modal-field" placeholder="1 - 48 页"><div class="modal-actions"><button onclick="hideModal()">取消</button><button class="primary" onclick="hideModal()">跳转</button></div>',
+    perm:'<div class="modal-title" style="color:var(--warn)">高危操作</div><div class="modal-body" style="font-family:ui-monospace,Menlo,monospace">rm -rf /data/local/tmp/*</div><div class="modal-actions"><button onclick="hideModal()">拒绝</button><button class="danger" onclick="hideModal()">允许一次</button><button class="primary" onclick="hideModal()">始终允许</button></div>',
+  };
 
   /* 剩余 emoji / 符号 → 线性图标 */
   const GI={'🖼️':'image','📄':'file','🧠':'cpu','📡':'radio'};
