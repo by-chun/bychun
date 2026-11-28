@@ -1,0 +1,36 @@
+From 7f2c37be5f4fae3bbbfd44dfb86506a2974d149c Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 22:44:52 +0800
+Subject: [PATCH 17/17] =?UTF-8?q?docs:=20=E8=BF=9B=E5=BA=A6=E5=BF=AB?=
+ =?UTF-8?q?=E7=85=A7=E2=80=94=E2=80=94CA=20APEX/Xposed=20=E5=AE=8C?=
+ =?UTF-8?q?=E6=88=90=EF=BC=8Cuid=20=E5=BD=92=E5=B1=9E=E6=A0=87=E6=B3=A8?=
+ =?UTF-8?q?=E6=9E=B6=E6=9E=84=E9=99=90=E5=88=B6?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ ...346\236\204\344\270\216\345\276\205\345\212\236.md" | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git "a/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md" "b/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
+index 0fc0e81..82272ce 100644
+--- "a/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
++++ "b/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
+@@ -110,8 +110,8 @@ rowan/docs/<功能>ui界面/        仓库副本
+ - agent_engine.dart：`/tools` 分支重复 `return`
+ - ChrootLauncher/ProotLauncher：canChroot 对 Alpine 的 `bin/sh→/bin/busybox` 绝对符号链接误判（chroot 从未生效）；hasRoot 卡授权弹窗无限阻塞；permStatus 在 UI 线程探测 root；MainActivity 重复 prootExec 死代码
+ 
+-### 仍未做（需原生大改或需真机验证，留待后续）
+-- ❌ #2 uid→应用名归属（DnsVpnService 需 per-uid 路由 / netlink）
+-- ❌ #4 CA Android 14+ APEX 安装路径；subject_hash 与 OpenSSL 对齐校验
+-- ❌ #8 Xposed 完整实现（isLsposedActive 恒 false、缺 xposedmodule 元数据、跨进程读文件受 SELinux 限制）
+-- ⚠️ #9 完整 VPN 隧道客户端（需原生 VpnService 代理实现）
++### 仍未做（真机验证 + 架构限制，如实说明）
++- ⚠️ #2 uid→应用名归属：**当前 DNS 级 VPN 做不到**。Android 的 DNS 统一由 netd 代发，VPN 只能看到 netd 的查询，拿不到发起 App。要归属要么改「per-app 防火墙 VPN」（只看谁在联网、看不到域名），要么 root 下 iptables 按 uid 把 DNS 重定向到本地解析器，或 eBPF/kprobe 挂 netd——都是另一个量级的工作。
++- ⚠️ #4 CA subject_hash 与 OpenSSL 对齐：需真机用 `openssl x509 -subject_hash_old` 对照校验（14+ APEX overlay 已补，代码已写，待真机验证挂载）。
++- ✅ #8 Xposed：isLsposedActive 真实检测 + xposedmodule 元数据 + world-readable 脚本路径已补（跨进程 SELinux 仍需真机验证）。
++- ⚠️ #9 完整 VPN 隧道：文档只要求「订阅导入/节点/更新/存脚本」，已用 sub.json + 容器 sing-box/v2ray 达成；原生 VpnService 隧道属可选扩展。
+-- 
+2.43.0
+

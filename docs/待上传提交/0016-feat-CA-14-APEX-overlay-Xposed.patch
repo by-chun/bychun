@@ -1,0 +1,204 @@
+From b559393472678b59b495a2995170308d6f801d44 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 22:43:57 +0800
+Subject: [PATCH 16/17] =?UTF-8?q?feat:=20=E8=A1=A5=20CA=2014+=20APEX=20ove?=
+ =?UTF-8?q?rlay=20+=20Xposed=20=E6=A8=A1=E5=9D=97=E5=90=AF=E7=94=A8?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- CaInstaller 追加 Android 14+ APEX cacerts overlay（tmpfs 覆盖只读 APEX），失败不影响模块挂载
+- XposedBridge.isLsposedActive 改为真实检测（su 探测 /data/adb/lspd 等目录）
+- AndroidManifest 加 xposedmodule/xposeddescription/xposedminversion 元数据，让 LSPosed 识别
+- XposedHook 从 world-readable 路径读脚本（目标进程读不到私有目录）；XposedStore 额外用 root 写 /data/local/tmp/rowan/xposed_scripts.json
+---
+ android/app/src/main/AndroidManifest.xml      |  3 ++
+ .../main/kotlin/com/chun/by/CaInstaller.kt    | 50 ++++++++++++++++++-
+ .../main/kotlin/com/chun/by/XposedBridge.kt   | 43 +++++++++++++---
+ .../src/main/kotlin/com/chun/by/XposedHook.kt |  8 ++-
+ lib/agent/xposed_store.dart                   | 12 ++++-
+ 5 files changed, 105 insertions(+), 11 deletions(-)
+
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index 19dba08..8ea8e7f 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -40,6 +40,9 @@
+         android:name="${applicationName}"
+         android:extractNativeLibs="true"
+         android:icon="@mipmap/ic_launcher">
++        <meta-data android:name="xposedmodule" android:value="true"/>
++        <meta-data android:name="xposeddescription" android:value="Rowan 注入模块"/>
++        <meta-data android:name="xposedminversion" android:value="82"/>
+         <activity
+             android:name=".MainActivity"
+             android:exported="true"
+diff --git a/android/app/src/main/kotlin/com/chun/by/CaInstaller.kt b/android/app/src/main/kotlin/com/chun/by/CaInstaller.kt
+index c8aa9fa..5825bfb 100644
+--- a/android/app/src/main/kotlin/com/chun/by/CaInstaller.kt
++++ b/android/app/src/main/kotlin/com/chun/by/CaInstaller.kt
+@@ -138,7 +138,15 @@ object CaInstaller {
+             val out = p.inputStream.bufferedReader().readText()
+             p.waitFor()
+             val ok = out.contains("OK")
+-            onLine(if (ok) "已写入 $caDirSys/$hash.0\n重启后生效" else "安装失败：$out")
++            if (ok) {
++                onLine("已写入 $caDirSys/$hash.0")
++                // Android 14+ 的 conscrypt 走只读 APEX，模块 system 挂载有时读不到，
++                // 追加一次 overlay（失败不影响上面已装好的模块挂载）
++                installApexOverlay(ctx, hash, onLine)
++                onLine("重启后生效")
++            } else {
++                onLine("安装失败：$out")
++            }
+             ok
+         } catch (e: Throwable) {
+             onLine("安装失败：${e.message}")
+@@ -146,6 +154,46 @@ object CaInstaller {
+         }
+     }
+ 
++    /**
++     * Android 14+：CA 信任库在只读 APEX 里（/apex/com.android.conscrypt/cacerts），
++     * Magisk 模块的 system/etc/security/cacerts 覆盖在部分 ROM 上读不到。
++     * 用 AlwaysTrustUserCerts 同款做法：把现有证书 + 我们的证书拷到临时目录，
++     * 再 tmpfs 覆盖 APEX 目录拷回。挂载本次开机临时生效，重启自动还原。
++     * 任何一步失败都不影响上面的模块挂载（只记录日志，不把整体标记为失败）。
++     */
++    private fun installApexOverlay(ctx: Context, hash: String, onLine: (String) -> Unit): Boolean {
++        val apex = "/apex/com.android.conscrypt/cacerts"
++        if (!File(apex).isDirectory) {
++            onLine("无 APEX cacerts（Android <14 或 ROM 结构不同），跳过 overlay")
++            return false
++        }
++        val pem = certFile(ctx)
++        val tmp = "/data/local/tmp/rowan-cacerts"
++        // 先备好完整副本，再挂载拷回，尽量缩小 tmpfs 空目录窗口
++        val cmd = buildString {
++            append("rm -rf '$tmp' && mkdir -p '$tmp' && ")
++            append("cp '$apex/'* '$tmp/' 2>/dev/null; ")
++            append("cp '${pem.absolutePath}' '$tmp/$hash.0' && ")
++            append("chmod 644 '$tmp/'* && chown 0:0 '$tmp/'* 2>/dev/null; ")
++            append("mount -t tmpfs tmpfs '$apex' && ")
++            append("cp '$tmp/'* '$apex/' && ")
++            append("chmod 644 '$apex/'* && chown 0:0 '$apex/'* 2>/dev/null; ")
++            append("chcon u:object_r:system_security_cacerts_file:s0 '$apex/'* 2>/dev/null; ")
++            append("echo OK")
++        }
++        return try {
++            val p = ProcessBuilder("su", "-c", cmd).redirectErrorStream(true).start()
++            val out = p.inputStream.bufferedReader().readText()
++            p.waitFor()
++            val ok = out.contains("OK")
++            onLine(if (ok) "APEX overlay 已挂载（Android 14+ 生效）" else "APEX overlay 失败：$out")
++            ok
++        } catch (e: Throwable) {
++            onLine("APEX overlay 失败：${e.message}")
++            false
++        }
++    }
++
+     fun readKey(ctx: Context): PrivateKey? = runCatching {
+         keyFile(ctx).takeIf { it.exists() }?.readBytes()?.let { der ->
+             val kf = java.security.KeyFactory.getInstance("RSA")
+diff --git a/android/app/src/main/kotlin/com/chun/by/XposedBridge.kt b/android/app/src/main/kotlin/com/chun/by/XposedBridge.kt
+index 5873cfc..b75e887 100644
+--- a/android/app/src/main/kotlin/com/chun/by/XposedBridge.kt
++++ b/android/app/src/main/kotlin/com/chun/by/XposedBridge.kt
+@@ -1,13 +1,42 @@
+ package com.chun.by
+ 
++import java.io.BufferedReader
++import java.io.File
++import java.io.InputStreamReader
++
+ /**
+- * Xposed / LSPosed 骨架（未启用）。
+- * 说明：Xposed 模块本身是一个独立 APK，需在 Manifest 声明
+- *   <meta-data android:name="xposedmodule" android:value="true"/>
+- * 并实现 de.robv.android.xposed.IXposedHookLoadPackage。
+- * 普通应用无法直接注入 Hook —— 本应用的职责是“生成/管理 Hook 脚本与模块工程”，
+- * 注入由 LSPosed 框架完成。当前仅占位。
++ * LSPosed 检测：查 LSPosed 的模块目录。这些目录在 /data/adb/ 下，普通 uid 读不到，
++ * 所以优先用 root（su）探测；拿不到 root 时回退到直接 File.exists()（能读多少算多少）。
+  */
+ object XposedBridge {
+-    fun isLsposedActive(): Boolean = false
++    private val lsposedDirs = listOf(
++        "/data/adb/lspd",
++        "/data/adb/modules/zygisk_lsposed",
++        "/data/adb/modules/riru_lsposed",
++    )
++
++    fun isLsposedActive(): Boolean {
++        // 直接读（部分内核 / KernelSU 下 /data/adb 可读）
++        if (lsposedDirs.any { File(it).exists() }) return true
++        // 有 root 时用 su 探测（普通应用 uid 读不到 /data/adb）
++        return runCatching {
++            val p = ProcessBuilder("su", "-c", "ls ${lsposedDirs.joinToString(" ")} 2>/dev/null")
++                .redirectErrorStream(true)
++                .start()
++            val out = StringBuilder()
++            val reader = Thread {
++                runCatching {
++                    BufferedReader(InputStreamReader(p.inputStream)).use { r ->
++                        r.forEachLine { out.append(it) }
++                    }
++                }
++            }
++            reader.isDaemon = true
++            reader.start()
++            val done = p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
++            if (!done) p.destroyForcibly()
++            reader.join(500)
++            out.toString().isNotBlank()
++        }.getOrDefault(false)
++    }
+ }
+diff --git a/android/app/src/main/kotlin/com/chun/by/XposedHook.kt b/android/app/src/main/kotlin/com/chun/by/XposedHook.kt
+index 7d2c4ec..5f4750a 100644
+--- a/android/app/src/main/kotlin/com/chun/by/XposedHook.kt
++++ b/android/app/src/main/kotlin/com/chun/by/XposedHook.kt
+@@ -14,8 +14,12 @@ import java.io.File
+ class XposedHook : IXposedHookLoadPackage {
+     override fun handleLoadPackage(lpparam: LoadPackageParam) {
+         try {
+-            val f = File("/data/data/com.chun.by/files/xposed_scripts.json")
+-            if (!f.exists()) return
++            // 目标进程读不到 Rowan 的私有目录（SELinux），脚本由 App 额外用 root 写到
++            // /data/local/tmp/rowan/，这里优先读它，读不到再回退私有路径。
++            val f = listOf(
++                File("/data/local/tmp/rowan/xposed_scripts.json"),
++                File("/data/data/com.chun.by/files/xposed_scripts.json"),
++            ).firstOrNull { it.exists() } ?: return
+             val arr = JSONArray(f.readText())
+             for (i in 0 until arr.length()) {
+                 val o = arr.optJSONObject(i) ?: continue
+diff --git a/lib/agent/xposed_store.dart b/lib/agent/xposed_store.dart
+index 26487eb..3b1633d 100644
+--- a/lib/agent/xposed_store.dart
++++ b/lib/agent/xposed_store.dart
+@@ -42,9 +42,19 @@ class XposedStore {
+   }
+ 
+   static Future<void> save(List<XposedScript> list) async {
++    final json = jsonEncode(list.map((e) => e.toJson()).toList());
+     try {
+       final f = await _file();
+-      await f?.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
++      await f?.writeAsString(json);
++    } catch (_) {}
++    // 目标进程（Xposed 模块）读不到 Rowan 私有目录，额外用 root 写一份 world-readable 副本
++    try {
++      final b64 = base64Encode(utf8.encode(json));
++      await NativeBridge.rootExec(
++        "mkdir -p /data/local/tmp/rowan && echo '$b64' | base64 -d > /data/local/tmp/rowan/xposed_scripts.json "
++        "&& chmod 644 /data/local/tmp/rowan/xposed_scripts.json && chmod 755 /data/local/tmp/rowan",
++        timeout: 15,
++      );
+     } catch (_) {}
+   }
+ }
+-- 
+2.43.0
+
