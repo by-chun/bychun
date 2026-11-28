@@ -220,9 +220,50 @@ class TerminalActivity : Activity() {
         ensureEnv()
     }
 
+    /** 按当前能力开一个默认标签（chroot 优先）。 */
+    private fun openDefaultTab(env: String = ProotLauncher.currentEnv(this)) {
+        when {
+            ChrootLauncher.canChroot(this, env) -> newChrootTab(env)
+            ProotLauncher.isReady(this, env) -> newTab(env)
+            else -> newSystemTab()
+        }
+    }
+
     private fun ensureEnv() {
-        // 不装任何容器也能用：默认开 Android 自带 shell（toybox 命令 + su/Shizuku 都可用）
-        if (ProotLauncher.isReady(this)) newTab() else newSystemTab()
+        // 三种模式自动选，跟 FluxLinux 一致：
+        //   有 root + rootfs  → chroot（内核原生，零 ptrace 开销，uid=0 是真的）
+        //   没 root + rootfs  → PRoot（模拟，任何 Android 8+ 可用）
+        //   都没有           → Android 自带 shell（toybox + su/Shizuku）
+        when {
+            ChrootLauncher.canChroot(this) -> newChrootTab()
+            ProotLauncher.isReady(this) -> newTab()
+            else -> newSystemTab()
+        }
+    }
+
+    /** chroot 标签：有 root 时用，内核原生隔离，性能与真机一致。 */
+    private fun newChrootTab(requested: String = ProotLauncher.currentEnv(this)) {
+        val env = requested
+        if (!ChrootLauncher.canChroot(this, env)) {
+            // 权限没了或 rootfs 有问题，退回 PRoot，不要卡在空页
+            if (ProotLauncher.isReady(this, env)) newTab(env) else newSystemTab()
+            return
+        }
+        val id = ++seq
+        try {
+            val session = TerminalSession(
+                "/system/bin/su",
+                "/",
+                ChrootLauncher.interactiveArgs(this, env),
+                ChrootLauncher.interactiveEnv(),
+                2000, sessionClient,
+            )
+            tabs.add(Tab(id, "chroot:$env", env, session))
+            selectTab(id)
+        } catch (e: Throwable) {
+            AppToast.show(this, "chroot 启动失败：${e.message}", true)
+            if (ProotLauncher.isReady(this, env)) newTab(env) else newSystemTab()
+        }
     }
 
     /** 系统 shell：不依赖 rootfs，跑的是 /system/bin/sh。 */
@@ -396,7 +437,7 @@ class TerminalActivity : Activity() {
         val t = tabs.removeAt(idx)
         runCatching { t.session.finishIfRunning() }
         if (tabs.isEmpty()) {
-            newTab()
+            openDefaultTab()
             return
         }
         if (activeId == id) selectTab(tabs[minOf(idx, tabs.size - 1)].id) else renderTabs()

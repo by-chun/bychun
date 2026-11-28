@@ -237,6 +237,17 @@ object ProotLauncher {
         java.util.concurrent.ConcurrentHashMap<Process, Boolean>()
     )
 
+    /** 让 chroot 这类外部执行器也能登记进程，这样「停止」能一起杀掉。 */
+    fun trackProcess(p: Process, tag: String = "") {
+        allRunning.add(p)
+        if (tag.isNotEmpty()) running[tag] = p
+    }
+
+    fun untrackProcess(p: Process, tag: String = "") {
+        allRunning.remove(p)
+        if (tag.isNotEmpty() && running[tag] === p) running.remove(tag)
+    }
+
     /** 杀掉所有正在跑的 proot 进程（用户点停止时的急停）。 */
     fun killAll() {
         val snapshot = ArrayList(allRunning)
@@ -265,6 +276,11 @@ object ProotLauncher {
         onLine: (String) -> Unit,
         onDone: (Int) -> Unit,
     ) {
+        // 有 root 就走 chroot 流式执行（tag 照样登记，停止按钮能杀）
+        if (ChrootLauncher.canChroot(ctx, env)) {
+            ChrootLauncher.execStream(ctx, env, cmd, timeoutSec, tag, onLine, onDone)
+            return
+        }
         Thread {
             var code = -1
             try {
@@ -304,6 +320,15 @@ object ProotLauncher {
     }
 
     fun exec(ctx: Context, cmd: String, env: String = currentEnv(ctx)): Map<String, Any> {
+        // 有 root 就走内核原生 chroot：零 ptrace 开销，uid=0 是真的。
+        // chroot 起不来（挂载被拦、rootfs 不完整等）就自动回退 PRoot，不让用户卡死。
+        if (ChrootLauncher.canChroot(ctx, env)) {
+            val r = ChrootLauncher.exec(ctx, env, cmd)
+            val failed = (r["code"] as? Int ?: -1) != 0 &&
+                (r["stdout"] as? String).isNullOrBlank() &&
+                ((r["stderr"] as? String) ?: "").contains("chroot")
+            if (!failed) return r
+        }
         if (!prepare(ctx, env)) {
             return mapOf(
                 "stdout" to "",

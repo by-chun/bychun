@@ -79,7 +79,7 @@ class ContainerShellTool extends AgentTool {
   @override
   String get name => 'containerShell';
   @override
-  String get description => '在 Alpine(PRoot) 容器里执行命令（apk/git/python 等）。';
+  String get description => '在 Linux 容器里执行命令（apk/git/python 等）。有 root 时走内核原生 chroot（快、uid=0 是真 root），没有则回退 PRoot（模拟层，uid=0 是假的，碰不到宿主）。内存/注入类操作不要用这个，用 rootShell。';
   @override
   Map<String, String> get parameters => {'cmd': '命令'};
   @override

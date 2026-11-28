@@ -688,6 +688,8 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                                 "allFiles" to allFiles,
                                 "notification" to notif,
                                 "root" to root,
+                                // 容器的实际运行方式：chroot（有 root，原生）/ proot（模拟）/ none
+                                "containerMode" to ChrootLauncher.modeOf(this),
                                 "installPackages" to installPkgs,
                                 "battery" to battery,
                                 "usageStats" to usageStats,
