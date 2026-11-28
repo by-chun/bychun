@@ -80,6 +80,8 @@ class VideoViewCard extends StatefulWidget {
 class _VideoViewCardState extends State<VideoViewCard> {
   static const _speeds = [0.5, 1.0, 1.5, 2.0];
   static final Map<String, int> _savedMs = {};
+  static final Map<String, int> _savedEp = {};      // title -> 集序号（0 起）
+  static final Map<String, double> _savedSpeed = {}; // title -> 倍速
   static bool _posLoaded = false;
   int _lastPersist = 0;
 
@@ -113,7 +115,17 @@ class _VideoViewCardState extends State<VideoViewCard> {
   @override
   void initState() {
     super.initState();
-    _loadPositions();
+    _boot();
+  }
+
+  /// 先读完存档再初始化，避免「存档还没读出来就 seek」的竞态（进度/倍速恢复失败）。
+  Future<void> _boot() async {
+    await _loadPositions();
+    if (!mounted) return;
+    final savedSpeed = _savedSpeed[widget.title];
+    if (savedSpeed != null && _speeds.contains(savedSpeed)) {
+      _speed = savedSpeed;
+    }
     _init();
   }
 
@@ -125,11 +137,38 @@ class _VideoViewCardState extends State<VideoViewCard> {
       if (dir.isEmpty) return;
       final f = File('$dir/video_progress.json');
       if (!await f.exists()) return;
-      final m = jsonDecode(await f.readAsString()) as Map;
-      m.forEach((k, v) {
-        final n = int.tryParse('$v');
-        if (n != null) _savedMs['$k'] = n;
-      });
+      final m = jsonDecode(await f.readAsString());
+      if (m is! Map) return;
+      final hasSections = m.containsKey('pos') || m.containsKey('episode') || m.containsKey('speed');
+      if (hasSections) {
+        final pos = m['pos'];
+        if (pos is Map) {
+          pos.forEach((k, v) {
+            final n = int.tryParse('$v');
+            if (n != null) _savedMs['$k'] = n;
+          });
+        }
+        final ep = m['episode'];
+        if (ep is Map) {
+          ep.forEach((k, v) {
+            final n = int.tryParse('$v');
+            if (n != null) _savedEp['$k'] = n;
+          });
+        }
+        final sp = m['speed'];
+        if (sp is Map) {
+          sp.forEach((k, v) {
+            final d = double.tryParse('$v');
+            if (d != null) _savedSpeed['$k'] = d;
+          });
+        }
+      } else {
+        // 旧格式：{key: 毫秒}
+        m.forEach((k, v) {
+          final n = int.tryParse('$v');
+          if (n != null) _savedMs['$k'] = n;
+        });
+      }
     } catch (_) {}
   }
 
@@ -138,7 +177,11 @@ class _VideoViewCardState extends State<VideoViewCard> {
       try {
         final dir = await NativeBridge.appDataDir();
         if (dir.isEmpty) return;
-        await File('$dir/video_progress.json').writeAsString(jsonEncode(_savedMs));
+        await File('$dir/video_progress.json').writeAsString(jsonEncode({
+          'pos': _savedMs,
+          'episode': _savedEp,
+          'speed': _savedSpeed,
+        }));
       } catch (_) {}
     });
   }
@@ -167,6 +210,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
     if (c == null || !c.value.isInitialized) return;
     if (c.value.isPlaying) {
       _savedMs['${widget.title}|$_epTitle'] = c.value.position.inMilliseconds;
+      _savedEp[widget.title] = _index;
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - _lastPersist > 5000) {
         _lastPersist = now;
@@ -199,6 +243,8 @@ class _VideoViewCardState extends State<VideoViewCard> {
       _err = null;
       _switching = false;
     });
+    _savedEp[widget.title] = i;
+    _persistPositions();
     await _init();
   }
 
@@ -213,6 +259,8 @@ class _VideoViewCardState extends State<VideoViewCard> {
     if (c != null && c.value.isInitialized && c.value.position.inMilliseconds > 0) {
       _savedMs['${widget.title}|$_epTitle'] = c.value.position.inMilliseconds;
     }
+    _savedEp[widget.title] = _index;
+    _savedSpeed[widget.title] = _speed;
     _persistPositions();
     c?.dispose();
     super.dispose();
@@ -222,6 +270,8 @@ class _VideoViewCardState extends State<VideoViewCard> {
     final i = _speeds.indexOf(_speed);
     _speed = _speeds[(i + 1) % _speeds.length];
     c.setPlaybackSpeed(_speed);
+    _savedSpeed[widget.title] = _speed;
+    _persistPositions();
     setState(() {});
   }
 
