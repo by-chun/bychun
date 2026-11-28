@@ -1,13 +1,42 @@
 package com.chun.by
 
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+
 /**
- * Xposed / LSPosed 骨架（未启用）。
- * 说明：Xposed 模块本身是一个独立 APK，需在 Manifest 声明
- *   <meta-data android:name="xposedmodule" android:value="true"/>
- * 并实现 de.robv.android.xposed.IXposedHookLoadPackage。
- * 普通应用无法直接注入 Hook —— 本应用的职责是“生成/管理 Hook 脚本与模块工程”，
- * 注入由 LSPosed 框架完成。当前仅占位。
+ * LSPosed 检测：查 LSPosed 的模块目录。这些目录在 /data/adb/ 下，普通 uid 读不到，
+ * 所以优先用 root（su）探测；拿不到 root 时回退到直接 File.exists()（能读多少算多少）。
  */
 object XposedBridge {
-    fun isLsposedActive(): Boolean = false
+    private val lsposedDirs = listOf(
+        "/data/adb/lspd",
+        "/data/adb/modules/zygisk_lsposed",
+        "/data/adb/modules/riru_lsposed",
+    )
+
+    fun isLsposedActive(): Boolean {
+        // 直接读（部分内核 / KernelSU 下 /data/adb 可读）
+        if (lsposedDirs.any { File(it).exists() }) return true
+        // 有 root 时用 su 探测（普通应用 uid 读不到 /data/adb）
+        return runCatching {
+            val p = ProcessBuilder("su", "-c", "ls ${lsposedDirs.joinToString(" ")} 2>/dev/null")
+                .redirectErrorStream(true)
+                .start()
+            val out = StringBuilder()
+            val reader = Thread {
+                runCatching {
+                    BufferedReader(InputStreamReader(p.inputStream)).use { r ->
+                        r.forEachLine { out.append(it) }
+                    }
+                }
+            }
+            reader.isDaemon = true
+            reader.start()
+            val done = p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+            if (!done) p.destroyForcibly()
+            reader.join(500)
+            out.toString().isNotBlank()
+        }.getOrDefault(false)
+    }
 }

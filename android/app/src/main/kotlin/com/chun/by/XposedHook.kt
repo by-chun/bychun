@@ -14,8 +14,12 @@ import java.io.File
 class XposedHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: LoadPackageParam) {
         try {
-            val f = File("/data/data/com.chun.by/files/xposed_scripts.json")
-            if (!f.exists()) return
+            // 目标进程读不到 Rowan 的私有目录（SELinux），脚本由 App 额外用 root 写到
+            // /data/local/tmp/rowan/，这里优先读它，读不到再回退私有路径。
+            val f = listOf(
+                File("/data/local/tmp/rowan/xposed_scripts.json"),
+                File("/data/data/com.chun.by/files/xposed_scripts.json"),
+            ).firstOrNull { it.exists() } ?: return
             val arr = JSONArray(f.readText())
             for (i in 0 until arr.length()) {
                 val o = arr.optJSONObject(i) ?: continue

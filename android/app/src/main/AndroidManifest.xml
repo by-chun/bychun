@@ -40,6 +40,9 @@
         android:name="${applicationName}"
         android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="xposedmodule" android:value="true"/>
+        <meta-data android:name="xposeddescription" android:value="Rowan 注入模块"/>
+        <meta-data android:name="xposedminversion" android:value="82"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

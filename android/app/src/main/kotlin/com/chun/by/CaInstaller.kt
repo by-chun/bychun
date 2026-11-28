@@ -138,10 +138,58 @@ object CaInstaller {
             val out = p.inputStream.bufferedReader().readText()
             p.waitFor()
             val ok = out.contains("OK")
-            onLine(if (ok) "已写入 $caDirSys/$hash.0\n重启后生效" else "安装失败：$out")
+            if (ok) {
+                onLine("已写入 $caDirSys/$hash.0")
+                // Android 14+ 的 conscrypt 走只读 APEX，模块 system 挂载有时读不到，
+                // 追加一次 overlay（失败不影响上面已装好的模块挂载）
+                installApexOverlay(ctx, hash, onLine)
+                onLine("重启后生效")
+            } else {
+                onLine("安装失败：$out")
+            }
             ok
         } catch (e: Throwable) {
             onLine("安装失败：${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Android 14+：CA 信任库在只读 APEX 里（/apex/com.android.conscrypt/cacerts），
+     * Magisk 模块的 system/etc/security/cacerts 覆盖在部分 ROM 上读不到。
+     * 用 AlwaysTrustUserCerts 同款做法：把现有证书 + 我们的证书拷到临时目录，
+     * 再 tmpfs 覆盖 APEX 目录拷回。挂载本次开机临时生效，重启自动还原。
+     * 任何一步失败都不影响上面的模块挂载（只记录日志，不把整体标记为失败）。
+     */
+    private fun installApexOverlay(ctx: Context, hash: String, onLine: (String) -> Unit): Boolean {
+        val apex = "/apex/com.android.conscrypt/cacerts"
+        if (!File(apex).isDirectory) {
+            onLine("无 APEX cacerts（Android <14 或 ROM 结构不同），跳过 overlay")
+            return false
+        }
+        val pem = certFile(ctx)
+        val tmp = "/data/local/tmp/rowan-cacerts"
+        // 先备好完整副本，再挂载拷回，尽量缩小 tmpfs 空目录窗口
+        val cmd = buildString {
+            append("rm -rf '$tmp' && mkdir -p '$tmp' && ")
+            append("cp '$apex/'* '$tmp/' 2>/dev/null; ")
+            append("cp '${pem.absolutePath}' '$tmp/$hash.0' && ")
+            append("chmod 644 '$tmp/'* && chown 0:0 '$tmp/'* 2>/dev/null; ")
+            append("mount -t tmpfs tmpfs '$apex' && ")
+            append("cp '$tmp/'* '$apex/' && ")
+            append("chmod 644 '$apex/'* && chown 0:0 '$apex/'* 2>/dev/null; ")
+            append("chcon u:object_r:system_security_cacerts_file:s0 '$apex/'* 2>/dev/null; ")
+            append("echo OK")
+        }
+        return try {
+            val p = ProcessBuilder("su", "-c", cmd).redirectErrorStream(true).start()
+            val out = p.inputStream.bufferedReader().readText()
+            p.waitFor()
+            val ok = out.contains("OK")
+            onLine(if (ok) "APEX overlay 已挂载（Android 14+ 生效）" else "APEX overlay 失败：$out")
+            ok
+        } catch (e: Throwable) {
+            onLine("APEX overlay 失败：${e.message}")
             false
         }
     }

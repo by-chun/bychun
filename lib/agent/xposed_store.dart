@@ -42,9 +42,19 @@ class XposedStore {
   }
 
   static Future<void> save(List<XposedScript> list) async {
+    final json = jsonEncode(list.map((e) => e.toJson()).toList());
     try {
       final f = await _file();
-      await f?.writeAsString(jsonEncode(list.map((e) => e.toJson()).toList()));
+      await f?.writeAsString(json);
+    } catch (_) {}
+    // 目标进程（Xposed 模块）读不到 Rowan 私有目录，额外用 root 写一份 world-readable 副本
+    try {
+      final b64 = base64Encode(utf8.encode(json));
+      await NativeBridge.rootExec(
+        "mkdir -p /data/local/tmp/rowan && echo '$b64' | base64 -d > /data/local/tmp/rowan/xposed_scripts.json "
+        "&& chmod 644 /data/local/tmp/rowan/xposed_scripts.json && chmod 755 /data/local/tmp/rowan",
+        timeout: 15,
+      );
     } catch (_) {}
   }
 }
