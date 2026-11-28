@@ -1,0 +1,144 @@
+From 0dc772167adcc6861cb42c73e951c4c05e4e1c34 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 11:23:33 +0800
+Subject: [PATCH 1/2] =?UTF-8?q?fix:=20=E7=BC=96=E8=AF=91=E9=94=99=E8=AF=AF?=
+ =?UTF-8?q?=E2=80=94=E2=80=94=E8=A1=A5=20ToolRegistry=20import=E3=80=81Map?=
+ =?UTF-8?q?=20=E7=B1=BB=E5=9E=8B=20cast=E3=80=81=E5=8E=BB=20const=20?=
+ =?UTF-8?q?=E6=8F=92=E5=80=BC=E3=80=81=5FresultOf=20=E5=8E=BB=20static?=
+ =?UTF-8?q?=E3=80=81=5FThinkingDots=20=E6=94=B9=E5=90=8D?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ lib/agent/tools_native.dart       |  1 +
+ lib/agent/tools_rowan_plugin.dart |  2 +-
+ lib/agent/tools_system.dart       |  3 ++-
+ lib/native/native_bridge.dart     | 21 ++++++++++++---------
+ lib/pages/chat_message.dart       |  4 ++--
+ 5 files changed, 18 insertions(+), 13 deletions(-)
+
+diff --git a/lib/agent/tools_native.dart b/lib/agent/tools_native.dart
+index 4e52880..7966a30 100644
+--- a/lib/agent/tools_native.dart
++++ b/lib/agent/tools_native.dart
+@@ -2,6 +2,7 @@ import 'dart:convert';
+ 
+ import '../native/native_bridge.dart';
+ import 'tool.dart';
++import 'tool_registry.dart';
+ 
+ /// 定位 + 蓝牙 + 浏览器 工具（都走原生 Android API，容器替不了）。
+ void registerNativeTools(ToolRegistry reg) {
+diff --git a/lib/agent/tools_rowan_plugin.dart b/lib/agent/tools_rowan_plugin.dart
+index 0e02256..c4c575c 100644
+--- a/lib/agent/tools_rowan_plugin.dart
++++ b/lib/agent/tools_rowan_plugin.dart
+@@ -49,7 +49,7 @@ class PluginCreateTool extends AgentTool {
+       for (final e in v) {
+         if (e is! Map) continue;
+         final eid = (e['id'] ?? '').toString();
+-        if (eid.isEmpty) return const ToolResult(false, '$slot 里有条目缺 id');
++        if (eid.isEmpty) return ToolResult(false, '$slot 里有条目缺 id');
+         if (!ids.add(eid)) return ToolResult(false, 'id 重复：$eid（整个插件内不能重复）');
+       }
+     }
+diff --git a/lib/agent/tools_system.dart b/lib/agent/tools_system.dart
+index ae14c28..8fa7f36 100644
+--- a/lib/agent/tools_system.dart
++++ b/lib/agent/tools_system.dart
+@@ -2,6 +2,7 @@ import 'dart:convert';
+ 
+ import '../native/native_bridge.dart';
+ import 'tool.dart';
++import 'tool_registry.dart';
+ 
+ /// 系统设置 / 通知 / 应用使用时长 —— 走 root shell 命令（settings / dumpsys），
+ /// 这些 Android API 没有对应的「无 root 可写」通道，root 下命令最稳。
+@@ -179,7 +180,7 @@ class GetAppUsageTool extends AgentTool {
+       });
+       if (out.length >= 30) break;
+     }
+-    if (out.isEmpty) return const ToolResult(true, '没有找到${pkg.isEmpty ? '' : ' $pkg '}的使用记录');
++    if (out.isEmpty) return ToolResult(true, '没有找到${pkg.isEmpty ? '' : ' $pkg '}的使用记录');
+ 
+     return ToolResult(
+       true,
+diff --git a/lib/native/native_bridge.dart b/lib/native/native_bridge.dart
+index fcce5d7..de852a2 100644
+--- a/lib/native/native_bridge.dart
++++ b/lib/native/native_bridge.dart
+@@ -778,36 +778,39 @@ class NativeBridge {
+ 
+   // ================= 定位 =================
+   static Future<Map<String, dynamic>> getLocation() async {
+-    try { return await _ch.invokeMethod<Map>('getLocation') ?? {'ok': false, 'error': '调用失败'}; }
+-    catch (e) { return {'ok': false, 'error': '$e'}; }
++    try {
++      final r = await _ch.invokeMethod<Map>('getLocation');
++      return Map<String, dynamic>.from(r ?? {'ok': false, 'error': '调用失败'});
++    } catch (e) { return {'ok': false, 'error': '$e'}; }
+   }
+ 
+   // ================= 蓝牙 =================
+   static Future<Map<String, dynamic>> bluetoothState() async {
+-    try { return await _ch.invokeMethod<Map>('bluetoothState') ?? {'ok': false}; } catch (_) { return {'ok': false}; }
++    try { final r = await _ch.invokeMethod<Map>('bluetoothState'); return Map<String, dynamic>.from(r ?? {'ok': false}); }
++    catch (_) { return {'ok': false}; }
+   }
+   static Future<Map<String, dynamic>> bluetoothScan(int seconds) async {
+-    try { return await _ch.invokeMethod<Map>('bluetoothScan', {'seconds': seconds}) ?? {'ok': false}; }
++    try { final r = await _ch.invokeMethod<Map>('bluetoothScan', {'seconds': seconds}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
+     catch (_) { return {'ok': false}; }
+   }
+   static Future<Map<String, dynamic>> bluetoothConnect(String address) async {
+-    try { return await _ch.invokeMethod<Map>('bluetoothConnect', {'address': address}) ?? {'ok': false}; }
++    try { final r = await _ch.invokeMethod<Map>('bluetoothConnect', {'address': address}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
+     catch (_) { return {'ok': false}; }
+   }
+   static Future<Map<String, dynamic>> bluetoothRead(String address, String? service, String char) async {
+-    try { return await _ch.invokeMethod<Map>('bluetoothRead', {'address': address, 'service': service ?? '', 'char': char}) ?? {'ok': false}; }
++    try { final r = await _ch.invokeMethod<Map>('bluetoothRead', {'address': address, 'service': service ?? '', 'char': char}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
+     catch (_) { return {'ok': false}; }
+   }
+   static Future<Map<String, dynamic>> bluetoothWrite(String address, String? service, String char, String base64, {bool wait = true}) async {
+-    try { return await _ch.invokeMethod<Map>('bluetoothWrite', {'address': address, 'service': service ?? '', 'char': char, 'data': base64, 'wait': wait}) ?? {'ok': false}; }
++    try { final r = await _ch.invokeMethod<Map>('bluetoothWrite', {'address': address, 'service': service ?? '', 'char': char, 'data': base64, 'wait': wait}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
+     catch (_) { return {'ok': false}; }
+   }
+   static Future<Map<String, dynamic>> bluetoothSubscribe(String address, String? service, String char, int seconds) async {
+-    try { return await _ch.invokeMethod<Map>('bluetoothSubscribe', {'address': address, 'service': service ?? '', 'char': char, 'seconds': seconds}) ?? {'ok': false}; }
++    try { final r = await _ch.invokeMethod<Map>('bluetoothSubscribe', {'address': address, 'service': service ?? '', 'char': char, 'seconds': seconds}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
+     catch (_) { return {'ok': false}; }
+   }
+   static Future<Map<String, dynamic>> bluetoothDisconnect(String address) async {
+-    try { return await _ch.invokeMethod<Map>('bluetoothDisconnect', {'address': address}) ?? {'ok': true}; }
++    try { final r = await _ch.invokeMethod<Map>('bluetoothDisconnect', {'address': address}); return Map<String, dynamic>.from(r ?? {'ok': true}); }
+     catch (_) { return {'ok': true}; }
+   }
+ 
+diff --git a/lib/pages/chat_message.dart b/lib/pages/chat_message.dart
+index 8ccb3c4..204737b 100644
+--- a/lib/pages/chat_message.dart
++++ b/lib/pages/chat_message.dart
+@@ -194,7 +194,7 @@ class AssistantBubble extends StatelessWidget {
+             ]),
+           ),
+           if (typing && text.trim().isEmpty)
+-            const _ThinkingDots()
++            const ThinkingDots()
+           else
+           for (var i = 0; i < blocks.length; i++)
+             if (blocks[i].code == null)
+@@ -437,7 +437,7 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
+   }
+ 
+   /// 第 k 条若是「调用」，第 k+1 条就是它的「结果」（工具调用与结果交替）。
+-  static ChatMsg? _resultOf(int k) {
++  ChatMsg? _resultOf(int k) {
+     final t = widget.tools[k];
+     if (!t.text.startsWith('调用 ')) return null;
+     if (k + 1 < widget.tools.length) return widget.tools[k + 1];
+-- 
+2.43.0
+

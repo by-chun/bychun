@@ -2,15 +2,12 @@
 
 已本地提交、**尚未推送**的改动。用户说「上传」时才推送，推完清空本目录。
 
-当前状态：**5 个提交待推送**（基于 `origin/main`）
+当前状态：**2 个提交待推送**（基于 `origin/main`）
 
 | # | 提交 | 内容 | 涉及文件 |
 |---|---|---|---|
-| 1 | `f4b977c` | 悬浮窗对话同步 + 拖动节流；思考中提示；气泡变窄；工具行玻璃化/平铺；森林绿背景 + 灰边框；玻璃 85% 透明 + 全局滑杆；去掉主题色选择只留自定义背景；输入框裁切 | `chat_page.dart`、`chat_message.dart`、`floating_chat_app.dart`、`tree_drawer.dart`、`app_theme.dart`、`glass_kit.dart`、`liquid_glass.dart`、`main.dart`、`agent_engine.dart`、`appearance_store.dart` |
-| 2 | `fef33bb` | DSH 式插件系统：`plugin.json` 声明清单、AI 工具 `plugin_create`/`list`/`toggle`/`delete`、输入框上方插件胶囊、示例插件 `local-hello`；工具调用行显示耗时 ms | `plugins_store.dart`(新)、`tools_rowan_plugin.dart`(新)、`chat_page.dart`、`chat_message.dart`、`agent_engine.dart` |
-| 3 | `31bd415` | 容器双模式：有 root 自动用内核原生 chroot（零 ptrace、uid=0 是真 root），无 root 回退 PRoot；终端与 AI 工具共用；失败自动降级 | `ChrootLauncher.kt`(新)、`ProotLauncher.kt`、`TerminalActivity.kt`、`MainActivity.kt`、`tools_mcp.dart` |
-| 4 | `5f84aa0` | docs：待上传提交存档 | `docs/待上传提交/` |
-| 5 | `69e87b6` | 补原生 Android API 工具：系统设置读写、通知读取、应用使用时长、定位、蓝牙 BLE、内置浏览器自动化 | `tools_system.dart`(新)、`tools_native.dart`(新)、`LocationBridge.kt`(新)、`BluetoothBridge.kt`(新)、`BrowserActivity.kt`(新)、`MainActivity.kt`、`native_bridge.dart`、`agent_engine.dart`、`AndroidManifest.xml` |
+| 1 | `0dc7721` | 编译错误修复：补 ToolRegistry import、Map 类型 cast、去 const 插值、_resultOf 去 static、_ThinkingDots 改名 | `agent_engine.dart`、`chat_page.dart`、`chat_message.dart` 等 |
+| 2 | `794408c` | 补 CA/抓包/VPN 工具 + 修原生抓包与内存/媒体/路径若干 bug：新增 `ca_install`/`ca_status`、`capture_read`/`capture_to_script`、`vpn_import_sub`/`vpn_list_nodes`/`vpn_update_sub`；修 CaptureServer 头解析、vpnStart 授权时序、gmem 注入、memWatch 路径与确认、媒体进度清零/控制器泄漏、播放静默失败、Zygisk 路径对齐 | `tools_ca.dart`(新)、`tools_vpn.dart`(新)、`tools_capture.dart`、`agent_engine.dart`、`permission.dart`、`CaptureServer.kt`、`MainActivity.kt`、`gmem.dart`、`tools_mem.dart`、`default_prompt.dart`、`media_cards.dart`、`music_handler.dart` |
 
 ## 上传步骤
 
@@ -23,7 +20,7 @@ git push origin main
 
 ## 验证点
 
-- 群聊：新建时选「群聊」，设置 → 群成员 加人（开关控制参与）
-- 插件：对 AI 说「做个插件…」，胶囊会出现在输入框上方
-- chroot：终端标签标题显示 `chroot:<env>`；没有 root 时显示普通 env 名（PRoot）
-- 新工具：`getLocation` / `bluetoothScan` / `getNotifications` / `getAppUsage` / `browserOpen` 等（首次用要授权定位/蓝牙权限）
+- CA：对 AI 说「生成并安装 CA 证书」→ 调 `ca_install`（高危确认）→ 重启后系统信任区有 Rowan MITM CA；`ca_status` 可查
+- 抓包：`capture_read` 读 HTTP 明文（需先跑代理上报）；`capture_to_script` 把抓到的域名导出成 `capture-block.sh` + `capture-domains.json`
+- VPN：`vpn_import_sub <订阅URL>` 导入节点 → `vpn_list_nodes` 查看 → `vpn_update_sub` 更新；存 `/storage/emulated/0/Rowan/vpn/sub.json`
+- 抓包明文：CaptureServer 头解析修好后，mitmproxy addon POST 到 127.0.0.1:8899/hit 能正常上报

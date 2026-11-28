@@ -1,0 +1,909 @@
+From 794408c6cfb402778857bdbddbfac1fd87c72bc1 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 22:19:04 +0800
+Subject: [PATCH 2/2] =?UTF-8?q?feat+fix:=20=E8=A1=A5=20CA/=E6=8A=93?=
+ =?UTF-8?q?=E5=8C=85/VPN=20=E5=B7=A5=E5=85=B7=E5=B9=B6=E4=BF=AE=E5=8E=9F?=
+ =?UTF-8?q?=E7=94=9F=E6=8A=93=E5=8C=85=E4=B8=8E=E5=86=85=E5=AD=98/?=
+ =?UTF-8?q?=E5=AA=92=E4=BD=93/=E8=B7=AF=E5=BE=84=E8=8B=A5=E5=B9=B2=20bug?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+新增工具：
+- ca_install/ca_status：自签 CA 生成+装系统信任区（高危确认）
+- capture_read：读 HTTP 明文（高危确认）；capture_to_script：域名→屏蔽脚本/清单
+- vpn_import_sub/vpn_list_nodes/vpn_update_sub：订阅导入/节点/更新，存 sub.json
+
+修复：
+- CaptureServer：HTTP 头 \r\n\r\n 判断失效、content-length 无上限、CORS *
+- MainActivity：vpnStart 首次授权后误报失败、取消授权返回类型
+- gmem：memScan 值未加引号（注入）
+- memWatch：路径对齐 /data/local/tmp/rowan + 高危确认
+- default_prompt：Zygisk config/scripts 路径对齐运行时目录
+- media_cards：进度清零、控制器泄漏；music_handler：静默失败、stop 不清 mediaItem
+- agent_engine：/tools 重复 return
+---
+ .../main/kotlin/com/chun/by/CaptureServer.kt  |   9 +-
+ .../main/kotlin/com/chun/by/MainActivity.kt   |  19 +-
+ ...04\344\270\216\345\276\205\345\212\236.md" |  26 ++
+ lib/agent/agent_engine.dart                   |   5 +-
+ lib/agent/default_prompt.dart                 |   6 +-
+ lib/agent/music_handler.dart                  |  17 +-
+ lib/agent/permission.dart                     |   6 +
+ lib/agent/tools_ca.dart                       |  92 ++++++
+ lib/agent/tools_capture.dart                  | 156 ++++++++++
+ lib/agent/tools_mem.dart                      |   6 +-
+ lib/agent/tools_vpn.dart                      | 284 ++++++++++++++++++
+ lib/native/gmem.dart                          |   5 +-
+ lib/widgets/media_cards.dart                  |  12 +-
+ 13 files changed, 615 insertions(+), 28 deletions(-)
+ create mode 100644 lib/agent/tools_ca.dart
+ create mode 100644 lib/agent/tools_vpn.dart
+
+diff --git a/android/app/src/main/kotlin/com/chun/by/CaptureServer.kt b/android/app/src/main/kotlin/com/chun/by/CaptureServer.kt
+index f63656a..0a74a81 100644
+--- a/android/app/src/main/kotlin/com/chun/by/CaptureServer.kt
++++ b/android/app/src/main/kotlin/com/chun/by/CaptureServer.kt
+@@ -67,7 +67,7 @@ object CaptureServer {
+             val input = BufferedInputStream(sock.getInputStream())
+             val out = sock.getOutputStream()
+ 
+-            // 读头部
++            // 读头部：读到 \r\n\r\n 结束
+             val headBuf = StringBuilder()
+             var last4 = 0
+             while (true) {
+@@ -75,11 +75,12 @@ object CaptureServer {
+                 if (b < 0) break
+                 headBuf.append(b.toChar())
+                 last4 = (last4 shl 8) or b
+-                if ((last4 and 0xFFFF) == 0x0D0A && (last4 and 0xFFFFFF) == 0x0D0A0D) break
++                if (last4 == 0x0D0A0D0A) break
+                 if (headBuf.length > 16384) break
+             }
+             val head = headBuf.toString()
+-            val len = Regex("(?i)content-length:\\s*(\\d+)").find(head)?.groupValues?.get(1)?.toIntOrNull() ?: 0
++            val len = (Regex("(?i)content-length:\\s*(\\d+)").find(head)?.groupValues?.get(1)?.toIntOrNull() ?: 0)
++                .coerceAtMost(256 * 1024)
+             val body = ByteArray(len)
+             var read = 0
+             while (read < len) {
+@@ -95,7 +96,7 @@ object CaptureServer {
+                 val bytes = resp.toByteArray()
+                 out.write(
+                     ("HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\n" +
+-                        "Content-Length: ${bytes.size}\r\nAccess-Control-Allow-Origin: *\r\n\r\n").toByteArray()
++                        "Content-Length: ${bytes.size}\r\n\r\n").toByteArray()
+                 )
+                 out.write(bytes)
+             } else {
+diff --git a/android/app/src/main/kotlin/com/chun/by/MainActivity.kt b/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
+index 2a38825..2db2fe6 100644
+--- a/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
++++ b/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
+@@ -1203,15 +1203,18 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
+             vpnPending = null
+             if (resultCode == RESULT_OK) {
+                 startVpnService()
+-                r?.success(mapOf(
+-                    "ok" to true,
+-                    "running" to DnsVpnService.runningNow,
+-                    "dns" to DnsVpnService.upstreamDns,
+-                    "auto" to DnsVpnService.autoDetected,
+-                    "needDns" to DnsVpnService.noDns,
+-                ))
++                // 服务异步启动，稍等再读状态（否则 running 还是 false，会误报失败）
++                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
++                    r?.success(mapOf(
++                        "ok" to true,
++                        "running" to DnsVpnService.runningNow,
++                        "dns" to DnsVpnService.upstreamDns,
++                        "auto" to DnsVpnService.autoDetected,
++                        "needDns" to DnsVpnService.noDns,
++                    ))
++                }, 700)
+             } else {
+-                r?.success(false)
++                r?.success(mapOf("ok" to false, "error" to "用户取消了 VPN 授权"))
+             }
+             return
+         }
+diff --git "a/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md" "b/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
+index b944d10..919b440 100644
+--- "a/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
++++ "b/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
+@@ -88,3 +88,29 @@
+ rowan/docs/<功能>ui界面/        仓库副本
+ ```
+ 现有：对话、ai抓包、vpn、视频、音乐、插件、注入。
++
++## 八、进度快照（2026-11-28 补）
++
++### 已补齐（本次）
++- ✅ #0 流式输出：chatStream(SSE)+打字机+思考中+tool_calls 收齐+重试（此前已完成，确认在岗）
++- ✅ #1 通用渲染器：list/detail/stream/form/confirm/choose/json/video/audio/reader/comic（此前已完成）
++- ✅ #4 CA 证书工具：新增 `ca_install`（生成+装进系统信任区，高危确认）、`ca_status`；桥方法 caInstall/caStatus 已存在
++- ✅ #5 抓包工具补全：`capture_read`（读 HTTP 明文，高危确认）、`capture_to_script`（域名→屏蔽脚本/清单）
++- ✅ #9 VPN 订阅管理（Dart 侧）：`vpn_import_sub` / `vpn_list_nodes` / `vpn_update_sub`，解析 ss/ssr/vmess/vless/trojan/hysteria2 等，存 sub.json；隧道由容器 sing-box/v2ray 承担
++
++### 已修 bug
++- CaptureServer.kt：HTTP 头 `\r\n\r\n` 判断失效（导致明文上报不可用）、content-length 无上限 OOM、CORS `*`
++- MainActivity.kt：vpnStart 首次授权后立即读状态误报失败、取消授权返回类型不符
++- gmem.dart：memScan 搜索值未加引号（shell 注入/空格截断）
++- tools_mem.dart：memWatch 写路径与模块实际运行时目录不一致，且补高危确认
++- default_prompt.dart：Zygisk config/scripts 路径与模块实际运行时目录 `/data/local/tmp/rowan` 对齐
++- media_cards.dart：dispose/切集把进度清零、跳页 TextEditingController 泄漏
++- music_handler.dart：播放静默失败仍报成功、stop 不清 mediaItem
++- agent_engine.dart：`/tools` 分支重复 `return`
++
++### 仍未做（需原生大改或需真机验证，留待后续）
++- ❌ #2 uid→应用名归属（DnsVpnService 需 per-uid 路由 / netlink）
++- ❌ #4 CA Android 14+ APEX 安装路径；subject_hash 与 OpenSSL 对齐校验
++- ⚠️ #6 播放器：完整音乐播放页/播放列表/循环随机；视频集数+倍速持久化（进度已修）
++- ❌ #8 Xposed 完整实现（isLsposedActive 恒 false、缺 xposedmodule 元数据、跨进程读文件受 SELinux 限制）
++- ⚠️ #9 完整 VPN 隧道客户端（需原生 VpnService 代理实现）
+diff --git a/lib/agent/agent_engine.dart b/lib/agent/agent_engine.dart
+index 7db4f1f..1206967 100644
+--- a/lib/agent/agent_engine.dart
++++ b/lib/agent/agent_engine.dart
+@@ -19,6 +19,8 @@ import 'tools_extra.dart';
+ import 'tools_form.dart';
+ import 'tools_config.dart';
+ import 'tools_capture.dart';
++import 'tools_ca.dart';
++import 'tools_vpn.dart';
+ import 'tools_mcp.dart';
+ import 'tools_workspace.dart';
+ import 'tools_system.dart';
+@@ -402,6 +404,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+     // 各 tools_*.dart 自带注册函数
+     registerAudioTools(registry);
+     registerCaptureTools(registry);
++    registerCaTools(registry);
++    registerVpnTools(registry);
+     registerConfigTools(registry);
+     registerExtraTools(registry);
+     registerMemTools(registry);
+@@ -618,7 +622,6 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
+       case '/tools':
+         _add(ChatMsg('assistant', '工具：\n${registry.describe()}'));
+         return;
+-        return;
+       case '/subagents':
+         _add(ChatMsg('assistant', '子代理：\n${_subsText.isEmpty ? '（暂无）' : _subsText}'));
+         return;
+diff --git a/lib/agent/default_prompt.dart b/lib/agent/default_prompt.dart
+index e1103cc..670c58e 100644
+--- a/lib/agent/default_prompt.dart
++++ b/lib/agent/default_prompt.dart
+@@ -46,15 +46,15 @@ const String kDefaultPromptContent = '''<!-- builtin:v21 -->
+ - APK 内容：容器里 `unzip -l` / `unzip -p`；要反编译就自己装 jadx 或用 dex 工具，没有专用工具
+ - 编译/汇编：容器里 `apk add build-base clang binutils`，自己写自己编
+ - Xposed 脚本：直接读写 `/data/data/com.chun.by/files/xposed_scripts.json`，格式 `[{"name":"a","enabled":true,"targets":["包名"],"code":"JS 代码"}]`，重启目标应用生效
+-- Zygisk 注入：写 `/data/adb/modules/rowan/scripts/<名字>.js`，再在 `/data/adb/modules/rowan/config.json` 的 targets 里加 `{"app_name":"包名"}`，确保 `defaults.gadget.script_dir` 指向那个 scripts 目录（需 root）
+-- 读写监听（找出谁改了某个地址）：用 memWatch 工具拿脚本；gadget 默认 listen 在 127.0.0.1:27042，容器里 `pip install frida-tools` 后 `frida -H 127.0.0.1:27042 -l /data/adb/modules/rowan/scripts/memwatch.js`，命中（谁在读写、从哪条指令）会实时回传
++- Zygisk 注入：写 `/data/local/tmp/rowan/scripts/<名字>.js`，再在 `/data/local/tmp/rowan/config.json` 的 targets 里加 `{"app_name":"包名"}`，确保 `defaults.gadget.script_dir` 指向那个 scripts 目录（需 root）
++- 读写监听（找出谁改了某个地址）：用 memWatch 工具拿脚本；gadget 默认 listen 在 127.0.0.1:27042，容器里 `pip install frida-tools` 后 `frida -H 127.0.0.1:27042 -l /data/local/tmp/rowan/scripts/memwatch.js`，命中（谁在读写、从哪条指令）会实时回传
+ - 插件：插件目录里的文件，直接 shell 跑；缺什么运行时就在容器里装
+ - 云端构建：跑工作区脚本 /storage/emulated/0/Rowan/scripts/build-apk.sh（容器里 /sdcard/Rowan/scripts/build-apk.sh）；没有 CI 配置时在容器里本地打包
+ 
+ 【改应用行为（重要）】
+ - 探测到多种可用方式（如 Zygisk 和普通断点都能做），或用户没说清要哪种，先用 askChoose 列选项让用户挑，不要自己猜
+ - 动手前先探测（rootShell）：Zygisk 模块 `ls /data/adb/modules/rowan`；LSPosed `ls /data/adb/modules | grep -i lspd` 或 `ls /data/adb/lspd`
+-- 有 Zygisk 模块 → 写 `/data/adb/modules/rowan/scripts/<名字>.js` 并在 config.json 的 targets 加包名（无 ptrace，最隐蔽）
++- 有 Zygisk 模块 → 写 `/data/local/tmp/rowan/scripts/<名字>.js` 并在 config.json 的 targets 加包名（无 ptrace，最隐蔽）
+ - 有 LSPosed → 写 `/data/data/com.chun.by/files/xposed_scripts.json`（需在 LSPosed 里把作用域勾上 Rowan 和目标应用）
+ - 全都没有 → 用 memScan / memWrite 内存修改（需 root；ptrace 会暴露 TracerPid，不是无痕）
+ - 普通断点只能在 Android 侧跑（rootShell / 内置 native），容器里不行：PRoot 没有真 root，ptrace 不了宿主进程
+diff --git a/lib/agent/music_handler.dart b/lib/agent/music_handler.dart
+index cfb235b..8243d28 100644
+--- a/lib/agent/music_handler.dart
++++ b/lib/agent/music_handler.dart
+@@ -52,18 +52,24 @@ class MusicHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+       final same = mediaItem.value?.id == url;
+       final t = title ?? url.split('/').last;
+       mediaItem.add(MediaItem(id: url, title: t));
+-      // 网络加载可能很慢：不要在工具里等它，否则对话窗口要等加载完才出现
++      // 先同步构造 source（能立刻发现非法 URL/本地文件），再后台加载播放，避免拖慢对话
++      final source = url.startsWith('http')
++          ? AudioSource.uri(Uri.parse(url))
++          : AudioSource.file(url);
+       unawaited(() async {
+         try {
+           if (!same) {
+-            final d = await _player.setAudioSource(url.startsWith('http')
+-                ? AudioSource.uri(Uri.parse(url))
+-                : AudioSource.file(url));
++            final d = await _player.setAudioSource(source);
+             final cur = mediaItem.value;
+             if (cur != null) mediaItem.add(cur.copyWith(duration: d));
+           }
+           await _player.play();
+-        } catch (_) {}
++        } catch (e) {
++          playbackState.add(playbackState.value.copyWith(
++            processingState: AudioProcessingState.idle,
++            playing: false,
++          ));
++        }
+       }());
+       return '开始播放${title == null ? '' : '：$title'}';
+     } catch (e) {
+@@ -78,6 +84,7 @@ class MusicHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+   @override
+   Future<void> stop() async {
+     await _player.stop();
++    mediaItem.add(null);
+     await super.stop();
+   }
+ 
+diff --git a/lib/agent/permission.dart b/lib/agent/permission.dart
+index 2b7d278..a50150b 100644
+--- a/lib/agent/permission.dart
++++ b/lib/agent/permission.dart
+@@ -34,6 +34,9 @@ class PermissionPolicy {
+     'install_container',
+     'runPlugin',
+     'stop_tasks',
++    'ca_install',
++    'capture_read',
++    'memWatch',
+   };
+ 
+   static bool isHighRisk(String tool) => highRisk.contains(tool) || tool.startsWith('root');
+@@ -47,6 +50,9 @@ class PermissionPolicy {
+     'listPlugins',
+     'captureList',
+     'captureLog',
++    'capture_read',
++    'ca_status',
++    'vpn_list_nodes',
+     'mcpList',
+     'webSearch',
+     'fetchPage',
+diff --git a/lib/agent/tools_ca.dart b/lib/agent/tools_ca.dart
+new file mode 100644
+index 0000000..3c1dfb7
+--- /dev/null
++++ b/lib/agent/tools_ca.dart
+@@ -0,0 +1,92 @@
++import 'tool.dart';
++import 'tool_registry.dart';
++import '../native/native_bridge.dart';
++
++/// CA 证书相关工具：生成自签 CA 并装进系统信任区（需 root）。
++/// 装好后抓包代理才能解 HTTPS 明文（配合 mitmproxy / PCAPd 等）。
++class CaStatusTool extends AgentTool {
++  @override
++  String get name => 'ca_status';
++
++  @override
++  String get description =>
++      '查看当前自签 CA 证书状态（哈希名 + PEM 内容）。未生成时为空。';
++
++  @override
++  Map<String, String> get parameters => const {};
++
++  @override
++  Future<ToolResult> execute(Map<String, String> args) async {
++    final r = await NativeBridge.caStatus();
++    final hash = (r['hash'] ?? '').toString();
++    final pem = (r['pem'] ?? '').toString();
++    if (hash.isEmpty && pem.isEmpty) {
++      return const ToolResult(true, '还没有生成 CA 证书。用 ca_install 生成并安装（需 root）。');
++    }
++    final tabs = <Map<String, dynamic>>[
++      {
++        'name': '概览',
++        'rows': [
++          {'k': '哈希名', 'v': hash.isEmpty ? '—' : hash},
++          {'k': '安装路径', 'v': 'Android 13- 用 /system/etc/security/cacerts；14+ 走 APEX'},
++          {'k': '生效', 'v': '需要重启设备'},
++        ],
++      },
++      if (pem.isNotEmpty)
++        {
++          'name': '证书 PEM',
++          'rows': [
++            {'k': 'PEM', 'v': pem},
++          ],
++        },
++    ];
++    return ToolResult(
++      true,
++      '当前 CA：${hash.isEmpty ? '未生成' : hash}',
++      view: 'detail',
++      title: 'CA 证书',
++      viewData: {'tabs': tabs},
++    );
++  }
++}
++
++class CaInstallTool extends AgentTool {
++  @override
++  String get name => 'ca_install';
++
++  @override
++  String get description =>
++      '生成自签 CA 证书并装进系统信任区（需 root，装完要重启才生效）。'
++      '用于让抓包代理能解 HTTPS 明文；不改已装证书时无需重复调用。';
++
++  @override
++  Map<String, String> get parameters => const {};
++
++  @override
++  Future<ToolResult> execute(Map<String, String> args) async {
++    final r = await NativeBridge.caInstall();
++    final ok = r['ok'] == true;
++    final log = (r['log'] ?? '').toString();
++    final buf = StringBuffer();
++    if (log.isNotEmpty) buf.write(log);
++    if (ok) buf.write('\n\n证书已装进系统信任区，重启设备后生效。');
++    return ToolResult(
++      ok,
++      ok ? 'CA 证书已生成并安装，重启后生效' : '安装失败',
++      view: 'stream',
++      title: 'CA 安装',
++      viewData: {
++        'lines': [
++          if (log.isNotEmpty) ...log.split('\n'),
++          ok ? '[ok] 已安装，重启生效' : '[fail] 安装失败（需 root）',
++        ],
++        'running': false,
++      },
++    );
++  }
++}
++
++void registerCaTools(ToolRegistry reg) {
++  reg.register(CaStatusTool());
++  reg.register(CaInstallTool());
++}
+diff --git a/lib/agent/tools_capture.dart b/lib/agent/tools_capture.dart
+index 64f9a28..c935899 100644
+--- a/lib/agent/tools_capture.dart
++++ b/lib/agent/tools_capture.dart
+@@ -1,7 +1,18 @@
++import 'dart:convert';
++
+ import 'tool.dart';
+ import 'tool_registry.dart';
+ import '../native/native_bridge.dart';
+ 
++/// 把内容（base64）写入用户可见工作区文件，返回是否成功。
++Future<bool> _writeWorkspaceFile(String path, String content) async {
++  final b64 = base64Encode(utf8.encode(content));
++  final dir = path.contains('/') ? path.substring(0, path.lastIndexOf('/')) : '/storage/emulated/0/Rowan';
++  final r = await NativeBridge.exec(
++      "mkdir -p '$dir' && printf %s '$b64' | base64 -d > '$path' && echo OK");
++  return r.stdout.contains('OK');
++}
++
+ /// 抓包相关工具：开始 / 停止 / 列出已抓到的域名。
+ /// 列出结果带 view=list，聊天里会渲染成卡片。
+ class CaptureStartTool extends AgentTool {
+@@ -157,11 +168,156 @@ class StopTasksTool extends AgentTool {
+   }
+ }
+ 
++/// 读取抓包明文记录（HTTP 请求/响应，来自抓包代理上报），返回 detail 视图。
++/// 明文可能含 Token/Cookie，交给 AI 前必须弹确认（在权限层处理，属高危）。
++class CaptureReadTool extends AgentTool {
++  @override
++  String get name => 'capture_read';
++
++  @override
++  String get description =>
++      '读取抓包明文记录（方法/URL/状态码/请求体/响应体）。'
++      '内容是抓包代理上报的 HTTP 明文，可能含 Token/Cookie，返回前会让你确认。'
++      '若还没有明文记录（没跑代理），用 capture_list 看 DNS 域名列表。';
++
++  @override
++  Map<String, String> get parameters => {'limit': '可选：条数，默认 20'};
++
++  @override
++  Future<ToolResult> execute(Map<String, String> args) async {
++    final limit = int.tryParse((args['limit'] ?? '20').trim()) ?? 20;
++    final raw = await NativeBridge.captureLog(limit.clamp(1, 100));
++    if (raw == null || raw.trim().isEmpty) {
++      return const ToolResult(true, '还没有抓包明文记录。先让代理（mitmproxy/PCAPd）跑起来并上报。');
++    }
++    Map<String, dynamic> obj;
++    try {
++      obj = Map<String, dynamic>.from(jsonDecode(raw) as Map);
++    } catch (_) {
++      return ToolResult(false, '抓包明文数据格式异常');
++    }
++    final items = (obj['items'] as List?) ?? const [];
++    final total = (obj['total'] as num?)?.toInt() ?? items.length;
++    if (items.isEmpty) {
++      return const ToolResult(true, '还没有抓包明文记录。');
++    }
++    final tabs = <Map<String, dynamic>>[
++      {
++        'name': '概览',
++        'rows': [
++          {'k': '明文条数', 'v': '$total'},
++          {'k': '返回条数', 'v': '${items.length}'},
++          {'k': '提示', 'v': '内容可能含 Token/Cookie，请勿外发'},
++        ],
++      },
++    ];
++    var n = 0;
++    for (final rawItem in items) {
++      if (n++ >= 20) break;
++      final h = Map<String, dynamic>.from(rawItem as Map);
++      final method = (h['method'] ?? '?').toString();
++      final url = (h['url'] ?? '').toString();
++      final status = (h['status'] ?? 0).toString();
++      String clip(String s, int max) => s.length <= max ? s : '${s.substring(0, max)}\n…（截断）';
++      tabs.add({
++        'name': '$method $status',
++        'rows': [
++          {'k': 'URL', 'v': url.isEmpty ? '—' : url},
++          {'k': '状态', 'v': status},
++          {'k': '请求', 'v': clip((h['req'] ?? '').toString(), 800)},
++          {'k': '响应', 'v': clip((h['res'] ?? '').toString(), 800)},
++        ],
++      });
++    }
++    return ToolResult(
++      true,
++      '共 $total 条抓包明文（已列明细）',
++      view: 'detail',
++      title: '抓包 · 明文',
++      viewData: {'tabs': tabs},
++    );
++  }
++}
++
++/// 把抓到的域名转成可复用脚本：写到工作区 plugins 目录，下次拖进来或用 shell 跑。
++class CaptureToScriptTool extends AgentTool {
++  @override
++  String get name => 'capture_to_script';
++
++  @override
++  String get description =>
++      '把已抓到的域名（去重）存成脚本：生成 capture-domains.json（域名清单）与 capture-block.sh（屏蔽脚本，需 root）。'
++      '文件写到 /storage/emulated/0/Rowan/plugins/，可复用或交给注入模块。';
++
++  @override
++  Map<String, String> get parameters => {'filter': '可选：只导出匹配此域名/IP 的记录'};
++
++  @override
++  Future<ToolResult> execute(Map<String, String> args) async {
++    final filter = (args['filter'] ?? '').trim();
++    final raw = await NativeBridge.vpnLog();
++    if (raw.trim().isEmpty) {
++      return const ToolResult(true, '还没有抓到记录，没有可导出的域名。');
++    }
++    final domains = <String>{};
++    for (final line in raw.split('\n')) {
++      final t = line.trim();
++      if (t.isEmpty) continue;
++      final idx = t.indexOf(' ');
++      if (idx <= 0) continue;
++      final rest = t.substring(idx + 1);
++      final arrow = rest.indexOf(' -> ');
++      if (arrow <= 0) continue;
++      final host = rest.substring(0, arrow).trim();
++      if (host.isEmpty || host == '?') continue;
++      if (filter.isNotEmpty && !host.contains(filter)) continue;
++      domains.add(host);
++    }
++    if (domains.isEmpty) return const ToolResult(true, '没有匹配的域名可导出。');
++    final list = domains.toList()..sort();
++
++    final jsonBody = jsonEncode({
++      'generated': DateTime.now().millisecondsSinceEpoch,
++      'count': list.length,
++      'domains': list,
++    });
++    final sh = StringBuffer('#!/bin/sh\n# Rowan 抓包 -> 屏蔽脚本（生成自 capture_to_script）\n'
++        '# 用法：sh 本文件  （需 root，会往 /etc/hosts 追加条目）\n'
++        '# 撤销：手动编辑 /etc/hosts 删除 0.0.0.0 开头对应行\n'
++        'cp /etc/hosts /etc/hosts.rowan.bak 2>/dev/null\n');
++    for (final d in list) {
++      sh.writeln('grep -q "0.0.0.0 $d" /etc/hosts || echo "0.0.0.0 $d" >> /etc/hosts');
++    }
++
++    const dir = '/storage/emulated/0/Rowan/plugins';
++    final okJson = await _writeWorkspaceFile('$dir/capture-domains.json', jsonBody);
++    final okSh = await _writeWorkspaceFile('$dir/capture-block.sh', sh.toString());
++    final paths = <String>[
++      if (okJson) '$dir/capture-domains.json',
++      if (okSh) '$dir/capture-block.sh',
++    ];
++    if (paths.isEmpty) return const ToolResult(false, '写入失败（检查存储权限）');
++    return ToolResult(
++      true,
++      '已导出 ${list.length} 个域名到：\n${paths.join('\n')}',
++      view: 'list',
++      title: '抓包 · 导出脚本',
++      viewData: {
++        'items': [
++          for (final p in paths) {'title': p, 'subtitle': '可复用脚本', 'badge': 'file'},
++        ],
++      },
++    );
++  }
++}
++
+ void registerCaptureTools(ToolRegistry reg) {
+   reg.register(CaptureStartTool());
+   reg.register(VpnSetDnsTool());
+   reg.register(CaptureStopTool());
+   reg.register(CaptureRecordClearTool());
+   reg.register(CaptureListTool());
++  reg.register(CaptureReadTool());
++  reg.register(CaptureToScriptTool());
+   reg.register(StopTasksTool());
+ }
+diff --git a/lib/agent/tools_mem.dart b/lib/agent/tools_mem.dart
+index fe4fc07..4df5615 100644
+--- a/lib/agent/tools_mem.dart
++++ b/lib/agent/tools_mem.dart
+@@ -36,12 +36,12 @@ class MemWatchTool extends AgentTool {
+     final js = _script(addr, size, mode);
+     final b64 = base64Encode(utf8.encode(js));
+ 
+-    // 把脚本写到模块 scripts 目录（供 gadget 或 frida 直接加载），失败也不阻断
++    // 把脚本写到运行时 scripts 目录（供 gadget 或 frida 直接加载），失败也不阻断
+     String? scriptPath;
+     final w = await NativeBridge.rootExec(
+-        "mkdir -p /data/adb/modules/rowan/scripts && echo '$b64' | base64 -d > /data/adb/modules/rowan/scripts/memwatch.js && echo WROTE");
++        "mkdir -p /data/local/tmp/rowan/scripts && echo '$b64' | base64 -d > /data/local/tmp/rowan/scripts/memwatch.js && echo WROTE");
+     if ((w.stdout).contains('WROTE')) {
+-      scriptPath = '/data/adb/modules/rowan/scripts/memwatch.js';
++      scriptPath = '/data/local/tmp/rowan/scripts/memwatch.js';
+     }
+ 
+     return ToolResult(
+diff --git a/lib/agent/tools_vpn.dart b/lib/agent/tools_vpn.dart
+new file mode 100644
+index 0000000..71acebf
+--- /dev/null
++++ b/lib/agent/tools_vpn.dart
+@@ -0,0 +1,284 @@
++import 'dart:convert';
++import 'package:http/http.dart' as http;
++
++import 'tool.dart';
++import 'tool_registry.dart';
++import '../native/native_bridge.dart';
++
++/// VPN 订阅管理：订阅 URL 导入、节点列表、更新、选择，存成脚本/配置复用。
++/// 实际的隧道由容器里的 sing-box / v2ray 等承担（AI 装好后读 sub.json 跑）。
++
++const String _subPath = '/storage/emulated/0/Rowan/vpn/sub.json';
++
++/// 把内容（base64）写入用户可见文件，返回是否成功。
++Future<bool> _writeFile(String path, String content) async {
++  final b64 = base64Encode(utf8.encode(content));
++  final dir = path.contains('/') ? path.substring(0, path.lastIndexOf('/')) : '/storage/emulated/0/Rowan';
++  final r = await NativeBridge.exec(
++      "mkdir -p '$dir' && printf %s '$b64' | base64 -d > '$path' && echo OK");
++  return r.stdout.contains('OK');
++}
++
++Future<Map<String, dynamic>?> _readStore() async {
++  final r = await NativeBridge.exec("cat '$_subPath' 2>/dev/null");
++  if (r.code != 0 || r.stdout.trim().isEmpty) return null;
++  try {
++    return Map<String, dynamic>.from(jsonDecode(r.stdout) as Map);
++  } catch (_) {
++    return null;
++  }
++}
++
++String _b64Decode(String s) {
++  var t = s.trim();
++  try {
++    return utf8.decode(base64.decode(t));
++  } catch (_) {
++    try {
++      t = t.replaceAll('-', '+').replaceAll('_', '/');
++      final pad = t.length % 4;
++      if (pad != 0) t += '=' * (4 - pad);
++      return utf8.decode(base64.decode(t));
++    } catch (_) {
++      return '';
++    }
++  }
++}
++
++String _urlDecode(String s) {
++  try {
++    return Uri.decodeComponent(s);
++  } catch (_) {
++    return s;
++  }
++}
++
++String _proto(String link) {
++  final i = link.indexOf('://');
++  return i < 0 ? '' : link.substring(0, i).toLowerCase();
++}
++
++String _extractName(String link) {
++  final h = link.indexOf('#');
++  if (h >= 0 && h + 1 < link.length) {
++    final n = _urlDecode(link.substring(h + 1).trim());
++    if (n.isNotEmpty) return n;
++  }
++  return '';
++}
++
++/// 解析一条节点链接 → {name, proto, host, port}。解析失败时 host 退化为原始链接。
++Map<String, String> _parseNode(String link) {
++  final proto = _proto(link);
++  var name = _extractName(link);
++  var host = '';
++  var port = '';
++  try {
++    switch (proto) {
++      case 'vmess':
++        final body = link.substring('vmess://'.length).split('#').first;
++        final dec = _b64Decode(body);
++        if (dec.isEmpty) break;
++        final m = Map<String, dynamic>.from(jsonDecode(dec) as Map);
++        host = (m['add'] ?? '').toString();
++        port = (m['port'] ?? '').toString();
++        if (name.isEmpty) name = (m['ps'] ?? '').toString();
++        break;
++      case 'ss':
++        var rest = link.substring('ss://'.length).split('#').first;
++        var decoded = _b64Decode(rest);
++        if (decoded.isEmpty) decoded = rest;
++        final at = decoded.lastIndexOf('@');
++        if (at >= 0) {
++          final hp = decoded.substring(at + 1);
++          final c = hp.lastIndexOf(':');
++          if (c > 0) {
++            host = hp.substring(0, c);
++            port = hp.substring(c + 1);
++          } else {
++            host = hp;
++          }
++        }
++        break;
++      case 'ssr':
++        final body = link.substring('ssr://'.length).split('/').first;
++        final dec = _b64Decode(body);
++        final parts = dec.split(':');
++        if (parts.length >= 6) {
++          host = parts[0];
++          port = parts[1];
++        }
++        final rq = link.indexOf('remarks=');
++        if (rq >= 0 && name.isEmpty) {
++          name = _urlDecode(link.substring(rq + 8).split('&').first);
++        }
++        break;
++      case 'trojan':
++      case 'vless':
++        var rest = link.substring(link.indexOf('://') + 3).split('#').first.split('?').first;
++        final at = rest.lastIndexOf('@');
++        if (at >= 0) {
++          final hp = rest.substring(at + 1);
++          final c = hp.lastIndexOf(':');
++          if (c > 0) {
++            host = hp.substring(0, c);
++            port = hp.substring(c + 1);
++          } else {
++            host = hp;
++          }
++        }
++        break;
++      case 'hysteria2':
++      case 'hy2':
++      case 'tuic':
++        var rest = link.substring(link.indexOf('://') + 3).split('#').first.split('?').first;
++        final at = rest.lastIndexOf('@');
++        if (at >= 0) rest = rest.substring(at + 1);
++        final c = rest.lastIndexOf(':');
++        if (c > 0) {
++          host = rest.substring(0, c);
++          port = rest.substring(c + 1);
++        } else {
++          host = rest;
++        }
++        break;
++    }
++  } catch (_) {}
++  if (name.isEmpty) name = host.isEmpty ? link : '$proto://$host${port.isEmpty ? '' : ':$port'}';
++  if (host.isEmpty) host = link;
++  return {'name': name, 'proto': proto, 'host': host, 'port': port, 'link': link};
++}
++
++/// 解码订阅正文成节点链接列表：先按行拆，再判断是否 base64。
++List<String> _decodeSub(String body) {
++  var t = body.trim();
++  if (t.isEmpty) return const [];
++  // 已经是节点明文列表
++  if (RegExp(r'(ss|ssr|vmess|vless|trojan|hysteria2|hy2|tuic)://').hasMatch(t)) {
++    return t.split(RegExp(r'[\r\n]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
++  }
++  final dec = _b64Decode(t);
++  if (dec.isNotEmpty) t = dec;
++  return t.split(RegExp(r'[\r\n]+')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
++}
++
++class VpnImportSubTool extends AgentTool {
++  @override
++  String get name => 'vpn_import_sub';
++
++  @override
++  String get description =>
++      '导入 VPN 订阅：传订阅 URL，抓取并解析出节点列表，存到 /storage/emulated/0/Rowan/vpn/sub.json。'
++      '支持 ss/ssr/vmess/vless/trojan/hysteria2 等常见格式，明文或 base64 订阅都能解析。'
++      '存成文件后下次可直接用 vpn_update_sub 更新、vpn_list_nodes 查看。';
++
++  @override
++  Map<String, String> get parameters => {'url': '订阅 URL'};
++
++  @override
++  Future<ToolResult> execute(Map<String, String> args) async {
++    final url = (args['url'] ?? '').trim();
++    if (!url.startsWith('http')) return const ToolResult(false, 'url 必须是 http(s)');
++    String body;
++    try {
++      final resp = await http.get(
++        Uri.parse(url),
++        headers: {'User-Agent': 'Mozilla/5.0 (Android 14) AppleWebKit/537.36 Chrome/120 Safari/537.36'},
++      ).timeout(const Duration(seconds: 30));
++      if (resp.statusCode != 200) return ToolResult(false, '订阅拉取失败 HTTP ${resp.statusCode}');
++      body = resp.body;
++    } catch (e) {
++      return ToolResult(false, '订阅请求异常：$e');
++    }
++    final links = _decodeSub(body);
++    if (links.isEmpty) return const ToolResult(false, '订阅里没有解析出节点');
++    final nodes = <Map<String, String>>[for (final l in links) _parseNode(l)];
++    final store = {
++      'updated': DateTime.now().millisecondsSinceEpoch,
++      'source': url,
++      'nodes': nodes,
++    };
++    final ok = await _writeFile(_subPath, jsonEncode(store));
++    if (!ok) return const ToolResult(false, '写入失败（检查存储权限）');
++    return ToolResult(
++      true,
++      '已导入 ${nodes.length} 个节点，存到 $_subPath',
++      view: 'list',
++      title: 'VPN 节点',
++      viewData: {
++        'items': [
++          for (final n in nodes)
++            {
++              'title': n['name'],
++              'subtitle': '${n['proto']} · ${n['host']}${(n['port'] ?? '').isEmpty ? '' : ':${n['port']}'}',
++              'badge': n['proto']!.toUpperCase(),
++            },
++        ],
++      },
++    );
++  }
++}
++
++class VpnListNodesTool extends AgentTool {
++  @override
++  String get name => 'vpn_list_nodes';
++
++  @override
++  String get description => '列出已导入的 VPN 节点（来自订阅，存于 sub.json）。';
++
++  @override
++  Map<String, String> get parameters => const {};
++
++  @override
++  Future<ToolResult> execute(Map<String, String> args) async {
++    final store = await _readStore();
++    final nodes = (store?['nodes'] as List?) ?? const [];
++    if (nodes.isEmpty) return const ToolResult(true, '还没有导入节点，用 vpn_import_sub 导入。');
++    final updated = (store?['updated'] as num?)?.toInt();
++    return ToolResult(
++      true,
++      '共 ${nodes.length} 个节点${updated == null ? '' : '（${DateTime.fromMillisecondsSinceEpoch(updated)}）'}',
++      view: 'list',
++      title: 'VPN 节点',
++      viewData: {
++        'items': [
++          for (final raw in nodes)
++            () {
++              final n = Map<String, dynamic>.from(raw as Map);
++              return {
++                'title': (n['name'] ?? '').toString(),
++                'subtitle':
++                    '${n['proto']} · ${n['host']}${(n['port'] ?? '').toString().isEmpty ? '' : ':${n['port']}'}',
++                'badge': (n['proto'] ?? '').toString().toUpperCase(),
++              };
++            }(),
++        ],
++      },
++    );
++  }
++}
++
++class VpnUpdateSubTool extends AgentTool {
++  @override
++  String get name => 'vpn_update_sub';
++
++  @override
++  String get description => '用上次导入的订阅 URL 重新拉取并更新节点列表。';
++
++  @override
++  Map<String, String> get parameters => const {};
++
++  @override
++  Future<ToolResult> execute(Map<String, String> args) async {
++    final store = await _readStore();
++    final url = (store?['source'] ?? '').toString();
++    if (url.isEmpty) return const ToolResult(false, '还没有订阅记录，先用 vpn_import_sub 导入。');
++    return VpnImportSubTool().execute({'url': url});
++  }
++}
++
++void registerVpnTools(ToolRegistry reg) {
++  reg.register(VpnImportSubTool());
++  reg.register(VpnListNodesTool());
++  reg.register(VpnUpdateSubTool());
++}
+diff --git a/lib/native/gmem.dart b/lib/native/gmem.dart
+index 69d4dc2..e3a037a 100644
+--- a/lib/native/gmem.dart
++++ b/lib/native/gmem.dart
+@@ -58,8 +58,11 @@ class Gmem {
+     }
+   }
+ 
++  /// 把用户输入安全地包成单个 shell 参数（防止空格/特殊字符截断）。
++  static String _sq(String s) => "'${s.replaceAll("'", "'\\''")}'";
++
+   static Future<List<String>?> scan(int pid, String value, {String type = 'i32', String region = 'all', int max = 200}) async {
+-    final r = await _run('scan $pid $type $value $max $region');
++    final r = await _run('scan $pid ${_sq(type)} ${_sq(value)} $max ${_sq(region)}');
+     if (r == null || r['ok'] != true) return null;
+     return ((r['hits'] as List?) ?? const []).map((e) => e.toString()).toList();
+   }
+diff --git a/lib/widgets/media_cards.dart b/lib/widgets/media_cards.dart
+index 0dc2047..1a751d2 100644
+--- a/lib/widgets/media_cards.dart
++++ b/lib/widgets/media_cards.dart
+@@ -188,7 +188,9 @@ class _VideoViewCardState extends State<VideoViewCard> {
+   Future<void> _playEpisode(int i) async {
+     if (_eps.isEmpty || i < 0 || i >= _eps.length) return;
+     final old = _c;
+-    _savedMs['${widget.title}|$_epTitle'] = old?.value.position.inMilliseconds ?? 0;
++    if (old != null && old.value.isInitialized && old.value.position.inMilliseconds > 0) {
++      _savedMs['${widget.title}|$_epTitle'] = old.value.position.inMilliseconds;
++    }
+     _c = null;
+     await old?.dispose();
+     if (!mounted) return;
+@@ -207,9 +209,12 @@ class _VideoViewCardState extends State<VideoViewCard> {
+ 
+   @override
+   void dispose() {
+-    _savedMs['${widget.title}|$_epTitle'] = _c?.value.position.inMilliseconds ?? 0;
++    final c = _c;
++    if (c != null && c.value.isInitialized && c.value.position.inMilliseconds > 0) {
++      _savedMs['${widget.title}|$_epTitle'] = c.value.position.inMilliseconds;
++    }
+     _persistPositions();
+-    _c?.dispose();
++    c?.dispose();
+     super.dispose();
+   }
+ 
+@@ -1604,6 +1609,7 @@ class _PaginatedReaderState extends State<PaginatedReader> {
+       ),
+     );
+     if (ok == true) _goto((int.tryParse(c.text.trim()) ?? 1) - 1);
++    c.dispose();
+   }
+ 
+   Widget _buildSized(BoxConstraints cons) {
+-- 
+2.43.0
+
