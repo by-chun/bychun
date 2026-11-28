@@ -1,6 +1,6 @@
 import 'music_handler.dart';
 
-/// 全局音频播放（AI 点歌 / 播 URL / 播本地文件），底层走 audio_service 后台播放。
+/// 全局音频播放（AI 点歌 / 播 URL / 播本地文件 / 播放列表），底层走 audio_service 后台播放。
 class AudioService {
   AudioService._();
   static final AudioService instance = AudioService._();
@@ -23,6 +23,23 @@ class AudioService {
     }
     return r;
   }
+
+  /// 播放一个播放列表（tracks: [{url, title}]），从 index 起。
+  Future<String> playList(List<Map<String, String>> tracks, {int index = 0}) async {
+    final list = tracks
+        .where((t) => (t['url'] ?? '').trim().isNotEmpty)
+        .map((t) => MusicTrack(t['url']!.trim(), (t['title'] ?? t['url']!).trim()))
+        .toList();
+    if (list.isEmpty) return '播放列表为空';
+    final start = index.clamp(0, list.length - 1).toInt();
+    currentUrl = list[start].url;
+    currentTitle = list[start].title;
+    return _h.playPlaylist(list, index: start);
+  }
+
+  Future<String> next() => _h.next();
+  Future<String> prev() => _h.prev();
+  Future<String> setLoop(String mode) => _h.setLoop(mode);
 
   Future<String> pause() async {
     await _h.pause();
