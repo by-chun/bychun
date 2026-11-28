@@ -324,9 +324,15 @@ object ProotLauncher {
         // chroot 起不来（挂载被拦、rootfs 不完整等）就自动回退 PRoot，不让用户卡死。
         if (ChrootLauncher.canChroot(ctx, env)) {
             val r = ChrootLauncher.exec(ctx, env, cmd)
+            val stderr = (r["stderr"] as? String) ?: ""
+            val setupError = stderr.contains("chroot") || stderr.contains("mount") ||
+                stderr.contains("denied") || stderr.contains("permission") ||
+                stderr.contains("not found") || stderr.contains("No such") || stderr.contains("can't")
+            // 只有「命令没跑起来（无输出）+ 报错像挂载/chroot 失败」才回退，
+            // 普通命令失败（命令自己报错）不回退，避免误判
             val failed = (r["code"] as? Int ?: -1) != 0 &&
                 (r["stdout"] as? String).isNullOrBlank() &&
-                ((r["stderr"] as? String) ?: "").contains("chroot")
+                setupError
             if (!failed) return r
         }
         if (!prepare(ctx, env)) {

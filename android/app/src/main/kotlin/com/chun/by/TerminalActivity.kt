@@ -234,6 +234,8 @@ class TerminalActivity : Activity() {
         //   有 root + rootfs  → chroot（内核原生，零 ptrace 开销，uid=0 是真的）
         //   没 root + rootfs  → PRoot（模拟，任何 Android 8+ 可用）
         //   都没有           → Android 自带 shell（toybox + su/Shizuku）
+        // 每次打开都重新探测 root：中途在管理器里授权过也能立刻切到 chroot
+        ChrootLauncher.invalidateRootCache()
         when {
             ChrootLauncher.canChroot(this) -> newChrootTab()
             ProotLauncher.isReady(this) -> newTab()

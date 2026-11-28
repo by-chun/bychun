@@ -681,6 +681,9 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                             granted("android.permission.READ_MEDIA_AUDIO") else storage
                         val root = (Shell.isAppGrantedRoot() ?: false) || checkKernelSu()
                         val shizuku = try { ShizukuBridge.available() } catch (e: Exception) { false }
+                        // 重新探测 root：授权状态变了（刚在管理器里允许）容器模式也要跟着刷新
+                        ChrootLauncher.invalidateRootCache()
+                        val containerMode = ChrootLauncher.modeOf(this)
                         runOnUiThread {
                             safeSuccess(result, mapOf(
                                 "overlay" to overlay,
@@ -689,7 +692,7 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                                 "notification" to notif,
                                 "root" to root,
                                 // 容器的实际运行方式：chroot（有 root，原生）/ proot（模拟）/ none
-                                "containerMode" to ChrootLauncher.modeOf(this),
+                                "containerMode" to containerMode,
                                 "installPackages" to installPkgs,
                                 "battery" to battery,
                                 "usageStats" to usageStats,
@@ -850,13 +853,6 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                         val addr = call.argument<Long>("addr") ?: 0L
                         val data = call.argument<ByteArray>("data") ?: ByteArray(0)
                         executor.execute { val ok = NativeMemory.patchBytes(pid, addr, data); runOnUiThread { safeSuccess(result, ok) } }
-                    }
-                    "prootExec" -> {
-                        val cmd = call.argument<String>("cmd") ?: ""
-                        executor.execute {
-                            val r = if (ProotLauncher.isReady(this)) ProotLauncher.exec(this, cmd) else runShell(cmd, 60)
-                            runOnUiThread { safeSuccess(result, r) }
-                        }
                     }
                     "prootReady" -> runOnUiThread { safeSuccess(result, ProotLauncher.isReady(this)) }
                     "vpnStart" -> runOnUiThread {

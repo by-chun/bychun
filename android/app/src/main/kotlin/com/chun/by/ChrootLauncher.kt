@@ -20,20 +20,35 @@ object ChrootLauncher {
 
     private var cachedRoot: Boolean? = null
 
+    /** 常见 su 路径：不写死 /system/bin/su，老设备/部分内核可能挂在别的目录。 */
+    private val suCandidates = arrayOf(
+        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/sbin/su", "/su/su",
+    )
+
     /**
      * 是否拿到真 root（缓存；清缓存用 invalidateRootCache）。
-     * 直接起 /system/bin/su 探测，不依赖 libsu 的 Shell 是否初始化过，
-     * 避免「有 root 却检测不到」的情况。首次调用会触发一次授权弹窗。
+     * 先找存在的 su 二进制再探测，用独立线程读输出 + waitFor 限时，
+     * 避免 su 卡在授权弹窗时 readText() 无限阻塞、或把 UI 卡死。
      */
     fun hasRoot(): Boolean {
         cachedRoot?.let { return it }
         val ok = try {
-            val p = ProcessBuilder("/system/bin/su", "-c", "id -u")
-                .redirectErrorStream(true)
-                .start()
-            val out = p.inputStream.bufferedReader().use { it.readText() }.trim()
-            p.waitFor(6, java.util.concurrent.TimeUnit.SECONDS)
-            out == "0" || out.endsWith("\n0") || out.contains("uid=0")
+            val su = suCandidates.firstOrNull { File(it).exists() } ?: "su"
+            val p = ProcessBuilder(su, "-c", "id -u").redirectErrorStream(true).start()
+            val out = StringBuilder()
+            val reader = Thread {
+                runCatching {
+                    BufferedReader(InputStreamReader(p.inputStream)).use { r ->
+                        r.forEachLine { out.append(it) }
+                    }
+                }
+            }
+            reader.isDaemon = true
+            reader.start()
+            val done = p.waitFor(6, java.util.concurrent.TimeUnit.SECONDS)
+            if (!done) p.destroyForcibly()
+            reader.join(500)
+            out.toString().trim() == "0"
         } catch (e: Throwable) {
             false
         }
@@ -53,13 +68,15 @@ object ChrootLauncher {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(K_FORCE_PRROT, force).apply()
     }
 
-    /** 这个环境能不能用 chroot：有 root + 有 rootfs + rootfs 里有 /bin/sh + 没被强制关掉。 */
+    /** 这个环境能不能用 chroot：有 root + 有 rootfs + 没被强制关掉。 */
     fun canChroot(ctx: Context, env: String = ProotLauncher.currentEnv(ctx)): Boolean {
         if (isForceProot(ctx)) return false
         if (!hasRoot()) return false
-        val dir = ProotLauncher.envDir(ctx, env)
-        if (!dir.isDirectory) return false
-        return File(dir, "bin/sh").exists() || File(dir, "usr/bin/sh").exists()
+        // 复用 ProotLauncher.isReady 的 NOFOLLOW_LINKS 检查：
+        // 不能直接 File(dir, "bin/sh").exists()——Alpine 的 bin/sh 是指向 /bin/busybox 的
+        // 绝对符号链接，宿主上 exists() 会解析到宿主的 /bin/busybox 而误判为不存在，
+        // 导致有 root 也永远走不到 chroot。
+        return ProotLauncher.isReady(ctx, env)
     }
 
     /** 当前环境的实际运行方式：chroot / proot / none。 */
