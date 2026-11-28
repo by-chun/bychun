@@ -422,6 +422,22 @@
     const chev='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
     return `<div class="steps"><div class="steps-head">${meta||''} <span style="display:inline-block;transform:rotate(-90deg);vertical-align:-1px">${chev}</span></div>${steps.map(s=>`<div class="step" onclick="this.classList.toggle('open')"><span class="s-ic ${s.k}">${s.k==='think'?ic('spark',13):ic('term',13)}</span><div class="s-body"><div class="s-label ${s.k}"><b>${s.k==='think'?'思考':'运行'}</b> · ${esc(s.t)}</div><div class="s-more">${esc(s.full||s.t)}</div></div><span class="s-chev">${chev}</span></div>`).join('')}</div>`;
   }
+  /* GitHub 直接装插件卡片 */
+  function installCard(url){
+    const repo=(url.match(/github\.com\/[^\s]+/)||[url])[0];
+    return `<div class="card"><div class="card-h"><span class="ci">${ic('box',14)}</span><span class="ct">安装插件</span><span class="live-tag" id="inst-tag"><span class="spin"></span>安装中</span></div><div class="card-b">
+      <div class="kv"><span class="k">仓库</span><span class="v">${esc(repo)}</span></div>
+      <div class="kv"><span class="k">下载</span><span class="v" id="inst1">下载 tarball…</span></div>
+      <div class="kv"><span class="k">解包</span><span class="v" id="inst2">等待</span></div>
+      <div class="kv"><span class="k">注册</span><span class="v" id="inst3">等待</span></div>
+    </div></div>`;
+  }
+  function runInstallAnimate(){
+    const P=id=>document.getElementById(id);
+    setTimeout(()=>{ if(P('inst1'))P('inst1').innerHTML='<span style="color:var(--accent)">tarball 已下载</span>'; if(P('inst2'))P('inst2').innerHTML='<span style="color:var(--accent)">正在解包…</span>'; },700);
+    setTimeout(()=>{ if(P('inst2'))P('inst2').innerHTML='<span style="color:var(--accent)">已解包</span>'; if(P('inst3'))P('inst3').innerHTML='<span style="color:var(--accent)">写入 plugin.json…</span>'; },1500);
+    setTimeout(()=>{ if(P('inst3'))P('inst3').innerHTML='<span style="color:var(--accent)">已注册</span>'; if(P('inst-tag'))P('inst-tag').innerHTML='<span style="color:var(--accent)">已安装</span>'; msgs.scrollTop=msgs.scrollHeight; },2300);
+  }
 
   /* ---------- 抽屉内容 ---------- */
   const plugins=[
@@ -544,12 +560,14 @@
         ], '1:28 · 3 步 · 42K tokens'));
         addMsg('assist',reply);
         topSub.textContent='4 条消息';
-        if(/列表|应用|文件/.test(t)){ setTimeout(()=>{msgs.insertAdjacentHTML('beforeend', listCard('已安装应用',[{t:'微信',s:'com.tencent.mm',b:'用户'},{t:'哔哩哔哩',s:'tv.danmaku.bili',b:'用户'},{t:'抖音',s:'com.ss.android.ugc.aweme',b:'用户'}])); msgs.scrollTop=msgs.scrollHeight;},350); }
+        if(/github\.com|plugin_install|装插件/i.test(t)){ setTimeout(()=>{ msgs.insertAdjacentHTML('beforeend', installCard(t)); msgs.scrollTop=msgs.scrollHeight; runInstallAnimate(); },350); }
+        else if(/列表|应用|文件/.test(t)){ setTimeout(()=>{msgs.insertAdjacentHTML('beforeend', listCard('已安装应用',[{t:'微信',s:'com.tencent.mm',b:'用户'},{t:'哔哩哔哩',s:'tv.danmaku.bili',b:'用户'},{t:'抖音',s:'com.ss.android.ugc.aweme',b:'用户'}])); msgs.scrollTop=msgs.scrollHeight;},350); }
         else if(/终端|命令|下载/.test(t)){ setTimeout(()=>{msgs.insertAdjacentHTML('beforeend', streamCard('终端 · apt install',['$ apk add --no-cache python3','fetch http://...','(1/3) Installing python3...','(2/3) Installing python3-libs...','OK: 45 MiB in 12 packages','[exit 0]'])); msgs.scrollTop=msgs.scrollHeight;},350); }
       },700);
     },250);
   }
   function aiReply(t){
+    if(/github|插件|plugin|dsh/i.test(t)) return `收到，用 <code>plugin_install</code> 直接装这个仓库：下载 tarball → 解包到插件目录 → 读/转 <code>plugin.json</code> → 注册。装完输入框上方的胶囊就会出来。`;
     if(/游戏|逆向|原神|抓包/.test(t)) return `### 🔍 逆向分析\n\n我先探测目标，再决定走哪条路：\n\n- 有 Zygisk → 写 <code>scripts/</code> 无痕 hook\n- 有 LSPosed → 写 <code>xposed_scripts.json</code>\n- 都没有 → <code>memScan</code> 内存修改\n\n先跑一条 <code>ls /data/adb/modules</code> 确认环境。`;
     if(/列表|应用/.test(t)) return `已列出安装的应用，见下方窗口。需要看某个 APK 的内部文件树，点抽屉里的「应用」也能展开。`;
     if(/终端|命令|下载|安装/.test(t)) return `好的，在容器里执行，进度会实时显示在下面的终端窗口里。`;
@@ -593,11 +611,12 @@
         {k:'run',t:'timeout 30 dsh plugin --help 2>&1 | h...',full:'timeout 30 dsh plugin --help 2>&1 | head -40'},
         {k:'think',t:'So `dsh plugin --profile web add <spec>` fe...',full:'So `dsh plugin --profile web add <spec>` fetches and installs the plugin into the web profile.'},
       ], '1:28 · 7 步 · 275K tokens')); break;
+      case 'install': resetMsgs(`<div class="hint" style="padding-top:18px">对 AI 发一个 GitHub 网址，就会像这样装：</div>`+installCard('github.com/kingcharleslzy/dsh-purge')); runInstallAnimate(); break;
     }
   }
   // 屏幕清单（含图标名），同时生成左侧导航和手机切换面板
   const SCREENS=[
-    {grp:'主界面',items:[['chat','对话 / 气泡','chat'],['drawer','抽屉','folder'],['add','加号菜单','plus'],['settings','设置','sliders'],['float','悬浮窗','spark'],['tool','工具运行输出','tool']]},
+    {grp:'主界面',items:[['chat','对话 / 气泡','chat'],['drawer','抽屉','folder'],['add','加号菜单','plus'],['settings','设置','sliders'],['float','悬浮窗','spark'],['tool','工具运行输出','tool'],['install','装插件','plug']]},
     {grp:'视图卡（AI 输出）',items:[['steps','思考/运行步骤','clock'],['list','列表卡','list'],['detail','详情卡','doc'],['stream','终端流卡','term'],['run','运行中的流','clock'],['form','表单卡','edit'],['video','视频卡','play'],['audio','音频卡','music'],['perm','权限确认卡','shield'],['group','群聊','users']]},
   ];
   $('#sideBody').innerHTML=SCREENS.map(g=>`<div class="grp">${g.grp}</div>${g.items.map(([s,t,icn])=>`<button data-s="${s}"><span class="ic">${ic(icn)}</span>${t}</button>`).join('')}`).join('');
