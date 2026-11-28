@@ -73,6 +73,9 @@ class MusicHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         _ => '列表循环',
       };
 
+  /// 当前循环模式（none/one/all），供 UI 显示。
+  String get loopMode => _loop;
+
   /// 播 URL 或本地文件（单曲，不进播放列表）。
   Future<String> playUrl(String url, {String? title}) async {
     try {

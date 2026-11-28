@@ -41,6 +41,9 @@ class AudioService {
   Future<String> prev() => _h.prev();
   Future<String> setLoop(String mode) => _h.setLoop(mode);
 
+  /// 当前循环模式（none/one/all）。
+  String get loop => _h.loopMode;
+
   Future<String> pause() async {
     await _h.pause();
     return '已暂停';

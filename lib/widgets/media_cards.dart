@@ -830,6 +830,7 @@ class AudioViewCard extends StatefulWidget {
 class _AudioViewCardState extends State<AudioViewCard> {
   Timer? _timer;
   String _state = '';
+  String _loop = 'all';
 
   @override
   void initState() {
@@ -847,7 +848,13 @@ class _AudioViewCardState extends State<AudioViewCard> {
   Future<void> _sync() async {
     try {
       final s = await AudioService.instance.status();
-      if (mounted && s != _state) setState(() => _state = s);
+      final l = AudioService.instance.loop;
+      if (mounted && (s != _state || l != _loop)) {
+        setState(() {
+          _state = s;
+          _loop = l;
+        });
+      }
     } catch (_) {}
   }
 
@@ -859,6 +866,29 @@ class _AudioViewCardState extends State<AudioViewCard> {
         },
         icon: Icon(icon, size: 20, color: AppColors.brand),
       );
+
+  /// 循环模式：none → one → all 循环切换。
+  Widget _loopBtn() {
+    final icon = switch (_loop) {
+      'none' => Icons.repeat_rounded,
+      'one' => Icons.repeat_one_rounded,
+      _ => Icons.repeat_on_rounded,
+    };
+    final next = switch (_loop) {
+      'none' => 'one',
+      'one' => 'all',
+      _ => 'none',
+    };
+    return IconButton(
+      visualDensity: VisualDensity.compact,
+      tooltip: '循环模式',
+      onPressed: () async {
+        await AudioService.instance.setLoop(next);
+        await _sync();
+      },
+      icon: Icon(icon, size: 20, color: _loop == 'none' ? AppColors.muted : AppColors.brand),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -930,9 +960,12 @@ class _AudioViewCardState extends State<AudioViewCard> {
             },
           ),
           Row(children: [
+            _btn(Icons.skip_previous_rounded, () => AudioService.instance.prev()),
             _btn(Icons.play_arrow_rounded, () => AudioService.instance.resume()),
             _btn(Icons.pause_rounded, () => AudioService.instance.pause()),
+            _btn(Icons.skip_next_rounded, () => AudioService.instance.next()),
             _btn(Icons.stop_rounded, () => AudioService.instance.stop()),
+            _loopBtn(),
           ]),
         ]),
       ),
