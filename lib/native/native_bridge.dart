@@ -775,4 +775,59 @@ class NativeBridge {
   static Future<void> chatOverlayPush(String role, String text) async {
     try { await _ch.invokeMethod<bool>('chatOverlayPush', {'role': role, 'text': text}); } catch (_) {}
   }
+
+  // ================= 定位 =================
+  static Future<Map<String, dynamic>> getLocation() async {
+    try { return await _ch.invokeMethod<Map>('getLocation') ?? {'ok': false, 'error': '调用失败'}; }
+    catch (e) { return {'ok': false, 'error': '$e'}; }
+  }
+
+  // ================= 蓝牙 =================
+  static Future<Map<String, dynamic>> bluetoothState() async {
+    try { return await _ch.invokeMethod<Map>('bluetoothState') ?? {'ok': false}; } catch (_) { return {'ok': false}; }
+  }
+  static Future<Map<String, dynamic>> bluetoothScan(int seconds) async {
+    try { return await _ch.invokeMethod<Map>('bluetoothScan', {'seconds': seconds}) ?? {'ok': false}; }
+    catch (_) { return {'ok': false}; }
+  }
+  static Future<Map<String, dynamic>> bluetoothConnect(String address) async {
+    try { return await _ch.invokeMethod<Map>('bluetoothConnect', {'address': address}) ?? {'ok': false}; }
+    catch (_) { return {'ok': false}; }
+  }
+  static Future<Map<String, dynamic>> bluetoothRead(String address, String? service, String char) async {
+    try { return await _ch.invokeMethod<Map>('bluetoothRead', {'address': address, 'service': service ?? '', 'char': char}) ?? {'ok': false}; }
+    catch (_) { return {'ok': false}; }
+  }
+  static Future<Map<String, dynamic>> bluetoothWrite(String address, String? service, String char, String base64, {bool wait = true}) async {
+    try { return await _ch.invokeMethod<Map>('bluetoothWrite', {'address': address, 'service': service ?? '', 'char': char, 'data': base64, 'wait': wait}) ?? {'ok': false}; }
+    catch (_) { return {'ok': false}; }
+  }
+  static Future<Map<String, dynamic>> bluetoothSubscribe(String address, String? service, String char, int seconds) async {
+    try { return await _ch.invokeMethod<Map>('bluetoothSubscribe', {'address': address, 'service': service ?? '', 'char': char, 'seconds': seconds}) ?? {'ok': false}; }
+    catch (_) { return {'ok': false}; }
+  }
+  static Future<Map<String, dynamic>> bluetoothDisconnect(String address) async {
+    try { return await _ch.invokeMethod<Map>('bluetoothDisconnect', {'address': address}) ?? {'ok': true}; }
+    catch (_) { return {'ok': true}; }
+  }
+
+  // ================= 浏览器 =================
+  static Future<bool> browserOpen(String url) async {
+    try { return await _ch.invokeMethod<bool>('browserOpen', {'url': url}) ?? false; } catch (_) { return false; }
+  }
+  static Future<bool> browserNavigate(String url) async {
+    try { return await _ch.invokeMethod<bool>('browserNavigate', {'url': url}) ?? false; } catch (_) { return false; }
+  }
+  static Future<String> browserExecJs(String js) async {
+    try { return await _ch.invokeMethod<String>('browserExecJs', {'js': js}) ?? ''; } catch (_) { return ''; }
+  }
+  static Future<String> browserSnapshot({int max = 4000}) async {
+    try { return await _ch.invokeMethod<String>('browserSnapshot', {'max': max}) ?? ''; } catch (_) { return ''; }
+  }
+  static Future<String> browserTitle() async {
+    try { return await _ch.invokeMethod<String>('browserTitle') ?? ''; } catch (_) { return ''; }
+  }
+  static Future<bool> browserClose() async {
+    try { return await _ch.invokeMethod<bool>('browserClose') ?? false; } catch (_) { return false; }
+  }
 }

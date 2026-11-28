@@ -21,6 +21,8 @@ import 'tools_config.dart';
 import 'tools_capture.dart';
 import 'tools_mcp.dart';
 import 'tools_workspace.dart';
+import 'tools_system.dart';
+import 'tools_native.dart';
 import 'tools_file.dart';
 import 'tools_audio.dart';
 import 'tools_video.dart';
@@ -413,6 +415,8 @@ class AgentEngine extends ChangeNotifier implements LiveShellSink {
     registerVideoTools(registry);
     registerWebTools(registry);
     registerWorkspaceTools(registry);
+    registerSystemTools(registry);
+    registerNativeTools(registry);
     _bootstrap();
   }
 

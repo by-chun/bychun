@@ -732,6 +732,22 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                             if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED)
                                 perms += android.Manifest.permission.READ_EXTERNAL_STORAGE
                         }
+                        // 定位（Android 12+ 单独权限，11- 用 fine/coarse）
+                        if (Build.VERSION.SDK_INT >= 31) {
+                            if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                                checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                                perms += android.Manifest.permission.ACCESS_FINE_LOCATION
+                        } else {
+                            if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                                perms += android.Manifest.permission.ACCESS_FINE_LOCATION
+                        }
+                        // 蓝牙（Android 12+ 运行时权限）
+                        if (Build.VERSION.SDK_INT >= 31) {
+                            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                                perms += android.Manifest.permission.BLUETOOTH_SCAN
+                            if (checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                                perms += android.Manifest.permission.BLUETOOTH_CONNECT
+                        }
                         if (!hasAllFiles && Build.VERSION.SDK_INT >= 30) {
                             try {
                                 startActivity(Intent(
@@ -976,6 +992,107 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
                     "hideOverlay" -> {
                         stopService(Intent(this, OverlayService::class.java))
                         runOnUiThread { safeSuccess(result, true) }
+                    }
+                    // ================= 定位 =================
+                    "getLocation" -> runOnUiThread {
+                        safeSuccess(result, LocationBridge.lastLocation(this))
+                    }
+                    // ================= 蓝牙 BLE =================
+                    "bluetoothState" -> runOnUiThread { safeSuccess(result, BluetoothBridge.state(this)) }
+                    "bluetoothScan" -> {
+                        val sec = call.argument<Int>("seconds") ?: 5
+                        executor.execute {
+                            val r = BluetoothBridge.scan(this, sec)
+                            runOnUiThread { safeSuccess(result, r) }
+                        }
+                    }
+                    "bluetoothConnect" -> {
+                        val addr = call.argument<String>("address") ?: ""
+                        executor.execute {
+                            val r = BluetoothBridge.connect(this, addr)
+                            runOnUiThread { safeSuccess(result, r) }
+                        }
+                    }
+                    "bluetoothRead" -> {
+                        val addr = call.argument<String>("address") ?: ""
+                        val sU = call.argument<String>("service") ?: ""
+                        val cU = call.argument<String>("char") ?: ""
+                        executor.execute {
+                            val r = BluetoothBridge.read(addr, sU.ifEmpty { null }, cU)
+                            runOnUiThread { safeSuccess(result, r) }
+                        }
+                    }
+                    "bluetoothWrite" -> {
+                        val addr = call.argument<String>("address") ?: ""
+                        val sU = call.argument<String>("service") ?: ""
+                        val cU = call.argument<String>("char") ?: ""
+                        val data = call.argument<String>("data") ?: ""
+                        val wait = call.argument<Boolean>("wait") ?: true
+                        executor.execute {
+                            val bytes = android.util.Base64.decode(data, android.util.Base64.NO_WRAP)
+                            val r = BluetoothBridge.write(addr, sU.ifEmpty { null }, cU, bytes, wait)
+                            runOnUiThread { safeSuccess(result, r) }
+                        }
+                    }
+                    "bluetoothSubscribe" -> {
+                        val addr = call.argument<String>("address") ?: ""
+                        val sU = call.argument<String>("service") ?: ""
+                        val cU = call.argument<String>("char") ?: ""
+                        val sec = call.argument<Int>("seconds") ?: 5
+                        executor.execute {
+                            val r = BluetoothBridge.subscribe(addr, sU.ifEmpty { null }, cU, sec)
+                            runOnUiThread { safeSuccess(result, r) }
+                        }
+                    }
+                    "bluetoothDisconnect" -> {
+                        val addr = call.argument<String>("address") ?: ""
+                        runOnUiThread { safeSuccess(result, BluetoothBridge.disconnect(addr)) }
+                    }
+                    // ================= 浏览器 =================
+                    "browserOpen" -> runOnUiThread {
+                        val url = call.argument<String>("url") ?: ""
+                        try {
+                            val it = Intent(this, BrowserActivity::class.java).apply {
+                                putExtra("url", url)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(it)
+                            safeSuccess(result, true)
+                        } catch (e: Throwable) {
+                            safeError(result, "FAIL", "打开浏览器失败：${e.message}", null)
+                        }
+                    }
+                    "browserNavigate" -> runOnUiThread {
+                        val url = call.argument<String>("url") ?: ""
+                        if (BrowserBridge.activity != null) {
+                            BrowserBridge.open(url)
+                            safeSuccess(result, true)
+                        } else {
+                            val it = Intent(this, BrowserActivity::class.java).apply {
+                                putExtra("url", url); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(it)
+                            safeSuccess(result, true)
+                        }
+                    }
+                    "browserExecJs" -> {
+                        val js = call.argument<String>("js") ?: ""
+                        executor.execute {
+                            val r = BrowserBridge.execJs(js)
+                            runOnUiThread { safeSuccess(result, r) }
+                        }
+                    }
+                    "browserSnapshot" -> {
+                        val max = call.argument<Int>("max") ?: 4000
+                        executor.execute {
+                            val r = BrowserBridge.snapshot(max)
+                            runOnUiThread { safeSuccess(result, r) }
+                        }
+                    }
+                    "browserTitle" -> runOnUiThread { safeSuccess(result, BrowserBridge.title()) }
+                    "browserClose" -> runOnUiThread {
+                        BrowserBridge.close()
+                        safeSuccess(result, true)
                     }
                     else -> result.notImplemented()
                 }
