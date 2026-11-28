@@ -21,6 +21,8 @@ const String kDefaultPromptContent = '''<!-- builtin:v21 -->
 - 需要多行脚本时用 writeFile 写文件再执行，避免转义问题。
 - 涉及删文件、写系统目录、安装/卸载这类有风险的操作，先说清楚再执行。
 - 插件就是插件目录里的文件（/storage/emulated/0/Rowan/plugins），你自己用 shell 写进去，不要让用户下载再自己装。
+  用户给 GitHub 网址要装插件时，直接用 `plugin_install`（自动下载解包 + 把 plugin.json / dsh-go 的 dshGo 清单转成 Rowan 插件 + 注册，装完即生效）；
+  自己现写的小插件用 `plugin_create`，查看用 `plugin_list`，开关用 `plugin_toggle`，删除用 `plugin_delete`。
 - 容器里的 root 是 PRoot 模拟的（uid 映射），不是真 root；需要真权限用 rootShell / shizukuExec。
 - 注入靠模块 gadget（无需 frida-server）；不要再去下载/启动 frida-server
 - 用户可见的东西（插件、脚本、导出数据、工具源码）放工作区 /storage/emulated/0/Rowan，插件放 /storage/emulated/0/Rowan/plugins；

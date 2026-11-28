@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'tool.dart';
 import 'tool_registry.dart';
 import 'plugins_store.dart';
+import '../native/native_bridge.dart';
 
 /// AI 自己创建插件：给一个 JSON 清单就能装上，装完即生效（不用重启）。
 class PluginCreateTool extends AgentTool {
@@ -140,9 +141,95 @@ class PluginDeleteTool extends AgentTool {
   }
 }
 
+/// 从 GitHub 直接安装插件：给仓库地址，自动下载解包到插件目录并注册。
+class PluginInstallTool extends AgentTool {
+  @override
+  String get name => 'plugin_install';
+
+  @override
+  String get description =>
+      '从 GitHub 直接安装插件：传仓库地址（如 https://github.com/owner/repo），'
+      '自动下载解包到 /sdcard/Rowan/plugins/<id>/，装完即生效（不用重启）。'
+      '仓库里有 plugin.json 就直接用；只有 package.json（dsh-go 插件）就自动把 dshGo 清单转成 Rowan 插件；都没有就生成一个最小清单。';
+
+  @override
+  Map<String, String> get parameters => {
+        'url': 'GitHub 仓库地址（也支持 tar.gz 直链）',
+        'id': '可选：插件目录名，默认从仓库名取',
+      };
+
+  @override
+  Future<ToolResult> execute(Map<String, String> args) async {
+    final rawUrl = (args['url'] ?? '').trim();
+    if (rawUrl.isEmpty) return const ToolResult(false, 'url 不能为空');
+    // 解析 owner/repo
+    final m = RegExp(r'github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)').firstMatch(rawUrl);
+    final owner = m?.group(1) ?? '';
+    final repo = (m?.group(2) ?? '').replaceAll(RegExp(r'\.git$'), '');
+    // 目录名
+    var id = (args['id'] ?? '').trim().isNotEmpty ? args['id']!.trim() : (repo.isNotEmpty ? repo : '');
+    id = id.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
+    if (id.isEmpty) id = 'plugin-${DateTime.now().millisecondsSinceEpoch}';
+    if (!RegExp(r'^[A-Za-z0-9]').hasMatch(id)) id = 'p-$id';
+    final dir = '/sdcard/Rowan/plugins';
+    final tarball = owner.isNotEmpty
+        ? 'https://github.com/$owner/$repo/archive/HEAD.tar.gz'
+        : rawUrl;
+    // 容器里下载 + 解包（busybox 自带 wget/tar）
+    final script = "mkdir -p '$dir' && rm -rf '$dir/$id' && mkdir -p '$dir/$id' && "
+        "cd '$dir/$id' && wget -qO- '$tarball' | tar xz --strip-components=1 && echo INSTALLED";
+    final r = await NativeBridge.prootExec(script);
+    if (!r.stdout.contains('INSTALLED')) {
+      final err = r.stderr.trim().isEmpty ? r.stdout.trim() : r.stderr.trim();
+      return ToolResult(false, '下载/解包失败（容器未就绪或网络问题）：$err');
+    }
+    // 检查 plugin.json；没有就从 package.json 生成
+    final check = await NativeBridge.prootExec(
+        "cat '$dir/$id/plugin.json' 2>/dev/null; echo '===PKG==='; cat '$dir/$id/package.json' 2>/dev/null");
+    final parts = check.stdout.split('===PKG===');
+    final hasPluginJson = (parts.isNotEmpty ? parts[0] : '').trim().isNotEmpty;
+    if (!hasPluginJson) {
+      final pkg = (parts.length > 1 ? parts[1] : '').trim();
+      final manifest = <String, dynamic>{'v': 1, 'title': id, 'icon': 'plugin', 'enabled': true};
+      if (pkg.isNotEmpty) {
+        try {
+          final pm = jsonDecode(pkg);
+          if (pm is Map) {
+            final dshGo = pm['dshGo'];
+            if (dshGo is Map) {
+              if (dshGo['title'] is String && (dshGo['title'] as String).isNotEmpty) manifest['title'] = dshGo['title'];
+              if (dshGo['icon'] is String) manifest['icon'] = dshGo['icon'];
+              final contrib = dshGo['contributes'];
+              if (contrib is Map) {
+                for (final k in ['composer.actions', 'message.actions', 'panels']) {
+                  if (contrib[k] is List) manifest[k] = contrib[k];
+                }
+              }
+            } else if (pm['name'] is String && (pm['name'] as String).isNotEmpty) {
+              manifest['title'] = (pm['name'] as String).split('/').last;
+            }
+          }
+        } catch (_) {}
+      }
+      final b64 = base64Encode(utf8.encode(jsonEncode(manifest)));
+      await NativeBridge.prootExec(
+          "mkdir -p '$dir/$id' && printf %s '$b64' | base64 -d > '$dir/$id/plugin.json'");
+    }
+    // 校验 + 返回
+    final list = await PluginsNotifier.loadAll();
+    final hit = list.where((p) => p.id == id || p.dir.endsWith('/$id')).toList();
+    if (hit.isEmpty) {
+      return ToolResult(true, '已下载到 $dir/$id，但没检测到有效 plugin.json（仓库可能不是插件，可让 AI 自己写一个）。');
+    }
+    return ToolResult(true,
+        '已安装插件「${hit.first.title}」到 $dir/$id，输入框上方胶囊已即时生效（关掉用 plugin_toggle，删掉用 plugin_delete）。');
+  }
+}
+
 void registerRowanPluginTools(ToolRegistry reg) {
   reg.register(PluginCreateTool());
   reg.register(PluginListTool());
   reg.register(PluginToggleTool());
   reg.register(PluginDeleteTool());
+  reg.register(PluginInstallTool());
 }
