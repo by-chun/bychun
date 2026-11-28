@@ -172,7 +172,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
     } catch (_) {}
   }
 
-  void _persistPositions() {
+  static void _persistPositions() {
     Future(() async {
       try {
         final dir = await NativeBridge.appDataDir();
@@ -290,6 +290,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
     await Navigator.of(context).push(MaterialPageRoute(
       fullscreenDialog: true,
       builder: (_) => _FullscreenVideo(
+        title: widget.title,
         url: url,
         startAt: pos,
         speed: speed,
@@ -300,6 +301,15 @@ class _VideoViewCardState extends State<VideoViewCard> {
     ));
     if (!mounted) return;
     _speed = speed;
+    // 全屏里可能切了集/倍速，回来同步一下
+    final finalIdx = _VideoViewCardState._savedEp[widget.title];
+    if (finalIdx != null && _eps.isNotEmpty && finalIdx >= 0 && finalIdx < _eps.length) {
+      _index = finalIdx;
+    }
+    final finalSpeed = _VideoViewCardState._savedSpeed[widget.title];
+    if (finalSpeed != null && _speeds.contains(finalSpeed)) {
+      _speed = finalSpeed;
+    }
     _init();
   }
 
@@ -506,6 +516,7 @@ class _VideoViewCardState extends State<VideoViewCard> {
 }
 
 class _FullscreenVideo extends StatefulWidget {
+  final String title;
   final String url;
   final Duration startAt;
   final double speed;
@@ -513,6 +524,7 @@ class _FullscreenVideo extends StatefulWidget {
   final List<Map<String, String>> episodes;
   final int index;
   const _FullscreenVideo({
+    required this.title,
     required this.url,
     required this.startAt,
     required this.speed,
@@ -577,6 +589,10 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
   void _onTick() {
     final c = _c;
     if (c == null || !c.value.isInitialized) return;
+    if (c.value.isPlaying) {
+      _VideoViewCardState._savedMs['${widget.title}|$_title'] = c.value.position.inMilliseconds;
+      _VideoViewCardState._savedEp[widget.title] = _idx;
+    }
     final d = c.value.duration;
     if (d.inMilliseconds <= 0) return;
     if (_autoNext &&
@@ -597,6 +613,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
       _switching = false;
       _epOpen = false;
     });
+    _VideoViewCardState._savedEp[widget.title] = idx;
     await _open(idx, Duration.zero);
   }
 
@@ -615,7 +632,14 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
   @override
   void dispose() {
     _hideTimer?.cancel();
-    _c?.dispose();
+    final c = _c;
+    if (c != null && c.value.isInitialized && c.value.position.inMilliseconds > 0) {
+      _VideoViewCardState._savedMs['${widget.title}|$_title'] = c.value.position.inMilliseconds;
+    }
+    _VideoViewCardState._savedEp[widget.title] = _idx;
+    _VideoViewCardState._savedSpeed[widget.title] = _speed;
+    _VideoViewCardState._persistPositions();
+    c?.dispose();
     SystemChrome.setPreferredOrientations(const <DeviceOrientation>[]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -625,6 +649,8 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
     final i = _speeds.indexOf(_speed);
     _speed = _speeds[(i + 1) % _speeds.length];
     c.setPlaybackSpeed(_speed);
+    _VideoViewCardState._savedSpeed[widget.title] = _speed;
+    _VideoViewCardState._persistPositions();
     setState(() {});
   }
 
@@ -663,7 +689,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                 child: Row(children: [
                   IconButton(
                     icon: const Icon(Icons.close_rounded, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(context).pop(_idx),
                   ),
                   Expanded(
                     child: Text(_title,
