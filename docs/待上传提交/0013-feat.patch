@@ -1,0 +1,121 @@
+From 4d11113d00429303bc92bd00bb0db5ae1bfd95f5 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 22:37:54 +0800
+Subject: [PATCH 13/14] =?UTF-8?q?feat:=20=E9=9F=B3=E4=B9=90=E5=8D=A1?=
+ =?UTF-8?q?=E8=A1=A5=E9=BD=90=E4=B8=8A=E4=B8=80=E9=A6=96/=E4=B8=8B?=
+ =?UTF-8?q?=E4=B8=80=E9=A6=96/=E5=BE=AA=E7=8E=AF=E6=A8=A1=E5=BC=8F?=
+ =?UTF-8?q?=E6=8C=89=E9=92=AE=EF=BC=88=E5=AE=8C=E6=95=B4=E6=92=AD=E6=94=BE?=
+ =?UTF-8?q?=E6=8E=A7=E5=88=B6=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- AudioViewCard 加 prev/next/loop 按钮，循环 none→one→all 切换
+- MusicHandler/AudioService 暴露 loopMode 供 UI 显示
+---
+ lib/agent/audio_service.dart |  3 +++
+ lib/agent/music_handler.dart |  3 +++
+ lib/widgets/media_cards.dart | 35 ++++++++++++++++++++++++++++++++++-
+ 3 files changed, 40 insertions(+), 1 deletion(-)
+
+diff --git a/lib/agent/audio_service.dart b/lib/agent/audio_service.dart
+index 9e06f22..2758d89 100644
+--- a/lib/agent/audio_service.dart
++++ b/lib/agent/audio_service.dart
+@@ -41,6 +41,9 @@ class AudioService {
+   Future<String> prev() => _h.prev();
+   Future<String> setLoop(String mode) => _h.setLoop(mode);
+ 
++  /// 当前循环模式（none/one/all）。
++  String get loop => _h.loopMode;
++
+   Future<String> pause() async {
+     await _h.pause();
+     return '已暂停';
+diff --git a/lib/agent/music_handler.dart b/lib/agent/music_handler.dart
+index b8784f3..2199a10 100644
+--- a/lib/agent/music_handler.dart
++++ b/lib/agent/music_handler.dart
+@@ -73,6 +73,9 @@ class MusicHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+         _ => '列表循环',
+       };
+ 
++  /// 当前循环模式（none/one/all），供 UI 显示。
++  String get loopMode => _loop;
++
+   /// 播 URL 或本地文件（单曲，不进播放列表）。
+   Future<String> playUrl(String url, {String? title}) async {
+     try {
+diff --git a/lib/widgets/media_cards.dart b/lib/widgets/media_cards.dart
+index b576dd7..4cae1a5 100644
+--- a/lib/widgets/media_cards.dart
++++ b/lib/widgets/media_cards.dart
+@@ -830,6 +830,7 @@ class AudioViewCard extends StatefulWidget {
+ class _AudioViewCardState extends State<AudioViewCard> {
+   Timer? _timer;
+   String _state = '';
++  String _loop = 'all';
+ 
+   @override
+   void initState() {
+@@ -847,7 +848,13 @@ class _AudioViewCardState extends State<AudioViewCard> {
+   Future<void> _sync() async {
+     try {
+       final s = await AudioService.instance.status();
+-      if (mounted && s != _state) setState(() => _state = s);
++      final l = AudioService.instance.loop;
++      if (mounted && (s != _state || l != _loop)) {
++        setState(() {
++          _state = s;
++          _loop = l;
++        });
++      }
+     } catch (_) {}
+   }
+ 
+@@ -860,6 +867,29 @@ class _AudioViewCardState extends State<AudioViewCard> {
+         icon: Icon(icon, size: 20, color: AppColors.brand),
+       );
+ 
++  /// 循环模式：none → one → all 循环切换。
++  Widget _loopBtn() {
++    final icon = switch (_loop) {
++      'none' => Icons.repeat_rounded,
++      'one' => Icons.repeat_one_rounded,
++      _ => Icons.repeat_on_rounded,
++    };
++    final next = switch (_loop) {
++      'none' => 'one',
++      'one' => 'all',
++      _ => 'none',
++    };
++    return IconButton(
++      visualDensity: VisualDensity.compact,
++      tooltip: '循环模式',
++      onPressed: () async {
++        await AudioService.instance.setLoop(next);
++        await _sync();
++      },
++      icon: Icon(icon, size: 20, color: _loop == 'none' ? AppColors.muted : AppColors.brand),
++    );
++  }
++
+   @override
+   Widget build(BuildContext context) {
+     return _shell(
+@@ -930,9 +960,12 @@ class _AudioViewCardState extends State<AudioViewCard> {
+             },
+           ),
+           Row(children: [
++            _btn(Icons.skip_previous_rounded, () => AudioService.instance.prev()),
+             _btn(Icons.play_arrow_rounded, () => AudioService.instance.resume()),
+             _btn(Icons.pause_rounded, () => AudioService.instance.pause()),
++            _btn(Icons.skip_next_rounded, () => AudioService.instance.next()),
+             _btn(Icons.stop_rounded, () => AudioService.instance.stop()),
++            _loopBtn(),
+           ]),
+         ]),
+       ),
+-- 
+2.43.0
+

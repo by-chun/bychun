@@ -1,7 +1,7 @@
 From ef7c5a31eb03515ce888c9a1acd92c08dd100b80 Mon Sep 17 00:00:00 2001
 From: by-chun <360198661+by-chun@users.noreply.github.com>
 Date: Sat, 28 Nov 2026 22:35:32 +0800
-Subject: [PATCH 10/11] =?UTF-8?q?fix:=20=E4=BF=AE=20Root=20=E6=8E=A2?=
+Subject: [PATCH 10/14] =?UTF-8?q?fix:=20=E4=BF=AE=20Root=20=E6=8E=A2?=
  =?UTF-8?q?=E6=B5=8B=E4=B8=8E=20chroot/proot=20=E8=B7=AF=E7=94=B1=E2=80=94?=
  =?UTF-8?q?=E2=80=94chroot=20=E4=BB=8E=E6=9C=AA=E7=94=9F=E6=95=88=E7=9A=84?=
  =?UTF-8?q?=E6=A0=B8=E5=BF=83=20bug?=
