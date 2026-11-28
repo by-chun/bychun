@@ -27,11 +27,9 @@ import java.util.concurrent.TimeUnit
 object BrowserBridge {
     @JvmStatic
     var webView: WebView? = null
-        private set
 
     @JvmStatic
     var activity: BrowserActivity? = null
-        private set
 
     @JvmStatic
     fun open(url: String?) {
