@@ -1,11 +1,11 @@
 From 0dc772167adcc6861cb42c73e951c4c05e4e1c34 Mon Sep 17 00:00:00 2001
 From: by-chun <360198661+by-chun@users.noreply.github.com>
 Date: Sat, 28 Nov 2026 11:23:33 +0800
-Subject: [PATCH 1/8] =?UTF-8?q?fix:=20=E7=BC=96=E8=AF=91=E9=94=99=E8=AF=AF?=
- =?UTF-8?q?=E2=80=94=E2=80=94=E8=A1=A5=20ToolRegistry=20import=E3=80=81Map?=
- =?UTF-8?q?=20=E7=B1=BB=E5=9E=8B=20cast=E3=80=81=E5=8E=BB=20const=20?=
- =?UTF-8?q?=E6=8F=92=E5=80=BC=E3=80=81=5FresultOf=20=E5=8E=BB=20static?=
- =?UTF-8?q?=E3=80=81=5FThinkingDots=20=E6=94=B9=E5=90=8D?=
+Subject: [PATCH 01/11] =?UTF-8?q?fix:=20=E7=BC=96=E8=AF=91=E9=94=99?=
+ =?UTF-8?q?=E8=AF=AF=E2=80=94=E2=80=94=E8=A1=A5=20ToolRegistry=20import?=
+ =?UTF-8?q?=E3=80=81Map=20=E7=B1=BB=E5=9E=8B=20cast=E3=80=81=E5=8E=BB=20co?=
+ =?UTF-8?q?nst=20=E6=8F=92=E5=80=BC=E3=80=81=5FresultOf=20=E5=8E=BB=20stat?=
+ =?UTF-8?q?ic=E3=80=81=5FThinkingDots=20=E6=94=B9=E5=90=8D?=
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

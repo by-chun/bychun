@@ -1,0 +1,169 @@
+From ef7c5a31eb03515ce888c9a1acd92c08dd100b80 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 22:35:32 +0800
+Subject: [PATCH 10/11] =?UTF-8?q?fix:=20=E4=BF=AE=20Root=20=E6=8E=A2?=
+ =?UTF-8?q?=E6=B5=8B=E4=B8=8E=20chroot/proot=20=E8=B7=AF=E7=94=B1=E2=80=94?=
+ =?UTF-8?q?=E2=80=94chroot=20=E4=BB=8E=E6=9C=AA=E7=94=9F=E6=95=88=E7=9A=84?=
+ =?UTF-8?q?=E6=A0=B8=E5=BF=83=20bug?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- canChroot 改用 ProotLauncher.isReady 的 NOFOLLOW_LINKS 检查：
+  原先 File(dir, "bin/sh").exists() 会把 Alpine 的 bin/sh→/bin/busybox 绝对符号链接
+  解析到宿主 /bin/busybox 而误判不存在，导致有 root 也永远走 PRoot
+- hasRoot：多路径探测 su + 独立线程读输出 + waitFor 限时，
+  修掉 su 卡授权弹窗时 readText() 无限阻塞/卡 UI
+- permStatus：先失效 root 缓存再算 containerMode，并移到 executor 线程（不再卡 UI）
+- TerminalActivity 每次打开重新探测 root，中途授权过立刻切 chroot
+- 删除 MainActivity 里重复（死代码）的 prootExec 分支
+- chroot→proot 回退判定放宽到 mount/denied/permission 等，避免挂载失败时不回退
+---
+ .../main/kotlin/com/chun/by/ChrootLauncher.kt | 41 +++++++++++++------
+ .../main/kotlin/com/chun/by/MainActivity.kt   | 12 ++----
+ .../main/kotlin/com/chun/by/ProotLauncher.kt  |  8 +++-
+ .../kotlin/com/chun/by/TerminalActivity.kt    |  2 +
+ 4 files changed, 42 insertions(+), 21 deletions(-)
+
+diff --git a/android/app/src/main/kotlin/com/chun/by/ChrootLauncher.kt b/android/app/src/main/kotlin/com/chun/by/ChrootLauncher.kt
+index bb7e78b..a9ff9cd 100644
+--- a/android/app/src/main/kotlin/com/chun/by/ChrootLauncher.kt
++++ b/android/app/src/main/kotlin/com/chun/by/ChrootLauncher.kt
+@@ -20,20 +20,35 @@ object ChrootLauncher {
+ 
+     private var cachedRoot: Boolean? = null
+ 
++    /** 常见 su 路径：不写死 /system/bin/su，老设备/部分内核可能挂在别的目录。 */
++    private val suCandidates = arrayOf(
++        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su", "/system/sbin/su", "/su/su",
++    )
++
+     /**
+      * 是否拿到真 root（缓存；清缓存用 invalidateRootCache）。
+-     * 直接起 /system/bin/su 探测，不依赖 libsu 的 Shell 是否初始化过，
+-     * 避免「有 root 却检测不到」的情况。首次调用会触发一次授权弹窗。
++     * 先找存在的 su 二进制再探测，用独立线程读输出 + waitFor 限时，
++     * 避免 su 卡在授权弹窗时 readText() 无限阻塞、或把 UI 卡死。
+      */
+     fun hasRoot(): Boolean {
+         cachedRoot?.let { return it }
+         val ok = try {
+-            val p = ProcessBuilder("/system/bin/su", "-c", "id -u")
+-                .redirectErrorStream(true)
+-                .start()
+-            val out = p.inputStream.bufferedReader().use { it.readText() }.trim()
+-            p.waitFor(6, java.util.concurrent.TimeUnit.SECONDS)
+-            out == "0" || out.endsWith("\n0") || out.contains("uid=0")
++            val su = suCandidates.firstOrNull { File(it).exists() } ?: "su"
++            val p = ProcessBuilder(su, "-c", "id -u").redirectErrorStream(true).start()
++            val out = StringBuilder()
++            val reader = Thread {
++                runCatching {
++                    BufferedReader(InputStreamReader(p.inputStream)).use { r ->
++                        r.forEachLine { out.append(it) }
++                    }
++                }
++            }
++            reader.isDaemon = true
++            reader.start()
++            val done = p.waitFor(6, java.util.concurrent.TimeUnit.SECONDS)
++            if (!done) p.destroyForcibly()
++            reader.join(500)
++            out.toString().trim() == "0"
+         } catch (e: Throwable) {
+             false
+         }
+@@ -53,13 +68,15 @@ object ChrootLauncher {
+         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(K_FORCE_PRROT, force).apply()
+     }
+ 
+-    /** 这个环境能不能用 chroot：有 root + 有 rootfs + rootfs 里有 /bin/sh + 没被强制关掉。 */
++    /** 这个环境能不能用 chroot：有 root + 有 rootfs + 没被强制关掉。 */
+     fun canChroot(ctx: Context, env: String = ProotLauncher.currentEnv(ctx)): Boolean {
+         if (isForceProot(ctx)) return false
+         if (!hasRoot()) return false
+-        val dir = ProotLauncher.envDir(ctx, env)
+-        if (!dir.isDirectory) return false
+-        return File(dir, "bin/sh").exists() || File(dir, "usr/bin/sh").exists()
++        // 复用 ProotLauncher.isReady 的 NOFOLLOW_LINKS 检查：
++        // 不能直接 File(dir, "bin/sh").exists()——Alpine 的 bin/sh 是指向 /bin/busybox 的
++        // 绝对符号链接，宿主上 exists() 会解析到宿主的 /bin/busybox 而误判为不存在，
++        // 导致有 root 也永远走不到 chroot。
++        return ProotLauncher.isReady(ctx, env)
+     }
+ 
+     /** 当前环境的实际运行方式：chroot / proot / none。 */
+diff --git a/android/app/src/main/kotlin/com/chun/by/MainActivity.kt b/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
+index 2db2fe6..e79a0ab 100644
+--- a/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
++++ b/android/app/src/main/kotlin/com/chun/by/MainActivity.kt
+@@ -681,6 +681,9 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
+                             granted("android.permission.READ_MEDIA_AUDIO") else storage
+                         val root = (Shell.isAppGrantedRoot() ?: false) || checkKernelSu()
+                         val shizuku = try { ShizukuBridge.available() } catch (e: Exception) { false }
++                        // 重新探测 root：授权状态变了（刚在管理器里允许）容器模式也要跟着刷新
++                        ChrootLauncher.invalidateRootCache()
++                        val containerMode = ChrootLauncher.modeOf(this)
+                         runOnUiThread {
+                             safeSuccess(result, mapOf(
+                                 "overlay" to overlay,
+@@ -689,7 +692,7 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
+                                 "notification" to notif,
+                                 "root" to root,
+                                 // 容器的实际运行方式：chroot（有 root，原生）/ proot（模拟）/ none
+-                                "containerMode" to ChrootLauncher.modeOf(this),
++                                "containerMode" to containerMode,
+                                 "installPackages" to installPkgs,
+                                 "battery" to battery,
+                                 "usageStats" to usageStats,
+@@ -851,13 +854,6 @@ class MainActivity : com.ryanheise.audioservice.AudioServiceActivity() {
+                         val data = call.argument<ByteArray>("data") ?: ByteArray(0)
+                         executor.execute { val ok = NativeMemory.patchBytes(pid, addr, data); runOnUiThread { safeSuccess(result, ok) } }
+                     }
+-                    "prootExec" -> {
+-                        val cmd = call.argument<String>("cmd") ?: ""
+-                        executor.execute {
+-                            val r = if (ProotLauncher.isReady(this)) ProotLauncher.exec(this, cmd) else runShell(cmd, 60)
+-                            runOnUiThread { safeSuccess(result, r) }
+-                        }
+-                    }
+                     "prootReady" -> runOnUiThread { safeSuccess(result, ProotLauncher.isReady(this)) }
+                     "vpnStart" -> runOnUiThread {
+                         val prep = android.net.VpnService.prepare(this)
+diff --git a/android/app/src/main/kotlin/com/chun/by/ProotLauncher.kt b/android/app/src/main/kotlin/com/chun/by/ProotLauncher.kt
+index f5a37db..011186d 100644
+--- a/android/app/src/main/kotlin/com/chun/by/ProotLauncher.kt
++++ b/android/app/src/main/kotlin/com/chun/by/ProotLauncher.kt
+@@ -324,9 +324,15 @@ object ProotLauncher {
+         // chroot 起不来（挂载被拦、rootfs 不完整等）就自动回退 PRoot，不让用户卡死。
+         if (ChrootLauncher.canChroot(ctx, env)) {
+             val r = ChrootLauncher.exec(ctx, env, cmd)
++            val stderr = (r["stderr"] as? String) ?: ""
++            val setupError = stderr.contains("chroot") || stderr.contains("mount") ||
++                stderr.contains("denied") || stderr.contains("permission") ||
++                stderr.contains("not found") || stderr.contains("No such") || stderr.contains("can't")
++            // 只有「命令没跑起来（无输出）+ 报错像挂载/chroot 失败」才回退，
++            // 普通命令失败（命令自己报错）不回退，避免误判
+             val failed = (r["code"] as? Int ?: -1) != 0 &&
+                 (r["stdout"] as? String).isNullOrBlank() &&
+-                ((r["stderr"] as? String) ?: "").contains("chroot")
++                setupError
+             if (!failed) return r
+         }
+         if (!prepare(ctx, env)) {
+diff --git a/android/app/src/main/kotlin/com/chun/by/TerminalActivity.kt b/android/app/src/main/kotlin/com/chun/by/TerminalActivity.kt
+index 1cd79c3..85ac3d4 100644
+--- a/android/app/src/main/kotlin/com/chun/by/TerminalActivity.kt
++++ b/android/app/src/main/kotlin/com/chun/by/TerminalActivity.kt
+@@ -234,6 +234,8 @@ class TerminalActivity : Activity() {
+         //   有 root + rootfs  → chroot（内核原生，零 ptrace 开销，uid=0 是真的）
+         //   没 root + rootfs  → PRoot（模拟，任何 Android 8+ 可用）
+         //   都没有           → Android 自带 shell（toybox + su/Shizuku）
++        // 每次打开都重新探测 root：中途在管理器里授权过也能立刻切到 chroot
++        ChrootLauncher.invalidateRootCache()
+         when {
+             ChrootLauncher.canChroot(this) -> newChrootTab()
+             ProotLauncher.isReady(this) -> newTab()
+-- 
+2.43.0
+

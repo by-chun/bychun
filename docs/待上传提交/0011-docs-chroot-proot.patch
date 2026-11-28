@@ -1,0 +1,29 @@
+From bfee0d7aabfaeefe4891d0f38695a24c5bff40d7 Mon Sep 17 00:00:00 2001
+From: by-chun <360198661+by-chun@users.noreply.github.com>
+Date: Sat, 28 Nov 2026 22:36:07 +0800
+Subject: [PATCH 11/11] =?UTF-8?q?docs:=20=E8=BF=9B=E5=BA=A6=E5=BF=AB?=
+ =?UTF-8?q?=E7=85=A7=E8=A1=A5=20chroot/proot=20=E8=B7=AF=E7=94=B1=E4=BF=AE?=
+ =?UTF-8?q?=E5=A4=8D?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ ...6\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md" | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git "a/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md" "b/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
+index 78b3e06..58c35d6 100644
+--- "a/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
++++ "b/docs/\346\236\266\346\236\204\344\270\216\345\276\205\345\212\236.md"
+@@ -108,6 +108,7 @@ rowan/docs/<功能>ui界面/        仓库副本
+ - media_cards.dart：dispose/切集把进度清零、跳页 TextEditingController 泄漏
+ - music_handler.dart：播放静默失败仍报成功、stop 不清 mediaItem
+ - agent_engine.dart：`/tools` 分支重复 `return`
++- ChrootLauncher/ProotLauncher：canChroot 对 Alpine 的 `bin/sh→/bin/busybox` 绝对符号链接误判（chroot 从未生效）；hasRoot 卡授权弹窗无限阻塞；permStatus 在 UI 线程探测 root；MainActivity 重复 prootExec 死代码
+ 
+ ### 仍未做（需原生大改或需真机验证，留待后续）
+ - ❌ #2 uid→应用名归属（DnsVpnService 需 per-uid 路由 / netlink）
+-- 
+2.43.0
+
