@@ -2,12 +2,13 @@
 
 已本地提交、**尚未推送**的改动。用户说「上传」时才推送，推完清空本目录。
 
-当前状态：**2 个提交待推送**（基于 `origin/main`）
+当前状态：**3 个提交待推送**（基于 `origin/main`，最后一个是本存档提交）
 
 | # | 提交 | 内容 | 涉及文件 |
 |---|---|---|---|
 | 1 | `0dc7721` | 编译错误修复：补 ToolRegistry import、Map 类型 cast、去 const 插值、_resultOf 去 static、_ThinkingDots 改名 | `agent_engine.dart`、`chat_page.dart`、`chat_message.dart` 等 |
 | 2 | `794408c` | 补 CA/抓包/VPN 工具 + 修原生抓包与内存/媒体/路径若干 bug：新增 `ca_install`/`ca_status`、`capture_read`/`capture_to_script`、`vpn_import_sub`/`vpn_list_nodes`/`vpn_update_sub`；修 CaptureServer 头解析、vpnStart 授权时序、gmem 注入、memWatch 路径与确认、媒体进度清零/控制器泄漏、播放静默失败、Zygisk 路径对齐 | `tools_ca.dart`(新)、`tools_vpn.dart`(新)、`tools_capture.dart`、`agent_engine.dart`、`permission.dart`、`CaptureServer.kt`、`MainActivity.kt`、`gmem.dart`、`tools_mem.dart`、`default_prompt.dart`、`media_cards.dart`、`music_handler.dart` |
+| 3 | `50586f1` | docs：待上传提交存档 | `docs/待上传提交/` |
 
 ## 上传步骤
 
