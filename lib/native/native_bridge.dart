@@ -778,36 +778,39 @@ class NativeBridge {
 
   // ================= 定位 =================
   static Future<Map<String, dynamic>> getLocation() async {
-    try { return await _ch.invokeMethod<Map>('getLocation') ?? {'ok': false, 'error': '调用失败'}; }
-    catch (e) { return {'ok': false, 'error': '$e'}; }
+    try {
+      final r = await _ch.invokeMethod<Map>('getLocation');
+      return Map<String, dynamic>.from(r ?? {'ok': false, 'error': '调用失败'});
+    } catch (e) { return {'ok': false, 'error': '$e'}; }
   }
 
   // ================= 蓝牙 =================
   static Future<Map<String, dynamic>> bluetoothState() async {
-    try { return await _ch.invokeMethod<Map>('bluetoothState') ?? {'ok': false}; } catch (_) { return {'ok': false}; }
+    try { final r = await _ch.invokeMethod<Map>('bluetoothState'); return Map<String, dynamic>.from(r ?? {'ok': false}); }
+    catch (_) { return {'ok': false}; }
   }
   static Future<Map<String, dynamic>> bluetoothScan(int seconds) async {
-    try { return await _ch.invokeMethod<Map>('bluetoothScan', {'seconds': seconds}) ?? {'ok': false}; }
+    try { final r = await _ch.invokeMethod<Map>('bluetoothScan', {'seconds': seconds}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
     catch (_) { return {'ok': false}; }
   }
   static Future<Map<String, dynamic>> bluetoothConnect(String address) async {
-    try { return await _ch.invokeMethod<Map>('bluetoothConnect', {'address': address}) ?? {'ok': false}; }
+    try { final r = await _ch.invokeMethod<Map>('bluetoothConnect', {'address': address}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
     catch (_) { return {'ok': false}; }
   }
   static Future<Map<String, dynamic>> bluetoothRead(String address, String? service, String char) async {
-    try { return await _ch.invokeMethod<Map>('bluetoothRead', {'address': address, 'service': service ?? '', 'char': char}) ?? {'ok': false}; }
+    try { final r = await _ch.invokeMethod<Map>('bluetoothRead', {'address': address, 'service': service ?? '', 'char': char}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
     catch (_) { return {'ok': false}; }
   }
   static Future<Map<String, dynamic>> bluetoothWrite(String address, String? service, String char, String base64, {bool wait = true}) async {
-    try { return await _ch.invokeMethod<Map>('bluetoothWrite', {'address': address, 'service': service ?? '', 'char': char, 'data': base64, 'wait': wait}) ?? {'ok': false}; }
+    try { final r = await _ch.invokeMethod<Map>('bluetoothWrite', {'address': address, 'service': service ?? '', 'char': char, 'data': base64, 'wait': wait}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
     catch (_) { return {'ok': false}; }
   }
   static Future<Map<String, dynamic>> bluetoothSubscribe(String address, String? service, String char, int seconds) async {
-    try { return await _ch.invokeMethod<Map>('bluetoothSubscribe', {'address': address, 'service': service ?? '', 'char': char, 'seconds': seconds}) ?? {'ok': false}; }
+    try { final r = await _ch.invokeMethod<Map>('bluetoothSubscribe', {'address': address, 'service': service ?? '', 'char': char, 'seconds': seconds}); return Map<String, dynamic>.from(r ?? {'ok': false}); }
     catch (_) { return {'ok': false}; }
   }
   static Future<Map<String, dynamic>> bluetoothDisconnect(String address) async {
-    try { return await _ch.invokeMethod<Map>('bluetoothDisconnect', {'address': address}) ?? {'ok': true}; }
+    try { final r = await _ch.invokeMethod<Map>('bluetoothDisconnect', {'address': address}); return Map<String, dynamic>.from(r ?? {'ok': true}); }
     catch (_) { return {'ok': true}; }
   }
 

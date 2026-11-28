@@ -49,7 +49,7 @@ class PluginCreateTool extends AgentTool {
       for (final e in v) {
         if (e is! Map) continue;
         final eid = (e['id'] ?? '').toString();
-        if (eid.isEmpty) return const ToolResult(false, '$slot 里有条目缺 id');
+        if (eid.isEmpty) return ToolResult(false, '$slot 里有条目缺 id');
         if (!ids.add(eid)) return ToolResult(false, 'id 重复：$eid（整个插件内不能重复）');
       }
     }

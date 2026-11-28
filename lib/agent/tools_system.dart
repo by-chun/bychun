@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../native/native_bridge.dart';
 import 'tool.dart';
+import 'tool_registry.dart';
 
 /// 系统设置 / 通知 / 应用使用时长 —— 走 root shell 命令（settings / dumpsys），
 /// 这些 Android API 没有对应的「无 root 可写」通道，root 下命令最稳。
@@ -179,7 +180,7 @@ class GetAppUsageTool extends AgentTool {
       });
       if (out.length >= 30) break;
     }
-    if (out.isEmpty) return const ToolResult(true, '没有找到${pkg.isEmpty ? '' : ' $pkg '}的使用记录');
+    if (out.isEmpty) return ToolResult(true, '没有找到${pkg.isEmpty ? '' : ' $pkg '}的使用记录');
 
     return ToolResult(
       true,

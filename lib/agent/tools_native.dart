@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../native/native_bridge.dart';
 import 'tool.dart';
+import 'tool_registry.dart';
 
 /// 定位 + 蓝牙 + 浏览器 工具（都走原生 Android API，容器替不了）。
 void registerNativeTools(ToolRegistry reg) {

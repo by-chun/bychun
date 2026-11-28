@@ -194,7 +194,7 @@ class AssistantBubble extends StatelessWidget {
             ]),
           ),
           if (typing && text.trim().isEmpty)
-            const _ThinkingDots()
+            const ThinkingDots()
           else
           for (var i = 0; i < blocks.length; i++)
             if (blocks[i].code == null)
@@ -437,7 +437,7 @@ class _ToolGroupTileState extends State<ToolGroupTile> {
   }
 
   /// 第 k 条若是「调用」，第 k+1 条就是它的「结果」（工具调用与结果交替）。
-  static ChatMsg? _resultOf(int k) {
+  ChatMsg? _resultOf(int k) {
     final t = widget.tools[k];
     if (!t.text.startsWith('调用 ')) return null;
     if (k + 1 < widget.tools.length) return widget.tools[k + 1];
