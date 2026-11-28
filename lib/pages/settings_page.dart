@@ -28,6 +28,7 @@ Widget embedShell({
   required String title,
   required Widget body,
   List<Widget> actions = const [],
+  Widget? fab,
 }) {
   return Column(
     children: [
@@ -43,7 +44,14 @@ Widget embedShell({
           ...actions,
         ]),
       ),
-      Expanded(child: body),
+      Expanded(
+        child: fab == null
+            ? body
+            : Stack(children: [
+                body,
+                Positioned(right: 14, bottom: 14, child: fab!),
+              ]),
+      ),
     ],
   );
 }
@@ -150,7 +158,7 @@ class _ProvidersPageState extends State<ProvidersPage> {
   @override
   Widget build(BuildContext context) {
     final body = _list.isEmpty
-        ? const EmptyState(icon: Icons.cloud_outlined, text: '还没有供应商\n点右上角 ＋ 添加自己的供应商与模型')
+        ? const EmptyState(icon: Icons.cloud_outlined, text: '还没有供应商\n点右下角 ＋ 添加自己的供应商与模型')
         : ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -191,12 +199,13 @@ class _ProvidersPageState extends State<ProvidersPage> {
               ),
             ],
           );
-    final addButton = IconButton(
+    final fab = FloatingActionButton(
       onPressed: () => _editProvider(null),
-      icon: const Icon(Icons.add_rounded, color: Color(0xFFD4DBE8)),
+      backgroundColor: AppColors.brand,
+      child: const Icon(Icons.add_rounded, color: Color(0xFF04220F)),
     );
     if (widget.embedded) {
-      return embedShell(title: 'AI 供应商', actions: [addButton], body: body);
+      return embedShell(title: 'AI 供应商', fab: fab, body: body);
     }
     return Scaffold(
       backgroundColor: const Color(0xFF141B2E),
@@ -205,8 +214,8 @@ class _ProvidersPageState extends State<ProvidersPage> {
         backgroundColor: const Color(0xFF141B2E),
         elevation: 0,
         title: const Text('AI 供应商', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-        actions: [addButton],
       ),
+      floatingActionButton: fab,
       body: body,
     );
   }
@@ -789,10 +798,14 @@ class _PromptPageState extends State<PromptPage> {
         onPressed: _restoreBuiltin,
         icon: const Icon(Icons.settings_backup_restore_rounded, color: Color(0xFFD4DBE8)),
       ),
-      IconButton(onPressed: () => _edit(), icon: const Icon(Icons.add_rounded, color: Color(0xFFD4DBE8))),
     ];
+    final fab = FloatingActionButton(
+      onPressed: () => _edit(),
+      backgroundColor: AppColors.brand,
+      child: const Icon(Icons.add_rounded, color: Color(0xFF04220F)),
+    );
     if (widget.embedded) {
-      return embedShell(title: '提示词', actions: actions, body: body);
+      return embedShell(title: '提示词', actions: actions, fab: fab, body: body);
     }
     return Scaffold(
       backgroundColor: const Color(0xFF141B2E),
@@ -803,6 +816,7 @@ class _PromptPageState extends State<PromptPage> {
         title: const Text('提示词', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         actions: actions,
       ),
+      floatingActionButton: fab,
       body: body,
     );
   }
